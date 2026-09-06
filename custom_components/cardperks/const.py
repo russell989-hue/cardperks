@@ -34,6 +34,7 @@ CONF_NOTES = "notes"
 CONF_ANNUAL_FEE = "annual_fee"
 CONF_ENABLED_CONDITIONAL = "enabled_conditional"
 CONF_PREVIOUS_LAST4 = "previous_last4"
+CONF_NOT_APPLICABLE = "not_applicable"
 
 ATTR_AMOUNT = "amount"
 ATTR_AMOUNT_USED = "amount_used"
@@ -105,6 +106,15 @@ class Role(StrEnum):
     PRIMARY = "primary"
     AUTHORIZED_USER = "authorized_user"
 
+
+PERIODS_PER_YEAR: dict[Cadence, int] = {
+    Cadence.MONTHLY: 12,
+    Cadence.QUARTERLY: 4,
+    Cadence.SEMIANNUAL: 2,
+    Cadence.ANNUAL: 1,
+    Cadence.PER_ANNIVERSARY: 1,
+    Cadence.ONE_TIME: 0,
+}
 
 CADENCE_MONTHS: dict[Cadence, int] = {
     Cadence.MONTHLY: 1,

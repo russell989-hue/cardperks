@@ -152,6 +152,7 @@
             "nickname": "Nickname (optional)",
             "annual_fee": "Annual fee override (optional, if yours differs from the catalog)",
             "enabled_conditional": "Conditional benefits you qualify for",
+            "not_applicable": "Benefits that do not apply to you (excluded from the totals)",
             "notes": "Notes (optional)"
           }
         },
@@ -166,6 +167,7 @@
             "nickname": "Nickname (optional)",
             "annual_fee": "Annual fee override (optional, if yours differs from the catalog)",
             "enabled_conditional": "Conditional benefits you qualify for",
+            "not_applicable": "Benefits that do not apply to you (excluded from the totals)",
             "notes": "Notes (optional)",
             "close_date": "Close date (YYYY-MM-DD, if closed)"
           }
@@ -194,20 +196,22 @@
     }
   },
   "entity": {
-    "select": {
+    "sensor": {
       "benefit_status": {
-        "name": "{benefit}",
+        "name": "{benefit} status",
         "state": {
           "unused": "Unused",
           "partial": "Partially used",
           "used": "Used",
           "n_a": "Not applicable"
         }
-      }
-    },
-    "sensor": {
+      },
       "benefit_expires": { "name": "{benefit} expires" },
       "benefit_remaining": { "name": "{benefit} remaining" },
+      "annual_value": { "name": "Annual credit value" },
+      "captured_12m": { "name": "Captured, 12 months" },
+      "forfeited_12m": { "name": "Forfeited, 12 months" },
+      "capture_rate": { "name": "Capture rate" },
       "fee_due": { "name": "Annual fee due" },
       "unused_value": { "name": "Unused value" },
       "net_value_12m": { "name": "Net value (12 months)" },
@@ -220,6 +224,7 @@
       "benefit_mark_used": { "name": "Mark {benefit} used" }
     },
     "number": {
+      "benefit_used": { "name": "{benefit} used" },
       "perk_value": { "name": "{benefit} value to me" }
     },
     "binary_sensor": {

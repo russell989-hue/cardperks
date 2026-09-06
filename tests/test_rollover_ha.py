@@ -15,9 +15,12 @@ def _eid(hass, platform: str, unique_id: str) -> str:
 
 
 async def test_midnight_rollover(hass, setup_integration: MockConfigEntry, freezer):
-    monthly = _eid(hass, "select", f"{CARD_ID}_monthly_credit_status")
+    monthly = _eid(hass, "sensor", f"{CARD_ID}_monthly_credit_status")
     await hass.services.async_call(
-        "select", "select_option", {"entity_id": monthly, "option": "partial"}, blocking=True
+        "number",
+        "set_value",
+        {"entity_id": _eid(hass, "number", f"{CARD_ID}_monthly_credit_used"), "value": 4},
+        blocking=True,
     )
     assert hass.states.get(monthly).attributes["period_start"] == "2026-09-01"
 
@@ -47,7 +50,7 @@ async def test_catch_up_after_downtime(hass, setup_integration: MockConfigEntry,
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    monthly = hass.states.get(_eid(hass, "select", f"{CARD_ID}_monthly_credit_status"))
+    monthly = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_monthly_credit_status"))
     assert monthly.attributes["period_start"] == "2026-12-01"
     hist = [h for h in entry.runtime_data.doc.history if h.benefit_id == "monthly_credit"]
     assert [h.closed_by for h in hist] == ["rollover", "gap", "gap"]

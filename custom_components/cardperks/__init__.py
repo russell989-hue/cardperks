@@ -20,7 +20,6 @@ from .store import CardPerksStore
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
-    Platform.SELECT,
     Platform.NUMBER,
     Platform.SENSOR,
     Platform.BUTTON,

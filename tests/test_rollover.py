@@ -85,15 +85,25 @@ def test_missed_periods_become_gap_history(catalog):
     assert dining == []  # Jul-Dec period still open on Dec 3
 
 
-def test_sticky_na_carries_over(catalog):
+def test_not_applicable_is_card_config_and_carries_over(catalog):
+    """Marking a benefit not applicable applies to the open period and every later one."""
     doc = StateDocument()
     rollover(doc, [_card()], catalog, date(2026, 9, 5), NOW)
+    assert doc.instances["c1:monthly_credit"].status is BenefitStatus.UNUSED
+
+    na_card = _card(not_applicable=("monthly_credit",))
+    rollover(doc, [na_card], catalog, date(2026, 9, 5), NOW)
     inst = doc.instances["c1:monthly_credit"]
-    inst.status = BenefitStatus.NA
-    inst.sticky_na = True
-    rollover(doc, [_card()], catalog, date(2026, 10, 2), NOW)
+    assert inst.status is BenefitStatus.NA and inst.sticky_na
+
+    rollover(doc, [na_card], catalog, date(2026, 10, 2), NOW)
     new = doc.instances["c1:monthly_credit"]
     assert new.status is BenefitStatus.NA and new.sticky_na
+
+    # Un-marking it frees the current period again.
+    rollover(doc, [_card()], catalog, date(2026, 10, 2), NOW)
+    freed = doc.instances["c1:monthly_credit"]
+    assert freed.status is BenefitStatus.UNUSED and not freed.sticky_na
 
 
 def test_one_time_closes_and_never_reopens(catalog):

@@ -7,7 +7,15 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
-from .const import AppliesTo, BenefitStatus, BenefitType, Cadence, ResetRule, Role
+from .const import (
+    PERIODS_PER_YEAR,
+    AppliesTo,
+    BenefitStatus,
+    BenefitType,
+    Cadence,
+    ResetRule,
+    Role,
+)
 
 # --------------------------------------------------------------------------- catalog
 
@@ -39,6 +47,23 @@ class Benefit:
     @property
     def is_one_time(self) -> bool:
         return self.cadence is Cadence.ONE_TIME
+
+    @property
+    def is_dollar(self) -> bool:
+        """Whether this benefit is measured in dollars rather than points or miles."""
+        if self.type in (BenefitType.PERK, BenefitType.INSURANCE):
+            return True
+        return self.amount is not None and self.unit == "USD"
+
+    @property
+    def periods_per_year(self) -> int:
+        return PERIODS_PER_YEAR.get(self.cadence, 0)
+
+    def annual_value(self, perk_override: float | None = None) -> float:
+        """What this benefit is worth over a year if fully used."""
+        if not self.is_dollar:
+            return 0.0
+        return round(self.value(perk_override) * (self.periods_per_year or 1), 2)
 
     def value(self, perk_override: float | None = None) -> float:
         """Dollar value of one period of this benefit."""
@@ -153,6 +178,7 @@ class HeldCard:
     annual_fee: float | None = None  # overrides the catalog fee (grandfathered pricing)
     enabled_conditional: tuple[str, ...] = ()  # conditional benefit ids this card qualifies for
     previous_last4: tuple[str, ...] = ()  # numbers this account had before replacement
+    not_applicable: tuple[str, ...] = ()  # benefit ids that do not apply to this holder
 
     @property
     def all_last4(self) -> frozenset[str]:
@@ -367,6 +393,48 @@ class ExpiringItem:
 
 
 @dataclass(frozen=True, slots=True)
+class Totals:
+    """Dollars over the trailing twelve months.
+
+    A period that closed unused is money gone, not money pending, so forfeited is
+    tracked separately from what is still capturable. Periods with no usage evidence
+    (imported gaps) are counted as unknown rather than assumed lost.
+    """
+
+    annual_value: float = 0.0
+    captured: float = 0.0
+    forfeited: float = 0.0
+    unknown: float = 0.0
+    open_remaining: float = 0.0
+
+    @property
+    def capture_rate(self) -> float | None:
+        """Share of the annual value actually captured, 0-100."""
+        if self.annual_value <= 0:
+            return None
+        return round(self.captured / self.annual_value * 100, 1)
+
+    def plus(self, other: Totals) -> Totals:
+        return Totals(
+            annual_value=round(self.annual_value + other.annual_value, 2),
+            captured=round(self.captured + other.captured, 2),
+            forfeited=round(self.forfeited + other.forfeited, 2),
+            unknown=round(self.unknown + other.unknown, 2),
+            open_remaining=round(self.open_remaining + other.open_remaining, 2),
+        )
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "annual_value": self.annual_value,
+            "captured_12m": self.captured,
+            "forfeited_12m": self.forfeited,
+            "unknown_12m": self.unknown,
+            "open_remaining": self.open_remaining,
+            "capture_rate": self.capture_rate,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class CardSummary:
     held_card_id: str
     fee_due: date | None
@@ -376,11 +444,15 @@ class CardSummary:
     used_value_12m: float
     net_value_12m: float
     expiring: tuple[ExpiringItem, ...]
+    totals: Totals = field(default_factory=Totals)
+    benefit_totals: Mapping[str, Totals] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
 class OwnerSummary:
     owner_id: str
+    totals: Totals
+    annual_fees: float
     unused_credits: float
     expiring_7d: tuple[ExpiringItem, ...]
     expiring_30d: tuple[ExpiringItem, ...]

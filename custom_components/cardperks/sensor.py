@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import Any, ClassVar
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -31,6 +31,9 @@ async def async_setup_entry(
                     OwnerExpiringSensor(coordinator, owner, 7),
                     OwnerExpiringSensor(coordinator, owner, 30),
                     OwnerFive24Sensor(coordinator, owner),
+                    OwnerTotalSensor(coordinator, owner, "annual_value"),
+                    OwnerTotalSensor(coordinator, owner, "captured_12m"),
+                    OwnerTotalSensor(coordinator, owner, "forfeited_12m"),
                 ],
                 config_subentry_id=sub.subentry_id,
             )
@@ -43,10 +46,15 @@ async def async_setup_entry(
                 CardFeeDueSensor(coordinator, card),
                 CardUnusedValueSensor(coordinator, card),
                 CardNetValue12mSensor(coordinator, card),
+                CardTotalSensor(coordinator, card, "annual_value"),
+                CardTotalSensor(coordinator, card, "captured_12m"),
+                CardTotalSensor(coordinator, card, "forfeited_12m"),
+                CardCaptureRateSensor(coordinator, card),
             ]
             for b in product.benefits_for(card):
                 entities.append(BenefitExpiresSensor(coordinator, card, b))
                 entities.append(BenefitRemainingSensor(coordinator, card, b))
+                entities.append(BenefitStatusSensor(coordinator, card, b))
             async_add_entities(entities, config_subentry_id=sub.subentry_id)
 
 
@@ -103,6 +111,37 @@ class BenefitRemainingSensor(BenefitEntity, SensorEntity):
             "period_end": inst.period_end,
             "cadence": str(self.benefit.cadence),
             "uses": [u.to_dict() for u in inst.uses],
+        }
+
+
+class BenefitStatusSensor(BenefitEntity, SensorEntity):
+    """Derived from the dollars used. Read-only: the number box is the input."""
+
+    _attr_translation_key = "benefit_status"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options: ClassVar[list[str]] = [str(s) for s in BenefitStatus]
+    _attr_icon = "mdi:gift-outline"
+
+    def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard, benefit: Benefit) -> None:
+        super().__init__(coordinator, card, benefit)
+        self._attr_unique_id = f"{card.id}_{benefit.id}_status"
+
+    @property
+    def native_value(self) -> str | None:
+        inst = self.instance
+        return str(inst.status) if inst else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        inst = self.instance
+        if inst is None:
+            return {}
+        return {
+            "benefit_id": self.benefit_id,
+            "amount": inst.amount,
+            "amount_used": inst.amount_used,
+            "period_start": inst.period_start,
+            "period_end": inst.period_end,
         }
 
 
@@ -219,6 +258,76 @@ class CardNetValue12mSensor(CardEntity, SensorEntity):
         }
 
 
+class CardTotalSensor(CardEntity, SensorEntity):
+    """Annual value, captured or forfeited over the trailing twelve months."""
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
+    _attr_suggested_display_precision = 2
+
+    _ICONS: ClassVar[dict[str, str]] = {
+        "annual_value": "mdi:cash-100",
+        "captured_12m": "mdi:cash-check",
+        "forfeited_12m": "mdi:cash-remove",
+    }
+
+    def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard, key: str) -> None:
+        super().__init__(coordinator, card)
+        self.key = key
+        self._attr_translation_key = key
+        self._attr_icon = self._ICONS[key]
+        self._attr_unique_id = f"{card.id}_{key}"
+
+    @property
+    def native_value(self) -> float | None:
+        s = self.summary
+        return s.totals.as_dict()[self.key] if s else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        s = self.summary
+        if s is None:
+            return {}
+        out = dict(s.totals.as_dict())
+        out["annual_fee"] = s.annual_fee
+        return out
+
+
+class CardCaptureRateSensor(CardEntity, SensorEntity):
+    """Share of this card's annual credit value actually captured."""
+
+    _attr_translation_key = "capture_rate"
+    _attr_native_unit_of_measurement = "%"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+    _attr_icon = "mdi:percent-outline"
+
+    def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard) -> None:
+        super().__init__(coordinator, card)
+        self._attr_unique_id = f"{card.id}_capture_rate"
+
+    @property
+    def native_value(self) -> float | None:
+        s = self.summary
+        return s.totals.capture_rate if s else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        s = self.summary
+        if s is None:
+            return {}
+        product = self.coordinator.catalog.get(s and self.card.product_id) if self.card else None
+        names = {b.id: b.name for b in product.benefits} if product else {}
+        worst = sorted(
+            (t.forfeited, names.get(bid, bid)) for bid, t in s.benefit_totals.items() if t.forfeited
+        )
+        return {
+            "worst_forfeited": [
+                {"benefit": name, "forfeited": amt} for amt, name in reversed(worst[-5:])
+            ],
+        }
+
+
 # ------------------------------------------------------------------ owner
 
 
@@ -288,3 +397,39 @@ class OwnerFive24Sensor(OwnerEntity, SensorEntity):
             "accounts": list(s.five_24_items) if s else [],
             "under_5_24": (s.five_24 < 5) if s else None,
         }
+
+
+class OwnerTotalSensor(OwnerEntity, SensorEntity):
+    """Household-side annual value, captured or forfeited over twelve months."""
+
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
+    _attr_suggested_display_precision = 2
+
+    _ICONS: ClassVar[dict[str, str]] = {
+        "annual_value": "mdi:cash-100",
+        "captured_12m": "mdi:cash-check",
+        "forfeited_12m": "mdi:cash-remove",
+    }
+
+    def __init__(self, coordinator: CardPerksCoordinator, owner: Owner, key: str) -> None:
+        super().__init__(coordinator, owner)
+        self.key = key
+        self._attr_translation_key = key
+        self._attr_icon = self._ICONS[key]
+        self._attr_unique_id = f"owner_{owner.id}_{key}"
+
+    @property
+    def native_value(self) -> float | None:
+        s = self.summary
+        return s.totals.as_dict()[self.key] if s else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        s = self.summary
+        if s is None:
+            return {}
+        out = dict(s.totals.as_dict())
+        out["annual_fees"] = s.annual_fees
+        out["net_12m"] = round(s.totals.captured - s.annual_fees, 2)
+        return out

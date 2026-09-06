@@ -68,8 +68,8 @@ async def test_import_cards(hass, setup_integration: MockConfigEntry):
     assert au.data[CONF_ROLE] == "authorized_user" and au.data[CONF_PARENT_CARD_ID] == CARD_ID
 
     # entry reloaded once and the new cards have entities
-    assert hass.states.get("select.old_basic_sign_up_bonus") is None  # basic has no benefits
-    assert hass.states.get("select.premium_card_sam_7777_travel_credit").state == "unused"
+    assert hass.states.get("sensor.old_basic_sign_up_bonus_status") is None  # basic has no benefits
+    assert hass.states.get("sensor.premium_card_sam_7777_travel_credit_status").state == "unused"
 
 
 async def test_import_bad_header(hass, setup_integration: MockConfigEntry):

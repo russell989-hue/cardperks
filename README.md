@@ -6,15 +6,27 @@ A Home Assistant integration that makes sure every credit-card benefit in your h
 
 ## What you get
 
+Everything is measured in dollars. A $25 monthly credit is $300 a year, and what matters
+is how much of that you actually captured, not whether this month is ticked off. Periods
+that close unused are **forfeited**, tracked separately from what is still capturable.
+
 Per benefit on each card:
 
-- `select.<card>_<benefit>` with states `unused`, `partial`, `used`, `n_a`. Changing it is the check-off.
-- `sensor.<card>_<benefit>_expires`, the date the current period ends, with amount, amount used, and period start as attributes.
-- `button.<card>_<benefit>_mark_used` for one-tap dashboards and automations.
+- `number.<card>_<benefit>_used`, the dollars captured this period. This is the input: type what you spent.
+- `sensor.<card>_<benefit>_remaining`, dollars left this period.
+- `sensor.<card>_<benefit>_status`, derived from the amount (`unused`, `partial`, `used`, `n_a`), for automations.
+- `sensor.<card>_<benefit>_expires`, the date the current period ends.
+- `button.<card>_<benefit>_mark_used` for one tap.
+- `number.<card>_<benefit>_value` for perks with no issuer amount, so lounge access is worth what it is worth to you.
 
-Per card: annual fee due date, unused value this period, net value over the trailing 12 months (credits used minus fee), and a binary sensor that turns on 45 days before the fee posts.
+Per card: annual credit value, captured and forfeited over the trailing 12 months, capture
+rate, annual fee due date, unused value this period, net value (captured minus fee), and a
+binary sensor that turns on 45 days before the fee posts.
 
-Per owner: unused credits in dollars, counts of benefits expiring within 7 and 30 days (with the list as an attribute), and a 5/24 count.
+Per owner: the same three dollar totals, plus unused credits, counts expiring within 7 and
+30 days, and a 5/24 count.
+
+Benefits that do not apply to you are marked on the card and drop out of every total.
 
 Services: `cardperks.mark_used`, `cardperks.reset_benefit`, `cardperks.add_sub_spend`, `cardperks.set_perk_value`, `cardperks.activate_rotating_category`.
 

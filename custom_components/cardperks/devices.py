@@ -81,12 +81,29 @@ def async_cleanup_entities(
     for owner_id in coordinator.owners:
         expected.update(
             f"owner_{owner_id}_{suffix}"
-            for suffix in ("unused_credits", "expiring_7d", "expiring_30d", "5_24")
+            for suffix in (
+                "unused_credits",
+                "expiring_7d",
+                "expiring_30d",
+                "5_24",
+                "annual_value",
+                "captured_12m",
+                "forfeited_12m",
+            )
         )
     for card in coordinator.cards.values():
         expected.update(
             f"{card.id}_{suffix}"
-            for suffix in ("fee_due", "unused_value", "net_value_12m", "fee_within_45d")
+            for suffix in (
+                "fee_due",
+                "unused_value",
+                "net_value_12m",
+                "fee_within_45d",
+                "annual_value",
+                "captured_12m",
+                "forfeited_12m",
+                "capture_rate",
+            )
         )
         product = coordinator.catalog.get(card.product_id)
         if product is None:
@@ -94,8 +111,10 @@ def async_cleanup_entities(
         for benefit in product.benefits_for(card):
             expected.update(
                 f"{card.id}_{benefit.id}_{suffix}"
-                for suffix in ("status", "expires", "remaining", "mark_used")
+                for suffix in ("expires", "remaining", "mark_used")
             )
+            if benefit.is_dollar:
+                expected.add(f"{card.id}_{benefit.id}_used")
             if benefit.type in (BenefitType.PERK, BenefitType.INSURANCE):
                 expected.add(f"{card.id}_{benefit.id}_value")
 

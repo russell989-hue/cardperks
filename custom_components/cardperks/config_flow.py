@@ -47,6 +47,7 @@ from .const import (
     CONF_LAST4,
     CONF_NAME,
     CONF_NICKNAME,
+    CONF_NOT_APPLICABLE,
     CONF_NOTES,
     CONF_OPEN_DATE,
     CONF_OWNER_ID,
@@ -333,8 +334,17 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             SelectOptionDict(value=b.id, label=b.name) for b in product.conditional_benefits(role)
         ]
 
+    def _benefit_options(self, product_id: str, role: Role) -> list[SelectOptionDict]:
+        product = self._catalog.get(product_id) if self._catalog else None
+        if product is None:
+            return []
+        return [SelectOptionDict(value=b.id, label=b.name) for b in product.benefits_for_role(role)]
+
     def _details_schema(
-        self, include_close: bool, conditional: list[SelectOptionDict] | None = None
+        self,
+        include_close: bool,
+        conditional: list[SelectOptionDict] | None = None,
+        benefits: list[SelectOptionDict] | None = None,
     ) -> vol.Schema:
         schema: dict[Any, Any] = {
             vol.Optional(CONF_OPEN_DATE): TextSelector(),
@@ -350,6 +360,10 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
                 SelectSelectorConfig(
                     options=conditional, multiple=True, mode=SelectSelectorMode.LIST
                 )
+            )
+        if benefits:
+            schema[vol.Optional(CONF_NOT_APPLICABLE)] = SelectSelector(
+                SelectSelectorConfig(options=benefits, multiple=True, mode=SelectSelectorMode.LIST)
             )
         if include_close:
             schema[vol.Optional(CONF_CLOSE_DATE)] = TextSelector()
@@ -398,6 +412,7 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         prev = user_input.get(CONF_PREVIOUS_LAST4)
         out[CONF_PREVIOUS_LAST4] = list(prev) if isinstance(prev, list) else []
         out[CONF_ENABLED_CONDITIONAL] = list(user_input.get(CONF_ENABLED_CONDITIONAL) or [])
+        out[CONF_NOT_APPLICABLE] = list(user_input.get(CONF_NOT_APPLICABLE) or [])
         return out
 
     async def _title_for(self, data: dict[str, Any]) -> str:
@@ -449,7 +464,11 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         options = self._conditional_options(self._data[CONF_PRODUCT_ID], role)
         return self.async_show_form(
             step_id="details",
-            data_schema=self._details_schema(include_close=False, conditional=options),
+            data_schema=self._details_schema(
+                include_close=False,
+                conditional=options,
+                benefits=self._benefit_options(self._data[CONF_PRODUCT_ID], role),
+            ),
             errors=errors,
             description_placeholders={
                 "conditions": _conditions_text(catalog.get(self._data[CONF_PRODUCT_ID]), role)
@@ -498,10 +517,17 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         options = self._conditional_options(subentry.data.get(CONF_PRODUCT_ID, ""), role)
         if subentry.data.get(CONF_ENABLED_CONDITIONAL):
             current[CONF_ENABLED_CONDITIONAL] = list(subentry.data[CONF_ENABLED_CONDITIONAL])
+        if subentry.data.get(CONF_NOT_APPLICABLE):
+            current[CONF_NOT_APPLICABLE] = list(subentry.data[CONF_NOT_APPLICABLE])
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=self.add_suggested_values_to_schema(
-                self._details_schema(include_close=True, conditional=options), current
+                self._details_schema(
+                    include_close=True,
+                    conditional=options,
+                    benefits=self._benefit_options(subentry.data.get(CONF_PRODUCT_ID, ""), role),
+                ),
+                current,
             ),
             errors=errors,
             description_placeholders={"conditions": _conditions_text(product, role)},
@@ -821,6 +847,7 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             CONF_NOTES: None,
             CONF_ANNUAL_FEE: annual_fee,
             CONF_ENABLED_CONDITIONAL: [],
+            CONF_NOT_APPLICABLE: [],
             CONF_PREVIOUS_LAST4: [],
             CONF_CLOSE_DATE: None,
         }

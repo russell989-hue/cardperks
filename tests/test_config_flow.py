@@ -198,7 +198,7 @@ async def test_import_subentry_flow(hass, setup_integration: MockConfigEntry):
     assert "Sam" in ph["owners"] and "Premium Card (Sam ·7777)" in ph["cards"]
     assert "already have" in ph["skipped"] and ph["errors"] == "- none"
     await hass.async_block_till_done()
-    assert hass.states.get("select.premium_card_sam_7777_travel_credit").state == "unused"
+    assert hass.states.get("sensor.premium_card_sam_7777_travel_credit_status").state == "unused"
 
 
 async def test_import_subentry_flow_from_file(hass, setup_integration: MockConfigEntry, tmp_path):
@@ -230,4 +230,4 @@ async def test_import_subentry_flow_from_file(hass, setup_integration: MockConfi
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "import_complete"
     assert "Sam" in result["description_placeholders"]["owners"]
     await hass.async_block_till_done()
-    assert hass.states.get("select.premium_card_sam_7777_travel_credit").state == "unused"
+    assert hass.states.get("sensor.premium_card_sam_7777_travel_credit_status").state == "unused"

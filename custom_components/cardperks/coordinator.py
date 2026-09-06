@@ -24,6 +24,7 @@ from .models import (
     OwnerSummary,
     StateDocument,
     SubTracker,
+    Totals,
     UsageEvent,
     instance_key,
 )
@@ -125,6 +126,25 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         )
         inst.amount_used = round(inst.amount_used + amount, 2)
         if total is None or total <= 0 or inst.amount_used >= total:
+            inst.status = BenefitStatus.USED
+        else:
+            inst.status = BenefitStatus.PARTIAL
+        inst.sticky_na = False
+        inst.updated_at = now_iso()
+        self._commit()
+
+    def set_used(self, held_card_id: str, benefit_id: str, amount: float) -> None:
+        """Set dollars used for the current period. The status follows from the number."""
+        inst = self._require_instance(held_card_id, benefit_id)
+        total = inst.amount
+        amount = max(0.0, round(float(amount), 2))
+        if total is not None:
+            amount = min(amount, float(total))
+        inst.amount_used = amount
+        if amount <= 0:
+            inst.status = BenefitStatus.UNUSED
+            inst.uses = []
+        elif total is None or total <= 0 or amount >= total:
             inst.status = BenefitStatus.USED
         else:
             inst.status = BenefitStatus.PARTIAL
@@ -316,8 +336,24 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
 
         unused = 0.0
         expiring: list[ExpiringItem] = []
-        used_12m = 0.0
         cutoff = today - timedelta(days=365)
+        perks = self.doc.perk_values.get(card.id, {})
+
+        # Per benefit: what a year of it is worth, and what became of the last twelve months.
+        per_benefit: dict[str, Totals] = {}
+        if product is not None:
+            for benefit in product.benefits_for(card):
+                if not benefit.is_dollar or benefit.id in card.not_applicable:
+                    continue
+                per_benefit[benefit.id] = Totals(
+                    annual_value=benefit.annual_value(perks.get(benefit.id))
+                )
+
+        def bump(benefit_id: str, **deltas: float) -> None:
+            cur = per_benefit.get(benefit_id)
+            if cur is None:
+                return
+            per_benefit[benefit_id] = cur.plus(Totals(**deltas))
 
         for inst in self.doc.instances.values():
             if inst.held_card_id != card.id:
@@ -326,6 +362,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             remaining = max(amount - inst.amount_used, 0.0)
             if inst.status in (BenefitStatus.UNUSED, BenefitStatus.PARTIAL) and remaining > 0:
                 unused += remaining
+                bump(inst.benefit_id, open_remaining=remaining)
                 if inst.period_end:
                     benefit = product.benefit(inst.benefit_id) if product else None
                     expiring.append(
@@ -338,14 +375,26 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                             remaining=remaining,
                         )
                     )
-            used_12m += inst.amount_used
+            bump(inst.benefit_id, captured=inst.amount_used)
 
         for h in self.doc.history:
             if h.held_card_id != card.id:
                 continue
             end = date.fromisoformat(h.period_end or h.period_start)
-            if end >= cutoff:
-                used_12m += h.amount_used
+            if end < cutoff:
+                continue
+            bump(h.benefit_id, captured=h.amount_used)
+            missed = max((h.amount or 0.0) - h.amount_used, 0.0)
+            if not missed:
+                continue
+            if h.final_status == "unknown":
+                bump(h.benefit_id, unknown=missed)
+            elif h.final_status != str(BenefitStatus.NA):
+                bump(h.benefit_id, forfeited=missed)
+
+        totals = Totals()
+        for t in per_benefit.values():
+            totals = totals.plus(t)
 
         expiring.sort(key=lambda e: e.period_end)
         return CardSummary(
@@ -354,9 +403,11 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             fee_within_warning=fee_within,
             annual_fee=annual_fee,
             unused_value=round(unused, 2),
-            used_value_12m=round(used_12m, 2),
-            net_value_12m=round(used_12m - annual_fee, 2),
+            used_value_12m=totals.captured,
+            net_value_12m=round(totals.captured - annual_fee, 2),
             expiring=tuple(expiring),
+            totals=totals,
+            benefit_totals=per_benefit,
         )
 
     def _owner_summary(
@@ -366,12 +417,16 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         exp7: list[ExpiringItem] = []
         exp30: list[ExpiringItem] = []
         five24: list[str] = []
+        totals = Totals()
+        fees = 0.0
         window = add_months(today, -24)
         for card in self.cards.values():
             if card.owner_id != owner_id:
                 continue
             summary = card_summaries[card.id]
             unused += summary.unused_value
+            totals = totals.plus(summary.totals)
+            fees += summary.annual_fee
             for item in summary.expiring:
                 days = (item.period_end - today).days
                 if days <= 7:
@@ -390,6 +445,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         exp30.sort(key=lambda e: e.period_end)
         return OwnerSummary(
             owner_id=owner_id,
+            totals=totals,
+            annual_fees=round(fees, 2),
             unused_credits=round(unused, 2),
             expiring_7d=tuple(exp7),
             expiring_30d=tuple(exp30),

@@ -70,14 +70,15 @@ def _open(
     now_iso: str,
     sticky_na: bool = False,
 ) -> BenefitInstance:
+    na = sticky_na or benefit.id in card.not_applicable
     inst = BenefitInstance(
         held_card_id=card.id,
         benefit_id=benefit.id,
         period_start=period.start.isoformat(),
         period_end=_iso(period.end),
-        status=BenefitStatus.NA if sticky_na else BenefitStatus.UNUSED,
+        status=BenefitStatus.NA if na else BenefitStatus.UNUSED,
         amount=_amount_for(benefit, doc.perk_values.get(card.id, {})),
-        sticky_na=sticky_na,
+        sticky_na=na,
         updated_at=now_iso,
     )
     doc.instances[inst.key] = inst
@@ -124,6 +125,18 @@ def rollover(
             # Catalog corrected: this benefit no longer applies to this cardholder role.
             _close(doc, inst, now_iso, "not_applicable")
             result.closed += 1
+            result.changed = True
+        elif benefit.id in card.not_applicable and not inst.sticky_na:
+            # Marked not applicable on the card: take effect in the open period, not the next.
+            inst.status = BenefitStatus.NA
+            inst.sticky_na = True
+            inst.updated_at = now_iso
+            result.changed = True
+        elif benefit.id not in card.not_applicable and inst.sticky_na:
+            inst.sticky_na = False
+            if inst.status is BenefitStatus.NA:
+                inst.status = BenefitStatus.PARTIAL if inst.amount_used else BenefitStatus.UNUSED
+            inst.updated_at = now_iso
             result.changed = True
 
     # 2. For every active card/benefit, open or roll the current period.

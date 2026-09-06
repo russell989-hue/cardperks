@@ -149,7 +149,7 @@ async def test_import_statement_flow(hass, setup_integration: MockConfigEntry, t
     # Travel credit (cardmember year from 2026-07-01) is current: partial with 112.94 used.
     reg = er.async_get(hass)
     travel = hass.states.get(
-        reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_travel_credit_status")
+        reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_travel_credit_status")
     )
     assert travel.state == "partial" and travel.attributes["amount_used"] == 112.94
     # Dining credit on 05/16 fell in the Jan-Jun period, now closed: lands in history.
@@ -174,7 +174,7 @@ async def test_import_statement_flow(hass, setup_integration: MockConfigEntry, t
     ph = result["description_placeholders"]
     assert ph["duplicates"] == "2" and ph["applied"] == "- none"
     travel = hass.states.get(
-        reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_travel_credit_status")
+        reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_travel_credit_status")
     )
     assert travel.attributes["amount_used"] == 112.94
 
@@ -309,7 +309,7 @@ async def test_multi_card_statement_applies_only_matching_rows(
     assert "9999" in ph["note"]
     reg = er.async_get(hass)
     travel = hass.states.get(
-        reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_travel_credit_status")
+        reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_travel_credit_status")
     )
     assert travel.attributes["amount_used"] == 100.0
 

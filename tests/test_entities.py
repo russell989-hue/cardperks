@@ -10,6 +10,7 @@ from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.cardperks.const import DOMAIN, STORAGE_KEY
+from custom_components.cardperks.models import HistoryRecord
 
 from .conftest import AU_CARD_ID, CARD_ID, OWNER_ID
 
@@ -23,14 +24,17 @@ def _eid(hass, platform: str, unique_id: str) -> str:
 async def test_entities_created(hass, setup_integration: MockConfigEntry):
     registry = er.async_get(hass)
     ours = [e for e in registry.entities.values() if e.platform == DOMAIN]
-    # primary: 5 benefits x 4 + 1 perk value number + 4 card-level = 25
-    # AU: 1 benefit x 4 + 1 number + 4 card-level = 9 ; owners: 2 x 4 = 8
-    assert len(ours) == 25 + 9 + 8
+    # Per benefit: expires + remaining + status sensors, a mark-used button, a dollars-used
+    # number where it has a dollar amount, and a value number for perks.
+    #   monthly/dining/travel 5 each, lounge 6, sign-up bonus 4 (points, so no dollar box) = 25
+    # Card-level: fee due, unused, net, annual value, captured, forfeited, capture rate,
+    # fee-within-45d = 8. Owners: 4 rollups + 3 dollar totals = 7 each.
+    assert len(ours) == (25 + 8) + (6 + 8) + (7 * 2)
 
-    travel = hass.states.get(_eid(hass, "select", f"{CARD_ID}_travel_credit_status"))
+    travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"
     assert travel.attributes["amount"] == 300 and travel.attributes["period_end"] == "2027-06-30"
-    assert travel.name == "Premium Card (Brian ·1234) Travel credit"
+    assert travel.name == "Premium Card (Brian ·1234) Travel credit status"
 
     expires = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_expires"))
     assert expires.state == "2026-12-31" and expires.attributes["days_left"] == 117
@@ -58,10 +62,10 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     )
     assert au_dev.via_device_id == primary_dev.id
     assert primary_dev.manufacturer == "Test Bank" and primary_dev.model == "Premium Card"
-    assert hass.states.get(_eid(hass, "select", f"{AU_CARD_ID}_lounge_status")).state == "unused"
+    assert hass.states.get(_eid(hass, "sensor", f"{AU_CARD_ID}_lounge_status")).state == "unused"
     assert (
         er.async_get(hass).async_get_entity_id(
-            "select", DOMAIN, f"{AU_CARD_ID}_travel_credit_status"
+            "sensor", DOMAIN, f"{AU_CARD_ID}_travel_credit_status"
         )
         is None
     )
@@ -82,28 +86,31 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
 async def test_select_and_button_and_services(
     hass, setup_integration: MockConfigEntry, hass_storage
 ):
-    dining = _eid(hass, "select", f"{CARD_ID}_dining_credit_status")
+    dining = _eid(hass, "sensor", f"{CARD_ID}_dining_credit_status")
 
+    dining_used = _eid(hass, "number", f"{CARD_ID}_dining_credit_used")
     await hass.services.async_call(
-        "select", "select_option", {"entity_id": dining, "option": "used"}, blocking=True
+        "number", "set_value", {"entity_id": dining_used, "value": 150}, blocking=True
     )
     st = hass.states.get(dining)
     assert st.state == "used" and st.attributes["amount_used"] == 150
     assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state) == 410
     assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_net_value_12m")).state) == -350
 
-    await hass.services.async_call(DOMAIN, "reset_benefit", {"entity_id": dining}, blocking=True)
+    await hass.services.async_call(
+        DOMAIN, "reset_benefit", {"entity_id": dining_used}, blocking=True
+    )
     assert hass.states.get(dining).state == "unused"
 
     await hass.services.async_call(
-        DOMAIN, "mark_used", {"entity_id": dining, "amount": 40, "note": "Resy"}, blocking=True
+        DOMAIN, "mark_used", {"entity_id": dining_used, "amount": 40, "note": "Resy"}, blocking=True
     )
     st = hass.states.get(dining)
     assert st.state == "partial" and st.attributes["amount_used"] == 40
     rem = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_remaining"))
     assert float(rem.state) == 110.0 and rem.attributes["percent_used"] == 26.7
-    assert st.attributes["uses"][0]["note"] == "Resy"
-    await hass.services.async_call(DOMAIN, "mark_used", {"entity_id": dining}, blocking=True)
+    assert hass.states.get(dining_used).attributes["uses"][0]["note"] == "Resy"
+    await hass.services.async_call(DOMAIN, "mark_used", {"entity_id": dining_used}, blocking=True)
     assert hass.states.get(dining).state == "used"
 
     await hass.services.async_call(
@@ -112,14 +119,14 @@ async def test_select_and_button_and_services(
         {"entity_id": _eid(hass, "button", f"{CARD_ID}_monthly_credit_mark_used")},
         blocking=True,
     )
-    assert hass.states.get(_eid(hass, "select", f"{CARD_ID}_monthly_credit_status")).state == "used"
+    assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_monthly_credit_status")).state == "used"
 
-    await hass.services.async_call(
-        "select",
-        "select_option",
-        {"entity_id": _eid(hass, "select", f"{CARD_ID}_lounge_status"), "option": "n_a"},
-        blocking=True,
+    # "not applicable" is card configuration now, not a per-period status.
+    sub = setup_integration.subentries[CARD_ID]
+    hass.config_entries.async_update_subentry(
+        setup_integration, sub, data={**sub.data, "not_applicable": ["lounge"]}
     )
+    await hass.async_block_till_done()
 
     # persisted
     await hass.async_block_till_done()
@@ -133,7 +140,8 @@ async def test_select_and_button_and_services(
         data = hass_storage[STORAGE_KEY]
     inst = data["data"]["benefit_instances"][f"{CARD_ID}:dining_credit"]
     assert inst["status"] == "used" and inst["amount_used"] == 150
-    assert data["data"]["benefit_instances"][f"{CARD_ID}:lounge"]["sticky_na"] is True
+    lounge = setup_integration.runtime_data.doc.instances[f"{CARD_ID}:lounge"]
+    assert lounge.sticky_na is True and str(lounge.status) == "n_a"
     assert isinstance(Store, type)
 
 
@@ -151,7 +159,7 @@ async def test_device_services(hass, setup_integration: MockConfigEntry):
         {"device_id": device.id, "benefit_id": "lounge", "value": 250},
         blocking=True,
     )
-    lounge = hass.states.get(_eid(hass, "select", f"{CARD_ID}_lounge_status"))
+    lounge = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_lounge_status"))
     assert lounge.attributes["amount"] == 250
     assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state) == 710
 
@@ -183,7 +191,7 @@ async def test_device_services(hass, setup_integration: MockConfigEntry):
     )
     net = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_net_value_12m"))
     assert net.attributes["sub_tracker"]["completed_on"] == date(2026, 9, 5).isoformat()
-    assert hass.states.get(_eid(hass, "select", f"{CARD_ID}_sub_status")).state == "used"
+    assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_sub_status")).state == "used"
 
     await hass.services.async_call(
         DOMAIN,
@@ -215,9 +223,12 @@ async def test_annual_fee_override(hass, mock_entry: MockConfigEntry):
 
 
 async def test_state_survives_reload(hass, setup_integration: MockConfigEntry):
-    dining = _eid(hass, "select", f"{CARD_ID}_dining_credit_status")
+    dining = _eid(hass, "sensor", f"{CARD_ID}_dining_credit_status")
     await hass.services.async_call(
-        "select", "select_option", {"entity_id": dining, "option": "used"}, blocking=True
+        "number",
+        "set_value",
+        {"entity_id": _eid(hass, "number", f"{CARD_ID}_dining_credit_used"), "value": 150},
+        blocking=True,
     )
     await hass.config_entries.async_reload(setup_integration.entry_id)
     await hass.async_block_till_done()
@@ -235,7 +246,7 @@ async def test_catalog_change_removes_stale_entities(
 
     entry = setup_integration
     reg = er.async_get(hass)
-    assert reg.async_get_entity_id("select", DOMAIN, f"{AU_CARD_ID}_lounge_status")
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{AU_CARD_ID}_lounge_status")
     assert f"{AU_CARD_ID}:lounge" in entry.runtime_data.doc.instances
     entry.runtime_data.set_status(AU_CARD_ID, "lounge", BenefitStatus.USED)
 
@@ -255,10 +266,10 @@ async def test_catalog_change_removes_stale_entities(
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
 
-    assert reg.async_get_entity_id("select", DOMAIN, f"{AU_CARD_ID}_lounge_status") is None
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{AU_CARD_ID}_lounge_status") is None
     assert reg.async_get_entity_id("sensor", DOMAIN, f"{AU_CARD_ID}_lounge_remaining") is None
     # The primary keeps it, and the AU instance is closed into history, not silently dropped.
-    assert reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_lounge_status")
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_lounge_status")
     doc = entry.runtime_data.doc
     assert f"{AU_CARD_ID}:lounge" not in doc.instances
     closed = [h for h in doc.history if h.held_card_id == AU_CARD_ID and h.benefit_id == "lounge"]
@@ -276,7 +287,7 @@ async def test_conditional_benefit_is_off_until_enabled(hass, mock_entry: MockCo
     await hass.async_block_till_done()
 
     reg = er.async_get(hass)
-    assert reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_status_bonus_status") is None
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_status_bonus_status") is None
     assert f"{CARD_ID}:status_bonus" not in mock_entry.runtime_data.doc.instances
     baseline = float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state)
 
@@ -286,7 +297,7 @@ async def test_conditional_benefit_is_off_until_enabled(hass, mock_entry: MockCo
     )
     await hass.async_block_till_done()
 
-    assert hass.states.get(_eid(hass, "select", f"{CARD_ID}_status_bonus_status")).state == "unused"
+    assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_status_bonus_status")).state == "unused"
     rem = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_status_bonus_remaining"))
     assert float(rem.state) == 200.0
     assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state) == (
@@ -299,7 +310,7 @@ async def test_conditional_benefit_is_off_until_enabled(hass, mock_entry: MockCo
         mock_entry, sub, data={**sub.data, CONF_ENABLED_CONDITIONAL: []}
     )
     await hass.async_block_till_done()
-    assert reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_status_bonus_status") is None
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_status_bonus_status") is None
     doc = mock_entry.runtime_data.doc
     assert f"{CARD_ID}:status_bonus" not in doc.instances
     assert any(
@@ -354,3 +365,79 @@ def test_all_last4_covers_replacements():
     assert card.all_last4 == frozenset({"1111", "2222", "3333"})
     bare = HeldCard(id="c2", owner_id="o1", product_id="p", role=Role.PRIMARY, title="t")
     assert bare.all_last4 == frozenset()
+
+
+async def test_annual_dollars_captured_and_forfeited(hass, setup_integration: MockConfigEntry):
+    """The dollar frame: a year's worth, what was captured, and what was lost."""
+    entry = setup_integration
+    coord = entry.runtime_data
+
+    # $10 monthly = $120 a year; $150 semiannual = $300; $300 annual = $300; lounge perk $100.
+    annual = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_annual_value"))
+    assert float(annual.state) == 120 + 300 + 300 + 100
+
+    # Capture half of this month's credit.
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {"entity_id": _eid(hass, "number", f"{CARD_ID}_monthly_credit_used"), "value": 4},
+        blocking=True,
+    )
+    captured = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_captured_12m"))
+    assert float(captured.state) == 4.0
+
+    # A month that closed unused is money gone, not money pending.
+    coord.doc.history.append(
+        HistoryRecord(
+            held_card_id=CARD_ID,
+            benefit_id="monthly_credit",
+            period_start="2026-08-01",
+            period_end="2026-08-31",
+            final_status="unused",
+            amount=10.0,
+            amount_used=0.0,
+            closed_at="2026-09-01T00:05:00+00:00",
+            closed_by="rollover",
+        )
+    )
+    # An imported gap has no usage evidence, so it is unknown rather than assumed lost.
+    coord.doc.history.append(
+        HistoryRecord(
+            held_card_id=CARD_ID,
+            benefit_id="monthly_credit",
+            period_start="2026-07-01",
+            period_end="2026-07-31",
+            final_status="unknown",
+            amount=10.0,
+            amount_used=0.0,
+            closed_at="2026-08-01T00:05:00+00:00",
+            closed_by="gap",
+        )
+    )
+    coord.commit()
+    await hass.async_block_till_done()
+
+    forfeited = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_forfeited_12m"))
+    assert float(forfeited.state) == 10.0
+    assert forfeited.attributes["unknown_12m"] == 10.0
+    rate = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_capture_rate"))
+    assert float(rate.state) == round(4 / 820 * 100, 1)
+
+    # Owner rollups add the cards up.
+    owner_annual = hass.states.get(_eid(hass, "sensor", f"owner_{OWNER_ID}_annual_value"))
+    assert float(owner_annual.state) == 820.0
+    assert hass.states.get(_eid(hass, "sensor", f"owner_{OWNER_ID}_forfeited_12m")).state == "10.0"
+
+
+async def test_not_applicable_leaves_the_totals(hass, setup_integration: MockConfigEntry):
+    """A benefit you cannot use should not be counted as annual value or as forfeited."""
+    entry = setup_integration
+    before = float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_annual_value")).state)
+    sub = entry.subentries[CARD_ID]
+    hass.config_entries.async_update_subentry(
+        entry, sub, data={**sub.data, "not_applicable": ["travel_credit"]}
+    )
+    await hass.async_block_till_done()
+    after = float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_annual_value")).state)
+    assert after == before - 300
+    assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status")).state == "n_a"

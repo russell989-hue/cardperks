@@ -22,6 +22,7 @@ from .const import (
     CONF_LAST4,
     CONF_NAME,
     CONF_NICKNAME,
+    CONF_NOT_APPLICABLE,
     CONF_NOTES,
     CONF_OPEN_DATE,
     CONF_OWNER_ID,
@@ -296,6 +297,7 @@ async def async_import_cards(
                 CONF_NOTES: row.get("notes", "") or None,
                 CONF_ANNUAL_FEE: annual_fee,
                 CONF_ENABLED_CONDITIONAL: [],
+                CONF_NOT_APPLICABLE: [],
                 CONF_PREVIOUS_LAST4: [
                     p for p in re.split(r"[,\s]+", row.get("previous_last4", "").strip()) if p
                 ],
