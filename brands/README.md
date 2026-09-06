@@ -6,8 +6,8 @@ commit the PNGs.
 `cardperks/` is laid out for the home-assistant/brands repository. To publish the logo,
 fork that repo and copy this folder to `custom_integrations/cardperks/`, then open a PR.
 Check the sizes against the brands README before submitting; at the time of writing:
-icon 256x256 (`@2x` 512x512), logo shortest side at least 128 px and longest side at
-most 256 px (`@2x` doubled), transparent PNG, no padding.
+icon 256x256 (`@2x` 512x512), transparent PNG. There is deliberately no `logo.png`:
+the mark carries no wordmark, and brands uses the icon wherever a logo is missing.
 
 Until that PR merges, Home Assistant shows the generic puzzle piece for the integration;
 the brands PR is the only way to change it.

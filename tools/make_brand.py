@@ -2,9 +2,10 @@
 
 Draws the icon with Pillow at high resolution and downsamples, so there is no SVG
 toolchain to install. Output goes to brands/cardperks/, laid out the way the
-home-assistant/brands repo wants a custom integration: icon.png (256x256),
-icon@2x.png (512x512), logo.png (256x128) and logo@2x.png (512x256), all
-transparent PNG. Re-run after changing anything here.
+home-assistant/brands repo wants a custom integration: icon.png (256x256) and icon@2x.png (512x512),
+transparent PNG. There is no separate logo: the mark stands alone, no wordmark,
+and brands falls back to the icon when logo files are absent. Re-run after
+changing anything here.
 
     .venv-win/Scripts/python.exe tools/make_brand.py
 """
@@ -13,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 OUT = Path(__file__).resolve().parent.parent / "brands" / "cardperks"
 
@@ -96,43 +97,10 @@ def icon(size: int) -> Image.Image:
     return img.resize((size, size), Image.LANCZOS)
 
 
-def logo(width: int, height: int) -> Image.Image:
-    s = SCALE
-    bw, bh = width * s, height * s
-    img = Image.new("RGBA", (bw, bh), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    mark = icon(height).resize((bh, bh), Image.LANCZOS)
-    img.alpha_composite(mark, (0, 0))
-    text = "CardPerks"
-    tx = int(bh * 0.92)
-    avail = bw - tx - int(bw * 0.03)
-    # Largest size whose wordmark fits the space left of the mark.
-    px = int(bh * 0.42)
-    font = _font(px)
-    while px > 8 and d.textlength(text, font=font) > avail:
-        px -= s
-        font = _font(px)
-    box = d.textbbox((0, 0), text, font=font)
-    ty = (bh - (box[3] - box[1])) // 2 - box[1]
-    d.text((tx, ty), text, font=font, fill=INK)
-    return img.resize((width, height), Image.LANCZOS)
-
-
-def _font(px: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
-    for name in ("segoeuib.ttf", "seguisb.ttf", "arialbd.ttf", "DejaVuSans-Bold.ttf"):
-        for folder in (Path("C:/Windows/Fonts"), Path("/usr/share/fonts/truetype/dejavu")):
-            p = folder / name
-            if p.exists():
-                return ImageFont.truetype(str(p), px)
-    return ImageFont.load_default()
-
-
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     icon(256).save(OUT / "icon.png")
     icon(512).save(OUT / "icon@2x.png")
-    logo(256, 128).save(OUT / "logo.png")
-    logo(512, 256).save(OUT / "logo@2x.png")
     for p in sorted(OUT.iterdir()):
         print(p.name, Image.open(p).size)
 
