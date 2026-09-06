@@ -132,6 +132,183 @@
         "own_lounge_access": false,
         "notes": "Additional cardholders get Priority Pass, but Capital One Lounge access for them now costs $125 a year each; guests $45 a visit."
       }
+    },
+    {
+      "id": "capital_one_venture",
+      "name": "Venture Rewards",
+      "annual_fee": 95,
+      "currency": "miles",
+      "default_point_value": 0.01,
+      "reports_to_personal_credit": true,
+      "last_verified": "2026-09-06",
+      "source_url": "https://www.capitalone.com/credit-cards/venture/",
+      "needs_verification": false,
+      "benefits": [
+        {
+          "id": "global_entry",
+          "name": "Global Entry / TSA PreCheck credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "GLOBAL ENTRY",
+            "TSA PRE"
+          ],
+          "notes": "Once every four years."
+        },
+        {
+          "id": "hertz_five_star",
+          "name": "Hertz Five Star status",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary"
+        },
+        {
+          "id": "lifestyle_collection",
+          "name": "Lifestyle Collection $50 experience credit",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "$50 per eligible stay at Lifestyle Collection hotels and rentals booked through Capital One Travel."
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 75000,
+          "unit": "points",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "spend_required": 4000,
+          "expires_days_after_open": 90
+        }
+      ],
+      "earning_rates": [],
+      "au_terms": {
+        "fee": 0.0,
+        "own_lounge_access": false
+      }
+    },
+    {
+      "id": "capital_one_venture_x_business",
+      "name": "Venture X Business",
+      "annual_fee": 395,
+      "currency": "miles",
+      "default_point_value": 0.01,
+      "reports_to_personal_credit": false,
+      "last_verified": "2026-09-06",
+      "source_url": "https://www.capitalone.com/small-business/credit-cards/venture-x-business/",
+      "needs_verification": false,
+      "benefits": [
+        {
+          "id": "travel_credit",
+          "name": "Capital One Business Travel credit",
+          "type": "statement_credit",
+          "cadence": "per_anniversary",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "TRAVEL CREDIT"
+          ],
+          "notes": "Up to $300 a year for bookings through Capital One Business Travel."
+        },
+        {
+          "id": "anniversary_miles",
+          "name": "Anniversary bonus miles",
+          "type": "earning",
+          "cadence": "per_anniversary",
+          "amount": 10000,
+          "unit": "miles",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary"
+        },
+        {
+          "id": "capital_one_lounge",
+          "name": "Capital One Lounge access",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary"
+        },
+        {
+          "id": "priority_pass",
+          "name": "Priority Pass Select",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary"
+        },
+        {
+          "id": "global_entry",
+          "name": "Global Entry / TSA PreCheck credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "GLOBAL ENTRY",
+            "TSA PRE"
+          ],
+          "notes": "Once every four years."
+        },
+        {
+          "id": "hertz_presidents_circle",
+          "name": "Hertz President's Circle status",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary"
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 150000,
+          "unit": "points",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "spend_required": 30000,
+          "expires_days_after_open": 90
+        }
+      ],
+      "earning_rates": [],
+      "au_terms": {
+        "fee": 0.0,
+        "own_lounge_access": false,
+        "notes": "Employee cards are free."
+      }
     }
   ]
 }

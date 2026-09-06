@@ -265,6 +265,418 @@
         "own_lounge_access": true,
         "notes": "AU gets own Centurion Lounge and Priority Pass; not the statement credits"
       }
+    },
+    {
+      "id": "amex_gold",
+      "name": "Gold Card",
+      "annual_fee": 325,
+      "currency": "points",
+      "default_point_value": 0.01,
+      "reports_to_personal_credit": true,
+      "last_verified": "2026-09-06",
+      "source_url": "https://www.americanexpress.com/us/credit-cards/card/gold-card/",
+      "needs_verification": false,
+      "benefits": [
+        {
+          "id": "uber_cash",
+          "name": "Uber Cash",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "$10 a month in the Uber app once the card is added there. Never a statement line: tick off by hand."
+        },
+        {
+          "id": "dining_credit",
+          "name": "Dining credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Dining Credit",
+            "Grubhub"
+          ],
+          "notes": "Up to $10 a month at Grubhub, Five Guys, The Cheesecake Factory, Buffalo Wild Wings and Wonder. Enrolment required. Statement wording unverified."
+        },
+        {
+          "id": "resy_credit",
+          "name": "Resy credit",
+          "type": "statement_credit",
+          "cadence": "semiannual",
+          "amount": 50,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Resy Credit"
+          ],
+          "notes": "Up to $50 January to June and again July to December. Enrolment required."
+        },
+        {
+          "id": "dunkin_credit",
+          "name": "Dunkin' credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 7,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Dunkin"
+          ],
+          "notes": "Up to $7 a month at US Dunkin' locations. Enrolment required. Statement wording unverified."
+        },
+        {
+          "id": "hotel_collection",
+          "name": "The Hotel Collection $100 experience credit",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "$100 on-property credit per stay of two nights or more booked through Amex Travel; value it by how often you use it."
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 100000,
+          "unit": "points",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "spend_required": 8000,
+          "expires_days_after_open": 180,
+          "notes": "Offers vary; 100,000 points after $8,000 in six months was current in 2026."
+        }
+      ],
+      "earning_rates": [],
+      "au_terms": {
+        "fee": 0.0,
+        "own_lounge_access": false,
+        "notes": "Up to five additional cards at no fee, $35 a year each after that."
+      }
+    },
+    {
+      "id": "amex_business_platinum",
+      "name": "Business Platinum Card",
+      "annual_fee": 895,
+      "currency": "points",
+      "default_point_value": 0.01,
+      "reports_to_personal_credit": false,
+      "last_verified": "2026-09-06",
+      "source_url": "https://www.americanexpress.com/us/credit-cards/business/business-credit-cards/american-express-business-platinum-credit-card-amex/",
+      "needs_verification": true,
+      "benefits": [
+        {
+          "id": "hotel_credit",
+          "name": "Hotel credit (FHR / The Hotel Collection)",
+          "type": "statement_credit",
+          "cadence": "semiannual",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Hotel Credit"
+          ],
+          "notes": "Up to $300 January to June and again July to December on prepaid Fine Hotels + Resorts or The Hotel Collection bookings. Statement wording unverified."
+        },
+        {
+          "id": "airline_fee_credit",
+          "name": "Airline fee credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 200,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Airline Fee Credit"
+          ],
+          "notes": "Incidental fees on one selected airline, per calendar year."
+        },
+        {
+          "id": "dell_credit",
+          "name": "Dell credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 150,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Dell"
+          ],
+          "notes": "Up to $150 a calendar year on US purchases directly with Dell. Statement wording unverified."
+        },
+        {
+          "id": "dell_bonus_credit",
+          "name": "Dell $1,000 credit after $5,000 spend",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 1000,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Dell"
+          ],
+          "notes": "A further $1,000 after $5,000 or more with Dell in a calendar year.",
+          "conditional": true,
+          "condition": "Spend $5,000 or more directly with Dell in the calendar year."
+        },
+        {
+          "id": "wireless_credit",
+          "name": "Wireless credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Wireless Credit"
+          ],
+          "notes": "Up to $10 a month with any US wireless provider. Statement wording unverified."
+        },
+        {
+          "id": "hilton_credit",
+          "name": "Hilton credit",
+          "type": "statement_credit",
+          "cadence": "quarterly",
+          "amount": 50,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Hilton Credit"
+          ],
+          "notes": "Up to $50 a quarter directly with Hilton. Statement wording unverified."
+        },
+        {
+          "id": "adobe_credit",
+          "name": "Adobe credit after $600 spend",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 250,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Adobe"
+          ],
+          "notes": "$250 after $600 or more with Adobe in a calendar year.",
+          "conditional": true,
+          "condition": "Spend $600 or more directly with Adobe in the calendar year."
+        },
+        {
+          "id": "indeed_credit",
+          "name": "Indeed credit",
+          "type": "statement_credit",
+          "cadence": "quarterly",
+          "amount": 90,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Indeed"
+          ],
+          "notes": "Up to $90 a quarter at Indeed.com. Statement wording unverified."
+        },
+        {
+          "id": "clear_plus",
+          "name": "CLEAR Plus credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 219,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "CLEAR PLUS CREDIT"
+          ],
+          "notes": "Up to $219 per calendar year."
+        },
+        {
+          "id": "global_entry",
+          "name": "Global Entry / TSA PreCheck credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Global Entry",
+            "TSA Pre"
+          ],
+          "notes": "Once every four years."
+        },
+        {
+          "id": "centurion_lounge",
+          "name": "Centurion Lounge access",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary"
+        },
+        {
+          "id": "priority_pass",
+          "name": "Priority Pass Select",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "Enrolment required."
+        },
+        {
+          "id": "delta_sky_club",
+          "name": "Delta Sky Club visits",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "Ten visits a year when flying Delta the same day."
+        },
+        {
+          "id": "points_rebate",
+          "name": "35% points back on Pay with Points flights",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "Up to 1,000,000 points back per calendar year on the selected airline and premium cabins."
+        },
+        {
+          "id": "hotel_status",
+          "name": "Hilton Gold and Marriott Gold status",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary"
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 200000,
+          "unit": "points",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "spend_required": 20000,
+          "expires_days_after_open": 90,
+          "notes": "Offers vary; 200,000 points after $20,000 in three months has been typical."
+        }
+      ],
+      "earning_rates": [],
+      "au_terms": {
+        "fee": 350.0,
+        "own_lounge_access": true,
+        "notes": "Additional Business Platinum cards carry their own fee and lounge access; statement credits are not doubled."
+      }
+    },
+    {
+      "id": "amex_business_gold",
+      "name": "Business Gold Card",
+      "annual_fee": 375,
+      "currency": "points",
+      "default_point_value": 0.01,
+      "reports_to_personal_credit": false,
+      "last_verified": "2026-09-06",
+      "source_url": "https://www.americanexpress.com/us/credit-cards/business/business-credit-cards/american-express-business-gold-credit-card-amex/",
+      "needs_verification": true,
+      "benefits": [
+        {
+          "id": "walmart_plus",
+          "name": "Walmart+ membership credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 12.95,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Walmart.*Credit"
+          ],
+          "notes": "Up to $12.95 a month plus tax after paying for a monthly Walmart+ membership with the card."
+        },
+        {
+          "id": "flexible_business_credit",
+          "name": "Flexible business credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 20,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "statement_match": [
+            "Business Credit",
+            "Flexible"
+          ],
+          "notes": "Up to $20 a month on eligible purchases (FedEx, Grubhub, office supply stores and others; partners change). Enrolment required. Statement wording unverified."
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 100000,
+          "unit": "points",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "spend_required": 15000,
+          "expires_days_after_open": 90,
+          "notes": "Offers vary."
+        }
+      ],
+      "earning_rates": [],
+      "au_terms": {
+        "fee": 0.0,
+        "own_lounge_access": false
+      }
     }
   ]
 }

@@ -119,6 +119,11 @@ All seven shipped products were checked against the issuer pages on 2026-09-06 a
   Explorer gains the $100 TravelBank credit after $10,000 spend (conditional); Club gains
   award-flight discounts. Source URLs updated to the current Chase pages.
 
+Added the same day from issuer pages: Amex Gold, Chase Sapphire Preferred, United Quest,
+Southwest Priority, Capital One Venture and Venture X Business. Amex Business Platinum and
+Business Gold are drafted from secondary sources because the Amex business pages render
+only in a browser; they stay `needs_verification` until someone reads the official page.
+
 Still open: statement_match patterns for the new credits are guesses until a statement
 shows the real line (use `cardperks.add_statement_match` when one appears); Southwest
 sign-up bonus not restated on the page; Equinox credit on the Platinum not listed on the
