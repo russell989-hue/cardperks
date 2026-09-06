@@ -32,7 +32,7 @@ from build_sections import (
     perk_values,
     where_big_dollars_went,
 )
-from lovelace import ONLY_ACTIVE, _template_cards, auto_cards, heading, note
+from lovelace import ONLY_ACTIVE, _template_cards, auto_cards, full_width, heading, note
 
 THEME = "CardPerks"
 DASHBOARD = "dashboard-cardperks"
@@ -64,7 +64,7 @@ def _stat(primary: str, secondary: str, icon: str, color: str, tap: dict | None 
         "icon": icon,
         "icon_color": color,
         "multiline_secondary": True,
-        "grid_options": {"columns": 6},
+        "grid_options": {"columns": 12},
     }
     if tap:
         card["tap_action"] = tap
@@ -176,7 +176,7 @@ def card_tiles() -> dict:
             "cards": [
                 heading("Cards", "mdi:credit-card-multiple"),
                 note("Tap a card for its own page. Frozen and cancelled cards are not shown."),
-                _template_cards(template, columns=3),
+                full_width(_template_cards(template, columns=2)),
             ],
         },
         2,
@@ -238,6 +238,7 @@ def overview() -> dict:
         "icon": "mdi:credit-card-multiple",
         "theme": THEME,
         "max_columns": 4,
+        "show_icon_and_title": True,
         "badges": [
             {
                 "type": "shortcut",
@@ -268,6 +269,7 @@ def money() -> dict:
         "icon": "mdi:cash-multiple",
         "theme": THEME,
         "max_columns": 4,
+        "show_icon_and_title": True,
         "sections": [
             span(by_card(), 2),
             span(net_value(), 1),
@@ -285,6 +287,7 @@ def upkeep() -> dict:
         "icon": "mdi:clipboard-check-outline",
         "theme": THEME,
         "max_columns": 4,
+        "show_icon_and_title": True,
         "sections": [
             statements(),
             span(checkoff(), 2),

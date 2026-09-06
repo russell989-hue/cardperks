@@ -24,10 +24,12 @@ from lovelace import (
     base_filter,
     donut_by_card,
     gauge_grid,
+    half,
     heading,
     missed_list,
     money_bars,
     money_donut,
+    money_legend,
     note,
     peek_rows,
     wide_section,
@@ -63,7 +65,7 @@ def checkoff() -> dict:
             note("Type the dollars you captured. Status follows from the amount."),
             *peek_rows(
                 [
-                    {**with_status(base_filter(), status=s), "domain": "number"}
+                    {**with_status(base_filter(), status=s, this_period="> 0"), "domain": "number"}
                     for s in ("unused", "partial")
                 ],
                 "Credits with money left",
@@ -172,18 +174,18 @@ def big_ticket_list() -> dict:
 def where_big_dollars_went() -> dict:
     """For credits worth $50 or more a period: the trailing year's dollars as a ring
     (captured, forfeited, unknown, still open) and the ones that were forfeited."""
-    return {
-        "type": "grid",
-        "cards": [
+    return wide_section(
+        [
             heading("Where the big dollars went", "mdi:chart-donut"),
             note(
                 f"Trailing twelve months, credits worth ${BIG_TICKET_MIN} or more a period: "
                 "what was captured, what slipped away, what is unknown, what is still open."
             ),
-            money_donut(min_amount=BIG_TICKET_MIN),
-            missed_list(min_amount=BIG_TICKET_MIN),
-        ],
-    }
+            money_legend(min_amount=BIG_TICKET_MIN),
+            half(money_donut(min_amount=BIG_TICKET_MIN)),
+            half(missed_list(min_amount=BIG_TICKET_MIN)),
+        ]
+    )
 
 
 def big_ticket() -> dict:

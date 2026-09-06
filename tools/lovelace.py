@@ -57,8 +57,22 @@ def attr(name: str, default: str = "0") -> str:
 # ------------------------------------------------------------------ plain cards
 
 
+HEADING_STYLE = (
+    ".title { font-family: var(--ha-font-family-heading, Georgia, serif); "
+    "font-weight: 600; letter-spacing: -0.01em; }"
+)
+
+
 def heading(text: str, icon: str) -> dict:
-    return {"type": "heading", "heading": text, "heading_style": "title", "icon": icon}
+    """A section heading in the theme's serif. The heading card sizes its title from
+    theme variables but not the family, so card-mod supplies it."""
+    return {
+        "type": "heading",
+        "heading": text,
+        "heading_style": "title",
+        "icon": icon,
+        "card_mod": {"style": HEADING_STYLE},
+    }
 
 
 def note(text: str) -> dict:
@@ -192,7 +206,11 @@ def _jinja_where(inc: dict) -> str:
     """One include rule as a Jinja condition over a state object `s`."""
     parts = ["s.attributes.get('card_id') is not none"]
     for key, val in inc.get("attributes", {}).items():
-        parts.append(f"s.attributes.get('{key}') == {val!r}")
+        if isinstance(val, str) and (val[:1] in "<>" or val[:2] in ("==", "!=")):
+            # a comparison such as "> 0", the same shorthand auto-entities accepts
+            parts.append(f"(s.attributes.get('{key}') | float(0)) {val}")
+        else:
+            parts.append(f"s.attributes.get('{key}') == {val!r}")
     if "state" in inc:
         parts.append(f"(s.state | float(0)) {inc['state']}")
     return " and ".join(parts)
@@ -527,12 +545,9 @@ def money_bars(*, card_id: str | None = None, with_name: bool = True) -> dict:
     return _template_cards(template)
 
 
-def money_donut(*, min_amount: float, size: int = 220, title: str = "big-ticket credits") -> dict:
-    """One ring of where the trailing year's dollars went for credits worth at least
-    `min_amount` a period: captured, forfeited, unknown, still open, in the same scheme
-    as the money bars. The centre prints what was missed. Reads the per-benefit totals
-    every dollar box carries, so it needs nothing beyond the entities."""
-    gather = (
+def _money_gather(min_amount: float) -> str:
+    """Jinja that totals the trailing year for credits worth at least `min_amount` a period."""
+    return (
         "{% set ns = namespace(cap=0.0, forf=0.0, unk=0.0, open=0.0, n=0) %}"
         "{% for s in states.number if s.attributes.get('kind') == 'benefit_used' "
         f"and {ONLY_ACTIVE} and (s.attributes.get('this_period') or 0) >= {min_amount} %}}"
@@ -544,6 +559,24 @@ def money_donut(*, min_amount: float, size: int = 220, title: str = "big-ticket 
         "{% endfor %}"
         "{% set tot = ns.cap + ns.forf + ns.unk + ns.open %}"
     )
+
+
+def money_legend(*, min_amount: float) -> dict:
+    """The line under the ring: the four figures, in the ring's own words."""
+    return note(
+        _money_gather(min_amount) + "**${{ ns.cap | round(0) | int }}** captured · "
+        "**${{ ns.forf | round(0) | int }}** forfeited · "
+        "**${{ ns.unk | round(0) | int }}** unknown · "
+        "**${{ ns.open | round(0) | int }}** still open"
+    )
+
+
+def money_donut(*, min_amount: float, size: int = 240, title: str = "big-ticket credits") -> dict:
+    """One ring of where the trailing year's dollars went for credits worth at least
+    `min_amount` a period: captured, forfeited, unknown, still open, in the same scheme
+    as the money bars. The centre prints what was missed. Reads the per-benefit totals
+    every dollar box carries, so it needs nothing beyond the entities."""
+    gather = _money_gather(min_amount)
     slices = (
         gather + "{% if tot > 0 %}"
         "{% set a = (ns.cap / tot * 100) | round(2) %}"
@@ -574,10 +607,8 @@ def money_donut(*, min_amount: float, size: int = 220, title: str = "big-ticket 
     )
     label = (
         gather + "**${{ ns.forf | round(0) | int }}** missed<br>"
-        "of ${{ tot | round(0) | int }} in {{ ns.n }} " + title + "<br>"
-        "<span style='color: var(--secondary-text-color)'>"
-        "${{ ns.cap | round(0) | int }} captured · ${{ ns.unk | round(0) | int }} unknown · "
-        "${{ ns.open | round(0) | int }} open</span>"
+        "<span style='color: var(--secondary-text-color)'>of ${{ tot | round(0) | int }}<br>"
+        "{{ ns.n }} " + title + "</span>"
     )
     return {"type": "markdown", "content": label, "card_mod": {"style": style}}
 

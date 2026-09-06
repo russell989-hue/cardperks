@@ -243,6 +243,7 @@ def catalog_view() -> dict:
         "icon": "mdi:credit-card-search-outline",
         "type": "panel",
         "theme": THEME,
+        "show_icon_and_title": True,
         "cards": [
             {
                 "type": "iframe",
