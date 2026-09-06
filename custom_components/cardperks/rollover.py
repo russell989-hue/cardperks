@@ -113,8 +113,15 @@ def rollover(
         card = active_cards.get(inst.held_card_id)
         product = catalog.get(card.product_id) if card else None
         benefit = product.benefit(inst.benefit_id) if product else None
-        if card is None or product is None or benefit is None:
+        if card is None or product is None:
             continue  # orphan: keep untouched (card may come back after a reload)
+        if benefit is None:
+            # The catalog dropped or renamed this benefit: close it out rather than leave
+            # an instance nothing can see, which would still count toward unused value.
+            _close(doc, inst, now_iso, "removed")
+            result.closed += 1
+            result.changed = True
+            continue
         if not card.is_active(today):
             _close(
                 doc, inst, now_iso, str(card.status) if card.status != "active" else "closed_card"

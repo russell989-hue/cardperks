@@ -95,8 +95,32 @@ Open: which programs ship versus user-defined; whether qualifying-activity track
 
 ## Catalog verification
 
-Every shipped product is flagged `needs_verification` and listed in Repairs. Verified
-from statements so far: Chase fee months and amounts for all six Chase cards;
-Amex Platinum fee date and the Resy credit's quarterly cadence; Capital
-One Venture X fee month and amount; United inflight/club 25% rebate lines on the Club
-card. United Club authorized users confirmed to get no club access of their own.
+All seven shipped products were checked against the issuer pages on 2026-09-06 and
+`needs_verification` cleared; `last_verified` carries the date. What changed:
+
+- Amex Platinum: CLEAR credit is $219; Uber Cash gets a $20 December bonus (noted, still
+  $15 a month in the catalog); Delta Sky Club visits added as a perk.
+- Venture X: additional cardholders no longer get Capital One Lounge access free ($125 a
+  year each); Hertz status is Gold Plus, not President's Circle; cell phone protection added.
+- Sapphire Reserve: $250 select-hotels credit for 2026 only and IHG Platinum status added;
+  notes on the split credits and their end dates.
+- Ink Business Preferred: sign-up bonus is 100,000 points; $10 a month DoorDash credit added.
+- Southwest Plus: fee is $99 (a card with a $69 statement line keeps its own override);
+  EarlyBird credits replaced by standard seat selection under assigned seating; flight
+  discount code, Companion Pass boost, 25% inflight rebate, DoorDash and Instacart credits,
+  and free first bag added.
+- United Explorer and Club: the 2025 refresh. Hotel, JSX and Avis/Budget credits are per
+  anniversary year at the new amounts ($100/$100/$50 Explorer, $200/$200/$100 Club);
+  Instacart is $10 and $20 a month; Club rideshare is $12 a month with $18 in December;
+  Explorer gains the $100 TravelBank credit after $10,000 spend (conditional); Club gains
+  award-flight discounts. Source URLs updated to the current Chase pages.
+
+Still open: statement_match patterns for the new credits are guesses until a statement
+shows the real line (use `cardperks.add_statement_match` when one appears); Southwest
+sign-up bonus not restated on the page; Equinox credit on the Platinum not listed on the
+Amex page this pass and left in place.
+
+Verified from statements earlier: Chase fee months and amounts for every Chase card, Amex
+Platinum fee date and the Resy credit's quarterly cadence, Venture X fee month and amount,
+United inflight/club 25% rebate lines on the Club card. United Club authorized users
+confirmed to get no club access of their own.

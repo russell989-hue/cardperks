@@ -10,8 +10,8 @@
       "currency": "membership_rewards",
       "default_point_value": 0.015,
       "reports_to_personal_credit": true,
-      "last_verified": "2026-06-01",
-      "needs_verification": true,
+      "last_verified": "2026-09-06",
+      "needs_verification": false,
       "source_url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
       "benefits": [
         {
@@ -54,7 +54,7 @@
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "primary",
-          "notes": "$35 in December"
+          "notes": "$15 a month in the Uber app plus a $20 bonus in December, $200 a year. Delivered as Uber Cash, not a statement credit, so it never appears on a statement: tick it off by hand."
         },
         {
           "id": "digital_entertainment",
@@ -125,21 +125,23 @@
           "applies_to": "primary",
           "statement_match": [
             "Walmart.*Credit"
-          ]
+          ],
+          "notes": "Up to $12.95 a month plus tax, about $155 a year."
         },
         {
           "id": "clear_plus",
           "name": "CLEAR Plus credit",
           "type": "statement_credit",
           "cadence": "annual",
-          "amount": 209,
+          "amount": 219,
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "primary",
           "statement_match": [
             "CLEAR PLUS CREDIT"
-          ]
+          ],
+          "notes": "Up to $219 per calendar year."
         },
         {
           "id": "uber_one",
@@ -194,6 +196,18 @@
           "reset": "cardmember_year",
           "applies_to": "au_own_allotment",
           "default_value": 400
+        },
+        {
+          "id": "delta_sky_club",
+          "name": "Delta Sky Club visits",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "Ten visits a year when flying Delta the same day; unlimited after $75,000 spend."
         },
         {
           "id": "priority_pass",

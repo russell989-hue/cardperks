@@ -10,8 +10,8 @@
       "currency": "capital_one_miles",
       "default_point_value": 0.0125,
       "reports_to_personal_credit": true,
-      "last_verified": "2026-06-01",
-      "needs_verification": true,
+      "last_verified": "2026-09-06",
+      "needs_verification": false,
       "source_url": "https://www.capitalone.com/credit-cards/venture-x/",
       "benefits": [
         {
@@ -25,7 +25,8 @@
           "applies_to": "primary",
           "statement_match": [
             "TRAVEL CREDIT"
-          ]
+          ],
+          "notes": "Up to $300 a year for bookings through Capital One Travel, applied automatically. Capital One describes it as annual; it has historically reset on the account anniversary."
         },
         {
           "id": "anniversary_miles",
@@ -77,7 +78,7 @@
         },
         {
           "id": "hertz_presidents_circle",
-          "name": "Hertz President's Circle status",
+          "name": "Hertz Gold Plus Rewards status",
           "type": "perk",
           "cadence": "annual",
           "amount": null,
@@ -85,7 +86,20 @@
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "au_own_allotment",
-          "default_value": 50
+          "default_value": 50,
+          "notes": "Capital One now lists a Gold Plus upgrade rather than President's Circle."
+        },
+        {
+          "id": "cell_phone_protection",
+          "name": "Cell phone protection",
+          "type": "insurance",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary_and_au",
+          "notes": "Up to $800 per claim when the phone bill is paid with the card."
         },
         {
           "id": "sub",
@@ -115,8 +129,8 @@
       ],
       "au_terms": {
         "fee": 0,
-        "own_lounge_access": true,
-        "notes": "Up to four free AUs, each with lounge access"
+        "own_lounge_access": false,
+        "notes": "Additional cardholders get Priority Pass, but Capital One Lounge access for them now costs $125 a year each; guests $45 a visit."
       }
     }
   ]

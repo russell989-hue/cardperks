@@ -7,6 +7,7 @@ from custom_components.cardperks.models import HeldCard, StateDocument, instance
 from custom_components.cardperks.rollover import rollover
 
 NOW = "2026-09-05T10:00:00+00:00"
+TODAY = date(2026, 9, 5)
 
 
 def _card(**kw) -> HeldCard:
@@ -152,3 +153,31 @@ def test_unanchored_card_gets_calendar_benefits_only(catalog):
     assert set(doc.instances) == {
         instance_key("c1", b) for b in ("monthly_credit", "dining_credit", "sub", "inflight_rebate")
     }
+
+
+def test_benefit_dropped_from_catalog_is_closed(catalog):
+    """A benefit that leaves the catalog closes into history instead of lingering."""
+    from dataclasses import replace
+
+    from custom_components.cardperks.const import BenefitStatus
+    from custom_components.cardperks.models import Catalog
+
+    doc = StateDocument()
+    card = _card()
+    rollover(doc, [card], catalog, TODAY, NOW)
+    key = instance_key(card.id, "monthly_credit")
+    assert key in doc.instances
+    doc.instances[key].amount_used = 4.0
+    doc.instances[key].status = BenefitStatus.PARTIAL
+
+    product = catalog.get(card.product_id)
+    trimmed = replace(
+        product, benefits=tuple(b for b in product.benefits if b.id != "monthly_credit")
+    )
+    smaller = Catalog(products={**catalog.products, product.id: trimmed})
+    result = rollover(doc, [card], smaller, TODAY, NOW)
+
+    assert key not in doc.instances and result.closed == 1
+    closed = [h for h in doc.history if h.benefit_id == "monthly_credit"]
+    assert len(closed) == 1 and closed[0].closed_by == "removed"
+    assert closed[0].final_status == "partial" and closed[0].amount_used == 4.0
