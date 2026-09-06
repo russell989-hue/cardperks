@@ -14,6 +14,7 @@ from .catalog import SHIPPED_DIR, load_catalog
 from .const import (
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
+    CONF_COLOR,
     CONF_ENABLED_CONDITIONAL,
     CONF_FEE_MONTH,
     CONF_LAST4,
@@ -100,6 +101,7 @@ def card_from_subentry(sub: ConfigSubentry) -> HeldCard:
         enabled_conditional=tuple(d.get(CONF_ENABLED_CONDITIONAL) or ()),
         previous_last4=tuple(d.get(CONF_PREVIOUS_LAST4) or ()),
         not_applicable=tuple(d.get(CONF_NOT_APPLICABLE) or ()),
+        color=d.get(CONF_COLOR) or None,
     )
 
 

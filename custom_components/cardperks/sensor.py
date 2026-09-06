@@ -103,6 +103,7 @@ class BenefitRemainingSensor(BenefitEntity, SensorEntity):
         total = inst.amount
         pct = round(inst.amount_used / total * 100, 1) if total else None
         return {
+            **self.card_attributes,
             "status": str(inst.status),
             "amount": total,
             "amount_used": inst.amount_used,
@@ -200,6 +201,7 @@ class CardFeeDueSensor(CardEntity, SensorEntity):
         s = self.summary
         card = self.card
         return {
+            **self.card_attributes,
             "annual_fee": s.annual_fee if s else None,
             "open_date": card.open_date.isoformat() if card and card.open_date else None,
             "fee_month": card.fee_month if card else None,
@@ -290,7 +292,7 @@ class CardTotalSensor(CardEntity, SensorEntity):
             return {}
         out = dict(s.totals.as_dict())
         out["annual_fee"] = s.annual_fee
-        return out
+        return {**out, **self.card_attributes}
 
 
 class CardCaptureRateSensor(CardEntity, SensorEntity):

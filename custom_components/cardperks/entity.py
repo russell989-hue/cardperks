@@ -25,6 +25,8 @@ class CardPerksEntity(CoordinatorEntity[CardPerksCoordinator]):
 
 
 class CardEntity(CardPerksEntity):
+    """Anything belonging to one held card."""
+
     def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard) -> None:
         super().__init__(coordinator)
         self.held_card_id = card.id
@@ -33,6 +35,16 @@ class CardEntity(CardPerksEntity):
     @property
     def card(self) -> HeldCard | None:
         return self.coordinator.data.cards.get(self.held_card_id)
+
+    @property
+    def card_attributes(self) -> dict[str, str | None]:
+        """Identity of the card, repeated on its entities so a dashboard can group and colour."""
+        card = self.card
+        return {
+            "card": card.title if card else None,
+            "card_id": self.held_card_id,
+            "color": card.color if card else None,
+        }
 
     @property
     def summary(self):

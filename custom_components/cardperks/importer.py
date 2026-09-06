@@ -17,6 +17,7 @@ from homeassistant.util import slugify
 from .const import (
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
+    CONF_COLOR,
     CONF_ENABLED_CONDITIONAL,
     CONF_FEE_MONTH,
     CONF_LAST4,
@@ -58,6 +59,7 @@ COLUMN_ALIASES: dict[str, str] = {
     "annual_fee": "annual_fee",
     "fee": "annual_fee",
     "previous_last4": "previous_last4",
+    "color": "color",
     "old_last4": "previous_last4",
 }
 
@@ -298,6 +300,7 @@ async def async_import_cards(
                 CONF_ANNUAL_FEE: annual_fee,
                 CONF_ENABLED_CONDITIONAL: [],
                 CONF_NOT_APPLICABLE: [],
+                CONF_COLOR: row.get("color", "").strip().lower() or None,
                 CONF_PREVIOUS_LAST4: [
                     p for p in re.split(r"[,\s]+", row.get("previous_last4", "").strip()) if p
                 ],

@@ -103,6 +103,8 @@ class BenefitUsedNumber(BenefitEntity, NumberEntity):
         totals = summary.benefit_totals.get(self.benefit_id) if summary else None
         total = inst.amount
         out: dict[str, Any] = {
+            **self.card_attributes,
+            "benefit": self.benefit.name,
             "benefit_id": self.benefit_id,
             "status": str(inst.status),
             "this_period": total,
@@ -161,6 +163,8 @@ class PerkValueNumber(BenefitEntity, NumberEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         override = self.coordinator.data.perk_values.get(self.held_card_id, {}).get(self.benefit_id)
         return {
+            **self.card_attributes,
+            "benefit": self.benefit.name,
             "benefit_id": self.benefit_id,
             "catalog_default": self.benefit.default_value,
             "customised": override is not None,

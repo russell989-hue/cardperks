@@ -35,6 +35,30 @@ CONF_ANNUAL_FEE = "annual_fee"
 CONF_ENABLED_CONDITIONAL = "enabled_conditional"
 CONF_PREVIOUS_LAST4 = "previous_last4"
 CONF_NOT_APPLICABLE = "not_applicable"
+CONF_COLOR = "color"
+
+# Home Assistant's tile-card palette, so a card's colour works anywhere in Lovelace.
+CARD_COLORS: tuple[str, ...] = (
+    "red",
+    "pink",
+    "purple",
+    "deep-purple",
+    "indigo",
+    "blue",
+    "light-blue",
+    "cyan",
+    "teal",
+    "green",
+    "light-green",
+    "lime",
+    "yellow",
+    "amber",
+    "orange",
+    "deep-orange",
+    "brown",
+    "grey",
+    "blue-grey",
+)
 
 ATTR_AMOUNT = "amount"
 ATTR_AMOUNT_USED = "amount_used"

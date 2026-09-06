@@ -179,6 +179,7 @@ class HeldCard:
     enabled_conditional: tuple[str, ...] = ()  # conditional benefit ids this card qualifies for
     previous_last4: tuple[str, ...] = ()  # numbers this account had before replacement
     not_applicable: tuple[str, ...] = ()  # benefit ids that do not apply to this holder
+    color: str | None = None  # Lovelace tile colour, so one card reads the same everywhere
 
     @property
     def all_last4(self) -> frozenset[str]:

@@ -37,8 +37,10 @@ from .const import (
     ATTR_CARD,
     ATTR_CSV,
     ATTR_FILE,
+    CARD_COLORS,
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
+    CONF_COLOR,
     CONF_ENABLED_CONDITIONAL,
     CONF_FEE_MONTH,
     CONF_FIRST_OWNER,
@@ -352,6 +354,13 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             vol.Optional(CONF_LAST4): TextSelector(),
             vol.Optional(CONF_PREVIOUS_LAST4): TextSelector(),
             vol.Optional(CONF_NICKNAME): TextSelector(),
+            vol.Optional(CONF_COLOR): SelectSelector(
+                SelectSelectorConfig(
+                    options=list(CARD_COLORS),
+                    mode=SelectSelectorMode.DROPDOWN,
+                    translation_key="card_color",
+                )
+            ),
             vol.Optional(CONF_ANNUAL_FEE): TextSelector(),
             vol.Optional(CONF_NOTES): TextSelector(),
         }
@@ -402,7 +411,14 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
 
     def _normalise(self, user_input: dict[str, Any]) -> dict[str, Any]:
         out: dict[str, Any] = {}
-        for key in (CONF_OPEN_DATE, CONF_CLOSE_DATE, CONF_LAST4, CONF_NICKNAME, CONF_NOTES):
+        for key in (
+            CONF_OPEN_DATE,
+            CONF_CLOSE_DATE,
+            CONF_LAST4,
+            CONF_NICKNAME,
+            CONF_NOTES,
+            CONF_COLOR,
+        ):
             val = user_input.get(key)
             out[key] = (str(val).strip() or None) if val is not None else None
         fee = user_input.get(CONF_FEE_MONTH)
@@ -499,6 +515,7 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
                 CONF_FEE_MONTH,
                 CONF_LAST4,
                 CONF_NICKNAME,
+                CONF_COLOR,
                 CONF_ANNUAL_FEE,
                 CONF_NOTES,
                 CONF_CLOSE_DATE,
@@ -849,6 +866,7 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             CONF_ENABLED_CONDITIONAL: [],
             CONF_NOT_APPLICABLE: [],
             CONF_PREVIOUS_LAST4: [],
+            CONF_COLOR: None,
             CONF_CLOSE_DATE: None,
         }
         subentry = ConfigSubentry(
