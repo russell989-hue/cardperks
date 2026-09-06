@@ -46,6 +46,9 @@ EMOJI = {
 
 EMOJI_MAP = "{%- set EMOJI = " + json.dumps(EMOJI, ensure_ascii=False) + " -%}"
 DOT = "{{ EMOJI.get(r.color, '⚪') }}"
+# Card titles contain " | " before the last four, which markdown would read as a
+# new column. Escaping keeps the pipe visible inside the cell.
+ESC = r"| replace('|', '\|')"
 
 # Entities that know a card title and its colour, for lists keyed only by card name.
 TINTED = """
@@ -95,11 +98,11 @@ def dollars_left() -> dict:
 | Benefit | Card | Left |
 |---|---|--:|
 {% for r in ns.rows | sort(attribute='amt', reverse=true) -%}
-| {{ r.name }} | DOT {{ r.card }} | ${{ r.amt | round(0) | int }} |
+| {{ r.name ESC }} | DOT {{ r.card ESC }} | ${{ r.amt | round(0) | int }} |
 {% endfor %}
 _{{ ns.rows | count }} credits, ${{ ns.rows | sum(attribute='amt') | round(0) | int }} \
 still on the table._
-""".replace("DOT", DOT)
+""".replace("DOT", DOT).replace("ESC", ESC)
     )
     return {
         "type": "grid",
@@ -121,10 +124,10 @@ Trailing twelve months. Forfeited is money a period closed without you using it.
 | Card | A year's worth | Captured | Forfeited | Rate |
 |---|--:|--:|--:|--:|
 {% for r in ns.rows | sort(attribute='card') -%}
-| DOT {{ r.card }} | ${{ r.worth | round(0) | int }} | ${{ r.cap | round(0) | int }} \
+| DOT {{ r.card ESC }} | ${{ r.worth | round(0) | int }} | ${{ r.cap | round(0) | int }} \
 | ${{ r.forf | round(0) | int }} | {{ r.rate | round(0) | int }}% |
 {% endfor %}
-""".replace("DOT", DOT)
+""".replace("DOT", DOT).replace("ESC", ESC)
     )
     return {
         "type": "grid",
@@ -144,13 +147,13 @@ def fees() -> dict:
 |---|--:|---|--:|
 {% for r in ns.rows | sort(attribute='due') -%}
 {%- if r.due not in ['unknown', 'unavailable'] -%}
-| DOT {{ r.card }} | ${{ r.fee | round(0) | int }} | {{ r.due }} \
+| DOT {{ r.card ESC }} | ${{ r.fee | round(0) | int }} | {{ r.due }} \
 | {{ ((r.due | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }} |
 {% endif -%}
 {% endfor %}
 _${{ ns.rows | sum(attribute='fee') | round(0) | int }} a year across \
 {{ ns.rows | count }} cards._
-""".replace("DOT", DOT)
+""".replace("DOT", DOT).replace("ESC", ESC)
     )
     return {
         "type": "grid",
@@ -180,11 +183,11 @@ Nothing expires in the next 30 days.
 {% for i in ns.rows | sort(attribute='expires') -%}
 {%- set m = tinted | selectattr('attributes.card', 'eq', i.card) | list -%}
 {%- set r = {'color': (m | first).attributes.color if m else 'grey'} -%}
-| {{ i.benefit }} | DOT {{ i.card }} | ${{ i.remaining | round(0) | int }} \
+| {{ i.benefit ESC }} | DOT {{ i.card ESC }} | ${{ i.remaining | round(0) | int }} \
 | {{ ((i.expires | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }} |
 {% endfor -%}
 {%- endif -%}
-""".replace("DOT", DOT)
+""".replace("DOT", DOT).replace("ESC", ESC)
     )
     return {
         "type": "grid",
@@ -206,12 +209,12 @@ A month with no statement is unknown, not proof a credit went unused.
 | Card | Covered | Files | Gaps |
 |---|--:|--:|---|
 {% for r in ns.rows | sort(attribute='card') -%}
-| DOT {{ r.card }} | {{ r.n }}/12 | {{ r.files }} \
+| DOT {{ r.card ESC }} | {{ r.n }}/12 | {{ r.files }} \
 | {% if r.missing | count == 0 %}none{% elif r.missing | count > 4 %}\
 {{ r.missing[:3] | join(', ') }} +{{ (r.missing | count) - 3 }} more\
 {% else %}{{ r.missing | join(', ') }}{% endif %} |
 {% endfor %}
-""".replace("DOT", DOT)
+""".replace("DOT", DOT).replace("ESC", ESC)
     )
     return {
         "type": "grid",
@@ -236,7 +239,7 @@ def legend() -> dict:
   {%- endif -%}
 {%- endfor -%}
 {% for r in ns.rows | sort(attribute='card') %}DOT {{ r.card }}&nbsp;&nbsp; {% endfor %}
-""".replace("DOT", DOT)
+""".replace("DOT", DOT).replace("ESC", ESC)
     )
     return {
         "type": "grid",
