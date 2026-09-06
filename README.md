@@ -1,5 +1,24 @@
 # CardPerks
 
+> **Read this first.**
+>
+> **This project was written entirely by an AI.** The author is not a software developer.
+> Every line of code, test, catalog entry and document in this repository was produced by
+> Claude (Anthropic) working from the author's descriptions of what he wanted, what is
+> sometimes called "vibe coding". A human reviewed the behaviour, not the code.
+>
+> **Use it entirely at your own risk.** It is provided "as is", without warranty of any
+> kind, and the author accepts no liability for anything that follows from using it: a
+> credit you thought was tracked and was not, a fee you paid because a date was wrong, a
+> number that did not add up, data that was lost, or anything else. Check the issuer's own
+> terms before relying on any figure here.
+>
+> **Nothing in this project is financial advice.** The catalog is a best effort at
+> transcribing issuer marketing pages on a given date and will be wrong or out of date in
+> places. Dollar values, "net value", "capture rate" and the rest are arithmetic on what
+> you and your statements put in, not a recommendation to hold, use, apply for or cancel
+> any card. The author is not a financial adviser and has no relationship with any issuer.
+
 A Home Assistant integration that makes sure every credit-card benefit in your household gets used. Each held card becomes a device, each benefit becomes entities you can see, automate on, and check off.
 
 **Status: Phase 1 (backend + entities). No custom panel yet.**
