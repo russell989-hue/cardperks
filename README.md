@@ -27,6 +27,15 @@ A daily job at 00:05 local time closes expired periods into history and opens th
 3. Settings, Devices & services, Add integration, **CardPerks**. Name the household and the first owner.
 4. On the CardPerks integration page use **Add owner** and **Add card** for everything else. Authorized-user cards are linked to the primary card they belong to.
 
+## Importing
+
+On the CardPerks integration page:
+
+- **Import cards from CSV** takes a `.csv` file or pasted rows with at least `owner` and `product` columns (plus optional `issuer`, `role`, `parent_owner`, `open_date`, `fee_month`, `last4`, `nickname`, `annual_fee`, `notes`). Existing cards are skipped.
+- **Import statement** takes a raw Chase Activity export or American Express CSV download, exactly as downloaded. It reads the annual fee line to set the fee month and actual fee, and records labelled credit lines (`TRAVEL CREDIT $300/YEAR`, `Platinum Resy Credit`, and so on) as benefit usage in the period they belong to. Re-importing the same file changes nothing. Credit lines that match no benefit are listed so you can add a `statement_match` pattern to the catalog.
+
+Both run entirely on your Home Assistant box.
+
 ## Catalog
 
 Card products live in `custom_components/cardperks/catalog/*.json`, one file per issuer. The shipped data for Chase, American Express, and Capital One was drafted from general knowledge and is flagged `needs_verification` until checked against the issuer pages linked in each product's `source_url`. Home Assistant's Repairs panel lists what still needs checking.

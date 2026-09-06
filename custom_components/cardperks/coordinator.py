@@ -20,13 +20,14 @@ from .models import (
     Catalog,
     ExpiringItem,
     HeldCard,
+    HistoryRecord,
     OwnerSummary,
     StateDocument,
     SubTracker,
     UsageEvent,
     instance_key,
 )
-from .periods import add_months, next_fee_date
+from .periods import add_months, compute_period, next_fee_date
 from .rollover import RolloverResult, rollover
 from .store import CardPerksStore
 
@@ -185,6 +186,83 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             inst.amount = float(value)
             if inst.status is BenefitStatus.USED:
                 inst.amount_used = float(value)
+        self._commit()
+
+    def record_statement_usage(
+        self,
+        held_card_id: str,
+        benefit_id: str,
+        on: date,
+        amount: float,
+        note: str | None = None,
+    ) -> bool:
+        """Record a credit seen on a statement into the period it belongs to.
+
+        Returns False if this exact event was already imported. Does not commit.
+        """
+        ref = f"{held_card_id}:{benefit_id}:{on.isoformat()}:{amount:.2f}:{note or ''}"
+        if ref in self.doc.imported_refs:
+            return False
+        card = self.card(held_card_id)
+        benefit = self.benefit(card, benefit_id)
+        period = compute_period(
+            on,
+            benefit.cadence,
+            benefit.reset,
+            card.open_date,
+            card.fee_month,
+            benefit.expires_days_after_open,
+        )
+        if period is None:
+            return False
+        inst = self.instance(held_card_id, benefit_id)
+        if inst is not None and inst.period_start == period.start.isoformat():
+            inst.uses.append(UsageEvent(date=on.isoformat(), amount=amount, note=note))
+            inst.amount_used = round(inst.amount_used + amount, 2)
+            total = inst.amount
+            inst.status = (
+                BenefitStatus.USED
+                if total is None or total <= 0 or inst.amount_used >= total
+                else BenefitStatus.PARTIAL
+            )
+            inst.sticky_na = False
+            inst.updated_at = now_iso()
+        else:
+            total = benefit.value(self.doc.perk_values.get(held_card_id, {}).get(benefit_id))
+            rec = next(
+                (
+                    h
+                    for h in self.doc.history
+                    if h.held_card_id == held_card_id
+                    and h.benefit_id == benefit_id
+                    and h.period_start == period.start.isoformat()
+                ),
+                None,
+            )
+            if rec is None:
+                rec = HistoryRecord(
+                    held_card_id=held_card_id,
+                    benefit_id=benefit_id,
+                    period_start=period.start.isoformat(),
+                    period_end=period.end.isoformat() if period.end else None,
+                    final_status="unused",
+                    amount=total or None,
+                    amount_used=0.0,
+                    closed_at=now_iso(),
+                    closed_by="statement",
+                )
+                self.doc.history.append(rec)
+            rec.amount_used = round(rec.amount_used + amount, 2)
+            rec.final_status = str(
+                BenefitStatus.USED
+                if not total or rec.amount_used >= total
+                else BenefitStatus.PARTIAL
+            )
+        self.doc.imported_refs.add(ref)
+        return True
+
+    def commit(self) -> None:
+        """Persist and publish after a batch of mutations."""
         self._commit()
 
     def activate_rotating_category(

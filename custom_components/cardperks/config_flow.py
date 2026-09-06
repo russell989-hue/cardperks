@@ -18,6 +18,7 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     FileSelector,
     FileSelectorConfig,
     SelectOptionDict,
@@ -30,6 +31,8 @@ from homeassistant.helpers.selector import (
 from homeassistant.util import slugify
 
 from .const import (
+    ATTR_APPLY_FEE,
+    ATTR_CARD,
     ATTR_CSV,
     ATTR_FILE,
     CONF_ANNUAL_FEE,
@@ -52,11 +55,13 @@ from .const import (
     SUBENTRY_CARD,
     SUBENTRY_IMPORT,
     SUBENTRY_OWNER,
+    SUBENTRY_STATEMENT,
     Role,
 )
 from .helpers import async_get_catalog
 from .importer import async_import_cards, parse_date
 from .models import Catalog
+from .statements import ParsedStatement, latest_fee, match_credits, parse_statement
 
 MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -90,6 +95,7 @@ class CardPerksConfigFlow(ConfigFlow, domain=DOMAIN):
             SUBENTRY_OWNER: OwnerSubentryFlow,
             SUBENTRY_CARD: HeldCardSubentryFlow,
             SUBENTRY_IMPORT: ImportSubentryFlow,
+            SUBENTRY_STATEMENT: ImportStatementSubentryFlow,
         }
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -493,3 +499,183 @@ class ImportSubentryFlow(ConfigSubentryFlow):
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+
+async def _read_uploaded_text(hass, file_id: str) -> tuple[str, str | None]:
+    """Return (text, original filename) for an uploaded file."""
+
+    def _read() -> tuple[str, str | None]:
+        with process_uploaded_file(hass, file_id) as path:
+            raw = path.read_bytes()
+            name = path.name
+        for enc in ("utf-8-sig", "utf-16", "cp1252"):
+            try:
+                return raw.decode(enc), name
+            except UnicodeDecodeError:
+                continue
+        return raw.decode("utf-8", errors="replace"), name
+
+    return await hass.async_add_executor_job(_read)
+
+
+class ImportStatementSubentryFlow(ConfigSubentryFlow):
+    """Read a raw Chase / Amex CSV export and record fee and credit usage on a card."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._parsed: ParsedStatement | None = None
+
+    def _cards_for_issuer(self, issuer: str, catalog: Catalog) -> list[ConfigSubentry]:
+        out = []
+        for s in self._get_entry().subentries.values():
+            if s.subentry_type != SUBENTRY_CARD:
+                continue
+            product = catalog.get(s.data.get(CONF_PRODUCT_ID, ""))
+            if product is not None and product.issuer == issuer:
+                out.append(s)
+        return out
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None and user_input.get(ATTR_FILE):
+            text, name = await _read_uploaded_text(self.hass, user_input[ATTR_FILE])
+            try:
+                self._parsed = parse_statement(text, name)
+            except ValueError:
+                errors["base"] = "unrecognised_statement"
+            if not errors:
+                return await self.async_step_card()
+        elif user_input is not None:
+            errors["base"] = "nothing_to_import"
+        schema = vol.Schema(
+            {vol.Required(ATTR_FILE): FileSelector(FileSelectorConfig(accept=".csv,text/csv"))}
+        )
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    async def async_step_card(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        assert self._parsed is not None
+        parsed = self._parsed
+        catalog = await async_get_catalog(self.hass)
+        # Prefer cards from the detected issuer; fall back to every card so the user can pick.
+        cards = self._cards_for_issuer(parsed.issuer, catalog) or [
+            s for s in self._get_entry().subentries.values() if s.subentry_type == SUBENTRY_CARD
+        ]
+        if not cards:
+            return self.async_abort(
+                reason="no_card_for_issuer", description_placeholders={"issuer": parsed.issuer}
+            )
+
+        if user_input is not None:
+            return await self._apply(
+                user_input[ATTR_CARD], bool(user_input.get(ATTR_APPLY_FEE, True))
+            )
+
+        # Preselect by last4 from the Card column or filename.
+        hints = set(parsed.last4s)
+        if parsed.filename_last4:
+            hints.add(parsed.filename_last4)
+        default = next(
+            (c.subentry_id for c in cards if c.data.get(CONF_LAST4) in hints), cards[0].subentry_id
+        )
+        fee = latest_fee(parsed)
+        rng = parsed.date_range
+        schema = vol.Schema(
+            {
+                vol.Required(ATTR_CARD, default=default): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(value=c.subentry_id, label=c.title) for c in cards
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(ATTR_APPLY_FEE, default=True): BooleanSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="card",
+            data_schema=schema,
+            description_placeholders={
+                "issuer": parsed.issuer,
+                "rows": str(len(parsed.rows)),
+                "range": f"{rng[0].isoformat()} to {rng[1].isoformat()}"
+                if rng
+                else "no dated rows",
+                "credits": str(len(parsed.credit_rows)),
+                "fee": f"{fee.amount:.2f} on {fee.date.isoformat()}" if fee else "none found",
+            },
+        )
+
+    async def _apply(self, card_id: str, apply_fee: bool) -> SubentryFlowResult:
+        assert self._parsed is not None
+        parsed = self._parsed
+        entry = self._get_entry()
+        coordinator = entry.runtime_data
+        card = coordinator.card(card_id)
+        product = coordinator.catalog.get(card.product_id)
+        result = match_credits(parsed, product)
+
+        applied: dict[str, float] = {}
+        dupes = 0
+        for m in result.matched:
+            ok = coordinator.record_statement_usage(
+                card_id, m.benefit_id, m.row.date, abs(m.row.amount), m.row.description[:60]
+            )
+            if ok:
+                applied[m.benefit_id] = round(applied.get(m.benefit_id, 0.0) + abs(m.row.amount), 2)
+            else:
+                dupes += 1
+        if applied:
+            coordinator.commit()
+
+        fee_note = "not applied"
+        fee = latest_fee(parsed)
+        if apply_fee and fee is not None:
+            sub = entry.subentries[card_id]
+            new_data = dict(sub.data)
+            changed = False
+            if not new_data.get(CONF_FEE_MONTH) and not new_data.get(CONF_OPEN_DATE):
+                new_data[CONF_FEE_MONTH] = fee.date.month
+                changed = True
+            catalog_fee = product.annual_fee if product else None
+            if (
+                fee.amount > 0
+                and fee.amount != catalog_fee
+                and new_data.get(CONF_ANNUAL_FEE) != fee.amount
+            ):
+                new_data[CONF_ANNUAL_FEE] = fee.amount
+                changed = True
+            if changed:
+                self.hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
+                try:
+                    self.hass.config_entries.async_update_subentry(entry, sub, data=new_data)
+                finally:
+                    self.hass.data[DOMAIN][DATA_IMPORTING] = False
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+                fee_note = (
+                    f"fee month set to {fee.date.strftime('%B')}, annual fee {fee.amount:.0f}"
+                )
+            else:
+                fee_note = f"{fee.amount:.0f} on {fee.date.isoformat()} (already configured)"
+        elif fee is None:
+            fee_note = "no fee line in this export"
+
+        def _fmt(lines: list[str]) -> str:
+            return "\n".join(f"- {line}" for line in lines) if lines else "- none"
+
+        names = {b.id: b.name for b in product.benefits} if product else {}
+        return self.async_abort(
+            reason="statement_complete",
+            description_placeholders={
+                "card": card.title,
+                "fee": fee_note,
+                "applied": _fmt([f"{names.get(b, b)}: {amt:.2f}" for b, amt in applied.items()]),
+                "duplicates": str(dupes),
+                "unmatched": _fmt(
+                    [
+                        f"{r.date.isoformat()} {r.description} {abs(r.amount):.2f}"
+                        for r in result.unmatched
+                    ][:15]
+                ),
+            },
+        )

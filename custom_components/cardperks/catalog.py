@@ -42,6 +42,7 @@ BENEFIT_SCHEMA = vol.Schema(
         vol.Optional("expires_days_after_open"): vol.Any(None, vol.Coerce(int)),
         vol.Optional("spend_required"): vol.Any(None, vol.Coerce(float)),
         vol.Optional("notes"): vol.Any(None, str),
+        vol.Optional("statement_match", default=list): [str],
     }
 )
 
@@ -104,6 +105,7 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
             expires_days_after_open=b.get("expires_days_after_open"),
             spend_required=b.get("spend_required"),
             notes=b.get("notes"),
+            statement_match=tuple(b.get("statement_match", [])),
         )
         for b in raw["benefits"]
     )

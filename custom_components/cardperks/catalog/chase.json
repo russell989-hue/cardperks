@@ -14,26 +14,188 @@
       "needs_verification": true,
       "source_url": "https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve",
       "benefits": [
-        {"id": "travel_credit", "name": "Annual travel credit", "type": "statement_credit", "cadence": "annual", "amount": 300, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary"},
-        {"id": "edit_hotel_credit", "name": "The Edit hotel credit", "type": "statement_credit", "cadence": "semiannual", "amount": 250, "unit": "USD", "reset": "calendar", "applies_to": "primary", "notes": "Two-night minimum via The Edit by Chase Travel"},
-        {"id": "dining_credit", "name": "Exclusive Tables dining credit", "type": "statement_credit", "cadence": "semiannual", "amount": 150, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "stubhub_credit", "name": "StubHub / viagogo credit", "type": "statement_credit", "cadence": "semiannual", "amount": 150, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "doordash_credit", "name": "DoorDash promo credit", "type": "statement_credit", "cadence": "monthly", "amount": 25, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary", "notes": "DashPass membership required"},
-        {"id": "lyft_credit", "name": "Lyft credit", "type": "statement_credit", "cadence": "monthly", "amount": 10, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "peloton_credit", "name": "Peloton credit", "type": "statement_credit", "cadence": "monthly", "amount": 10, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "apple_subscriptions", "name": "Apple TV+ and Apple Music", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary", "default_value": 250},
-        {"id": "priority_pass", "name": "Priority Pass Select", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "enrollment_required": true, "applies_to": "au_own_allotment", "default_value": 200},
-        {"id": "sapphire_lounge", "name": "Sapphire Lounge by The Club", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "applies_to": "au_own_allotment", "default_value": 150},
-        {"id": "global_entry", "name": "Global Entry / TSA PreCheck credit", "type": "statement_credit", "cadence": "annual", "amount": 120, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary", "notes": "Once every four years"},
-        {"id": "sub", "name": "Sign-up bonus", "type": "earning", "cadence": "one_time", "amount": 100000, "unit": "points", "applies_to": "primary", "expires_days_after_open": 90, "spend_required": 5000}
+        {
+          "id": "travel_credit",
+          "name": "Annual travel credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "statement_match": [
+            "TRAVEL CREDIT"
+          ]
+        },
+        {
+          "id": "edit_hotel_credit",
+          "name": "The Edit hotel credit",
+          "type": "statement_credit",
+          "cadence": "semiannual",
+          "amount": 250,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "notes": "Two-night minimum via The Edit by Chase Travel",
+          "statement_match": [
+            "HOTEL CREDIT",
+            "THE EDIT"
+          ]
+        },
+        {
+          "id": "dining_credit",
+          "name": "Exclusive Tables dining credit",
+          "type": "statement_credit",
+          "cadence": "semiannual",
+          "amount": 150,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "DINING CREDIT"
+          ]
+        },
+        {
+          "id": "stubhub_credit",
+          "name": "StubHub / viagogo credit",
+          "type": "statement_credit",
+          "cadence": "semiannual",
+          "amount": 150,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "statement_match": [
+            "STUBHUB",
+            "VIAGOGO"
+          ]
+        },
+        {
+          "id": "doordash_credit",
+          "name": "DoorDash promo credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 25,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "notes": "DashPass membership required",
+          "statement_match": [
+            "DOORDASH.*CREDIT"
+          ]
+        },
+        {
+          "id": "lyft_credit",
+          "name": "Lyft credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "LYFT.*CREDIT"
+          ]
+        },
+        {
+          "id": "peloton_credit",
+          "name": "Peloton credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "PELOTON.*CREDIT"
+          ]
+        },
+        {
+          "id": "apple_subscriptions",
+          "name": "Apple TV+ and Apple Music",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "default_value": 250
+        },
+        {
+          "id": "priority_pass",
+          "name": "Priority Pass Select",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": true,
+          "applies_to": "au_own_allotment",
+          "default_value": 200
+        },
+        {
+          "id": "sapphire_lounge",
+          "name": "Sapphire Lounge by The Club",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "au_own_allotment",
+          "default_value": 150
+        },
+        {
+          "id": "global_entry",
+          "name": "Global Entry / TSA PreCheck credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "notes": "Once every four years",
+          "statement_match": [
+            "GLOBAL ENTRY",
+            "TSA PRE"
+          ]
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 100000,
+          "unit": "points",
+          "applies_to": "primary",
+          "expires_days_after_open": 90,
+          "spend_required": 5000
+        }
       ],
       "earning_rates": [
-        {"category": "chase_travel", "multiplier": 8},
-        {"category": "flights_hotels_direct", "multiplier": 4},
-        {"category": "dining", "multiplier": 3},
-        {"category": "other", "multiplier": 1}
+        {
+          "category": "chase_travel",
+          "multiplier": 8
+        },
+        {
+          "category": "flights_hotels_direct",
+          "multiplier": 4
+        },
+        {
+          "category": "dining",
+          "multiplier": 3
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
       ],
-      "au_terms": {"fee": 195, "own_lounge_access": true, "notes": "AU gets own Priority Pass and Sapphire Lounge access"}
+      "au_terms": {
+        "fee": 195,
+        "own_lounge_access": true,
+        "notes": "AU gets own Priority Pass and Sapphire Lounge access"
+      }
     },
     {
       "id": "chase_ink_business_preferred",
@@ -46,14 +208,46 @@
       "needs_verification": true,
       "source_url": "https://creditcards.chase.com/business-credit-cards/ink/business-preferred",
       "benefits": [
-        {"id": "cell_phone_protection", "name": "Cell phone protection", "type": "insurance", "cadence": "annual", "amount": null, "unit": "USD", "reset": "calendar", "applies_to": "primary_and_au", "default_value": 60, "notes": "Up to $1,000 per claim, 3 claims per 12 months, $100 deductible"},
-        {"id": "sub", "name": "Sign-up bonus", "type": "earning", "cadence": "one_time", "amount": 90000, "unit": "points", "applies_to": "primary", "expires_days_after_open": 90, "spend_required": 8000}
+        {
+          "id": "cell_phone_protection",
+          "name": "Cell phone protection",
+          "type": "insurance",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary_and_au",
+          "default_value": 60,
+          "notes": "Up to $1,000 per claim, 3 claims per 12 months, $100 deductible"
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 90000,
+          "unit": "points",
+          "applies_to": "primary",
+          "expires_days_after_open": 90,
+          "spend_required": 8000
+        }
       ],
       "earning_rates": [
-        {"category": "travel_shipping_ads_telecom", "multiplier": 3, "notes": "On first $150k combined per cardmember year"},
-        {"category": "other", "multiplier": 1}
+        {
+          "category": "travel_shipping_ads_telecom",
+          "multiplier": 3,
+          "notes": "On first $150k combined per cardmember year"
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
       ],
-      "au_terms": {"fee": 0, "own_lounge_access": false, "notes": "Employee cards free"}
+      "au_terms": {
+        "fee": 0,
+        "own_lounge_access": false,
+        "notes": "Employee cards free"
+      }
     },
     {
       "id": "chase_southwest_plus",
@@ -66,17 +260,62 @@
       "needs_verification": true,
       "source_url": "https://creditcards.chase.com/travel-credit-cards/southwest/plus",
       "benefits": [
-        {"id": "anniversary_points", "name": "Anniversary points", "type": "earning", "cadence": "per_anniversary", "amount": 3000, "unit": "points", "reset": "cardmember_year", "applies_to": "primary"},
-        {"id": "earlybird_checkin", "name": "EarlyBird Check-In credits", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary", "default_value": 30, "notes": "Two per year"},
-        {"id": "sub", "name": "Sign-up bonus", "type": "earning", "cadence": "one_time", "amount": 50000, "unit": "points", "applies_to": "primary", "expires_days_after_open": 90, "spend_required": 1000}
+        {
+          "id": "anniversary_points",
+          "name": "Anniversary points",
+          "type": "earning",
+          "cadence": "per_anniversary",
+          "amount": 3000,
+          "unit": "points",
+          "reset": "cardmember_year",
+          "applies_to": "primary"
+        },
+        {
+          "id": "earlybird_checkin",
+          "name": "EarlyBird Check-In credits",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "default_value": 30,
+          "notes": "Two per year"
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 50000,
+          "unit": "points",
+          "applies_to": "primary",
+          "expires_days_after_open": 90,
+          "spend_required": 1000
+        }
       ],
       "earning_rates": [
-        {"category": "southwest", "multiplier": 2},
-        {"category": "rapid_rewards_hotels_car", "multiplier": 2},
-        {"category": "streaming_transit_internet", "multiplier": 2},
-        {"category": "other", "multiplier": 1}
+        {
+          "category": "southwest",
+          "multiplier": 2
+        },
+        {
+          "category": "rapid_rewards_hotels_car",
+          "multiplier": 2
+        },
+        {
+          "category": "streaming_transit_internet",
+          "multiplier": 2
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
       ],
-      "au_terms": {"fee": 0, "own_lounge_access": false}
+      "au_terms": {
+        "fee": 0,
+        "own_lounge_access": false
+      }
     },
     {
       "id": "chase_united_explorer",
@@ -89,22 +328,134 @@
       "needs_verification": true,
       "source_url": "https://creditcards.chase.com/travel-credit-cards/united/explorer",
       "benefits": [
-        {"id": "club_passes", "name": "United Club one-time passes", "type": "perk", "cadence": "per_anniversary", "amount": null, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary", "default_value": 118, "notes": "Two passes per anniversary year"},
-        {"id": "hotel_credit", "name": "Renowned Hotels credit", "type": "statement_credit", "cadence": "annual", "amount": 50, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "instacart_credit", "name": "Instacart credit", "type": "statement_credit", "cadence": "monthly", "amount": 5, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "rideshare_credit", "name": "Rideshare credit", "type": "statement_credit", "cadence": "monthly", "amount": 5, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary", "notes": "Excludes December"},
-        {"id": "jsx_credit", "name": "JSX credit", "type": "statement_credit", "cadence": "annual", "amount": 100, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "global_entry", "name": "Global Entry / TSA PreCheck credit", "type": "statement_credit", "cadence": "annual", "amount": 120, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary", "notes": "Once every four years"},
-        {"id": "free_checked_bag", "name": "First checked bag free", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "calendar", "applies_to": "primary", "default_value": 80},
-        {"id": "sub", "name": "Sign-up bonus", "type": "earning", "cadence": "one_time", "amount": 60000, "unit": "miles", "applies_to": "primary", "expires_days_after_open": 90, "spend_required": 3000}
+        {
+          "id": "club_passes",
+          "name": "United Club one-time passes",
+          "type": "perk",
+          "cadence": "per_anniversary",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "default_value": 118,
+          "notes": "Two passes per anniversary year"
+        },
+        {
+          "id": "hotel_credit",
+          "name": "Renowned Hotels credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 50,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "RENOWNED.*CREDIT",
+            "HOTEL CREDIT"
+          ]
+        },
+        {
+          "id": "instacart_credit",
+          "name": "Instacart credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 5,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "statement_match": [
+            "INSTACART.*CREDIT"
+          ]
+        },
+        {
+          "id": "rideshare_credit",
+          "name": "Rideshare credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 5,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "notes": "Excludes December",
+          "statement_match": [
+            "RIDESHARE.*CREDIT"
+          ]
+        },
+        {
+          "id": "jsx_credit",
+          "name": "JSX credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 100,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "JSX.*CREDIT"
+          ]
+        },
+        {
+          "id": "global_entry",
+          "name": "Global Entry / TSA PreCheck credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "notes": "Once every four years",
+          "statement_match": [
+            "GLOBAL ENTRY",
+            "TSA PRE"
+          ]
+        },
+        {
+          "id": "free_checked_bag",
+          "name": "First checked bag free",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "default_value": 80
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 60000,
+          "unit": "miles",
+          "applies_to": "primary",
+          "expires_days_after_open": 90,
+          "spend_required": 3000
+        }
       ],
       "earning_rates": [
-        {"category": "united", "multiplier": 2},
-        {"category": "dining", "multiplier": 2},
-        {"category": "hotels_direct", "multiplier": 2},
-        {"category": "other", "multiplier": 1}
+        {
+          "category": "united",
+          "multiplier": 2
+        },
+        {
+          "category": "dining",
+          "multiplier": 2
+        },
+        {
+          "category": "hotels_direct",
+          "multiplier": 2
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
       ],
-      "au_terms": {"fee": 0, "own_lounge_access": false}
+      "au_terms": {
+        "fee": 0,
+        "own_lounge_access": false
+      }
     },
     {
       "id": "chase_united_club",
@@ -117,23 +468,148 @@
       "needs_verification": true,
       "source_url": "https://creditcards.chase.com/travel-credit-cards/united/club",
       "benefits": [
-        {"id": "club_membership", "name": "United Club membership", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "applies_to": "au_own_allotment", "default_value": 750, "notes": "AU cards get their own United Club lounge access"},
-        {"id": "hotel_credit", "name": "Renowned Hotels credit", "type": "statement_credit", "cadence": "annual", "amount": 200, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "instacart_credit", "name": "Instacart credit", "type": "statement_credit", "cadence": "monthly", "amount": 10, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "rideshare_credit", "name": "Rideshare credit", "type": "statement_credit", "cadence": "monthly", "amount": 10, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "avis_budget_credit", "name": "Avis / Budget credit", "type": "statement_credit", "cadence": "annual", "amount": 150, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "jsx_credit", "name": "JSX credit", "type": "statement_credit", "cadence": "annual", "amount": 150, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "global_entry", "name": "Global Entry / TSA PreCheck credit", "type": "statement_credit", "cadence": "annual", "amount": 120, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary", "notes": "Once every four years"},
-        {"id": "free_checked_bags", "name": "First and second checked bags free", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "calendar", "applies_to": "primary_and_au", "default_value": 160},
-        {"id": "sub", "name": "Sign-up bonus", "type": "earning", "cadence": "one_time", "amount": 90000, "unit": "miles", "applies_to": "primary", "expires_days_after_open": 90, "spend_required": 5000}
+        {
+          "id": "club_membership",
+          "name": "United Club membership",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "au_own_allotment",
+          "default_value": 750,
+          "notes": "AU cards get their own United Club lounge access"
+        },
+        {
+          "id": "hotel_credit",
+          "name": "Renowned Hotels credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 200,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "RENOWNED.*CREDIT",
+            "HOTEL CREDIT"
+          ]
+        },
+        {
+          "id": "instacart_credit",
+          "name": "Instacart credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "statement_match": [
+            "INSTACART.*CREDIT"
+          ]
+        },
+        {
+          "id": "rideshare_credit",
+          "name": "Rideshare credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "statement_match": [
+            "RIDESHARE.*CREDIT"
+          ]
+        },
+        {
+          "id": "avis_budget_credit",
+          "name": "Avis / Budget credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 150,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "AVIS",
+            "BUDGET.*CREDIT"
+          ]
+        },
+        {
+          "id": "jsx_credit",
+          "name": "JSX credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 150,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "JSX.*CREDIT"
+          ]
+        },
+        {
+          "id": "global_entry",
+          "name": "Global Entry / TSA PreCheck credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "notes": "Once every four years",
+          "statement_match": [
+            "GLOBAL ENTRY",
+            "TSA PRE"
+          ]
+        },
+        {
+          "id": "free_checked_bags",
+          "name": "First and second checked bags free",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary_and_au",
+          "default_value": 160
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 90000,
+          "unit": "miles",
+          "applies_to": "primary",
+          "expires_days_after_open": 90,
+          "spend_required": 5000
+        }
       ],
       "earning_rates": [
-        {"category": "united", "multiplier": 4},
-        {"category": "travel", "multiplier": 2},
-        {"category": "dining", "multiplier": 2},
-        {"category": "other", "multiplier": 1}
+        {
+          "category": "united",
+          "multiplier": 4
+        },
+        {
+          "category": "travel",
+          "multiplier": 2
+        },
+        {
+          "category": "dining",
+          "multiplier": 2
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
       ],
-      "au_terms": {"fee": 0, "own_lounge_access": true, "notes": "AU cardholders get their own United Club access"}
+      "au_terms": {
+        "fee": 0,
+        "own_lounge_access": true,
+        "notes": "AU cardholders get their own United Club access"
+      }
     }
   ]
 }

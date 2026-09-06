@@ -27,6 +27,7 @@ class Benefit:
     expires_days_after_open: int | None = None
     spend_required: float | None = None
     notes: str | None = None
+    statement_match: tuple[str, ...] = ()  # regexes matched against statement descriptions
 
     def applies_to_role(self, role: Role) -> bool:
         if role is Role.PRIMARY:
@@ -289,6 +290,7 @@ class StateDocument:
     rotating_activations: dict[str, dict[str, dict[str, str]]] = field(default_factory=dict)
     perk_values: dict[str, dict[str, float]] = field(default_factory=dict)
     last_rollover: str | None = None
+    imported_refs: set[str] = field(default_factory=set)  # dedupe keys for statement imports
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -298,6 +300,7 @@ class StateDocument:
             "rotating_activations": self.rotating_activations,
             "perk_values": self.perk_values,
             "last_rollover": self.last_rollover,
+            "imported_refs": sorted(self.imported_refs),
         }
 
     @classmethod
@@ -319,6 +322,7 @@ class StateDocument:
                 for k, v in d.get("perk_values", {}).items()
             },
             last_rollover=d.get("last_rollover"),
+            imported_refs=set(d.get("imported_refs", [])),
         )
 
 

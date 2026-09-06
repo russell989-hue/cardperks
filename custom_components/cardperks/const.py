@@ -13,6 +13,7 @@ STORAGE_MINOR_VERSION = 1
 SUBENTRY_OWNER = "owner"
 SUBENTRY_CARD = "held_card"
 SUBENTRY_IMPORT = "import"
+SUBENTRY_STATEMENT = "statement"
 
 OVERRIDE_DIR = DOMAIN  # /config/cardperks/catalog/
 
@@ -50,6 +51,8 @@ SERVICE_ACTIVATE_ROTATING_CATEGORY = "activate_rotating_category"
 SERVICE_IMPORT_CARDS = "import_cards"
 ATTR_CSV = "csv"
 ATTR_FILE = "file"
+ATTR_CARD = "card"
+ATTR_APPLY_FEE = "apply_fee"
 DATA_IMPORTING = "importing"
 
 STALE_CATALOG_DAYS = 183

@@ -72,6 +72,38 @@
         "import_complete": "Import finished.\n\n**Owners created**\n{owners}\n\n**Cards created**\n{cards}\n\n**Skipped**\n{skipped}\n\n**Errors**\n{errors}"
       }
     },
+    "statement": {
+      "title": "Import statement",
+      "entry_type": "Statement",
+      "initiate_flow": {
+        "user": "Import statement (Chase / Amex CSV)"
+      },
+      "step": {
+        "user": {
+          "title": "Import a statement export",
+          "description": "Upload the raw CSV exactly as downloaded from Chase (Activity export) or American Express (Download CSV). Nothing is sent anywhere; the file is read locally, its annual fee line sets the fee month and actual fee, and labelled credit lines (for example `TRAVEL CREDIT $300/YEAR` or `Platinum Resy Credit`) are recorded as benefit usage in the matching period. Re-importing the same file is safe.",
+          "data": {
+            "file": "Statement CSV"
+          }
+        },
+        "card": {
+          "title": "Which card is this?",
+          "description": "Detected a **{issuer}** export with {rows} rows ({range}), {credits} credit lines, annual fee {fee}.",
+          "data": {
+            "card": "Card",
+            "apply_fee": "Set fee month and actual annual fee from the statement"
+          }
+        }
+      },
+      "error": {
+        "nothing_to_import": "Upload a file.",
+        "unrecognised_statement": "That file is not a recognised Chase or American Express export."
+      },
+      "abort": {
+        "no_card_for_issuer": "No {issuer} card is configured yet. Add the card first, then import its statement.",
+        "statement_complete": "Statement applied to **{card}**.\n\n**Annual fee**: {fee}\n\n**Credits recorded**\n{applied}\n\nAlready imported earlier: {duplicates}\n\n**Credit lines with no matching benefit** (add a `statement_match` pattern in the catalog to pick these up)\n{unmatched}"
+      }
+    },
     "held_card": {
       "title": "Card",
       "entry_type": "Card",

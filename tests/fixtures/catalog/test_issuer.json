@@ -13,14 +13,78 @@
       "last_verified": "2026-08-01",
       "source_url": "https://example.com/premium",
       "benefits": [
-        {"id": "monthly_credit", "name": "Monthly credit", "type": "statement_credit", "cadence": "monthly", "amount": 10, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "dining_credit", "name": "Dining credit", "type": "statement_credit", "cadence": "semiannual", "amount": 150, "unit": "USD", "reset": "calendar", "applies_to": "primary"},
-        {"id": "travel_credit", "name": "Travel credit", "type": "statement_credit", "cadence": "annual", "amount": 300, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary"},
-        {"id": "lounge", "name": "Lounge access", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "applies_to": "au_own_allotment", "default_value": 100},
-        {"id": "sub", "name": "Sign-up bonus", "type": "earning", "cadence": "one_time", "amount": 50000, "unit": "points", "applies_to": "primary", "expires_days_after_open": 90, "spend_required": 4000}
+        {
+          "id": "monthly_credit",
+          "name": "Monthly credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 10,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "MONTHLY CREDIT"
+          ]
+        },
+        {
+          "id": "dining_credit",
+          "name": "Dining credit",
+          "type": "statement_credit",
+          "cadence": "semiannual",
+          "amount": 150,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "DINING CREDIT"
+          ]
+        },
+        {
+          "id": "travel_credit",
+          "name": "Travel credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "statement_match": [
+            "TRAVEL CREDIT"
+          ]
+        },
+        {
+          "id": "lounge",
+          "name": "Lounge access",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "au_own_allotment",
+          "default_value": 100
+        },
+        {
+          "id": "sub",
+          "name": "Sign-up bonus",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 50000,
+          "unit": "points",
+          "applies_to": "primary",
+          "expires_days_after_open": 90,
+          "spend_required": 4000
+        }
       ],
-      "earning_rates": [{"category": "other", "multiplier": 1}],
-      "au_terms": {"fee": 50, "own_lounge_access": true}
+      "earning_rates": [
+        {
+          "category": "other",
+          "multiplier": 1
+        }
+      ],
+      "au_terms": {
+        "fee": 50,
+        "own_lounge_access": true
+      }
     },
     {
       "id": "test_basic",

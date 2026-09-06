@@ -24,7 +24,10 @@
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "primary",
-          "notes": "Prepaid bookings via Amex Travel; two-night minimum for The Hotel Collection"
+          "notes": "Prepaid bookings via Amex Travel; two-night minimum for The Hotel Collection",
+          "statement_match": [
+            "Platinum Hotel Credit"
+          ]
         },
         {
           "id": "airline_fee_credit",
@@ -36,7 +39,10 @@
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "primary",
-          "notes": "Incidental fees on one selected airline"
+          "notes": "Incidental fees on one selected airline",
+          "statement_match": [
+            "Airline Fee Credit"
+          ]
         },
         {
           "id": "uber_cash",
@@ -59,7 +65,10 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "statement_match": [
+            "Digital Entertainment Credit"
+          ]
         },
         {
           "id": "resy_credit",
@@ -71,7 +80,10 @@
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "primary",
-          "notes": "Confirmed quarterly from 2026 statements"
+          "notes": "Confirmed quarterly from 2026 statements",
+          "statement_match": [
+            "Resy Credit"
+          ]
         },
         {
           "id": "lululemon_credit",
@@ -82,7 +94,10 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "statement_match": [
+            "Lululemon Credit"
+          ]
         },
         {
           "id": "equinox_credit",
@@ -93,7 +108,10 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "statement_match": [
+            "Equinox Credit"
+          ]
         },
         {
           "id": "walmart_plus",
@@ -104,7 +122,10 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "statement_match": [
+            "Walmart.*Credit"
+          ]
         },
         {
           "id": "clear_plus",
@@ -115,7 +136,10 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "statement_match": [
+            "CLEAR PLUS CREDIT"
+          ]
         },
         {
           "id": "uber_one",
@@ -126,7 +150,10 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "statement_match": [
+            "Uber One Credit"
+          ]
         },
         {
           "id": "oura_credit",
@@ -137,7 +164,10 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": true,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "statement_match": [
+            "Oura Ring Credit"
+          ]
         },
         {
           "id": "global_entry",
@@ -148,7 +178,11 @@
           "unit": "USD",
           "reset": "calendar",
           "applies_to": "primary",
-          "notes": "Once every four years"
+          "notes": "Once every four years",
+          "statement_match": [
+            "Global Entry",
+            "TSA Pre"
+          ]
         },
         {
           "id": "centurion_lounge",
