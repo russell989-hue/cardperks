@@ -16,7 +16,9 @@ from .models import Product
 
 CHASE_FEE_RE = re.compile(r"ANNUAL MEMBERSHIP FEE", re.I)
 AMEX_FEE_RE = re.compile(r"(RENEWAL )?MEMBERSHIP FEE", re.I)
+CAPONE_FEE_RE = re.compile(r"MEMBER(SHIP)? FEE|ANNUAL FEE", re.I)
 CREDIT_HINT_RE = re.compile(r"\bCREDIT\b", re.I)
+PAYMENT_RE = re.compile(r"PYMT|PAYMENT|AUTOPAY", re.I)
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +32,7 @@ class StatementRow:
 
 @dataclass(slots=True)
 class ParsedStatement:
-    issuer: str  # "chase" | "amex"
+    issuer: str  # "chase" | "amex" | "capital_one"
     rows: list[StatementRow]
     last4s: set[str] = field(default_factory=set)
     filename_last4: str | None = None
@@ -86,6 +88,8 @@ def last4_from_filename(name: str | None) -> str | None:
 
 def detect_issuer(header: list[str]) -> str | None:
     cols = {h.strip().lower() for h in header}
+    if {"transaction date", "posted date", "card no.", "debit", "credit"} <= cols:
+        return "capital_one"
     if {"transaction date", "post date", "description", "type", "amount"} <= cols:
         return "chase"
     if {"date", "description", "amount"} <= cols and (
@@ -129,6 +133,20 @@ def parse_statement(text: str, filename: str | None = None) -> ParsedStatement:
                 if typ == "fee" and CHASE_FEE_RE.search(desc):
                     kind = "fee"
                 elif typ == "adjustment" and amt < 0:
+                    kind = "credit"
+                else:
+                    kind = "other"
+            elif issuer == "capital_one":
+                d = _parse_date(col(r, "transaction date"))
+                desc = col(r, "description")
+                # Separate Debit / Credit columns; normalise to charge-positive.
+                amt = _amount(col(r, "debit")) - _amount(col(r, "credit"))
+                last4 = col(r, "card no.") or None
+                if last4:
+                    last4s.add(last4)
+                if amt > 0 and CAPONE_FEE_RE.search(desc) and "INTEREST" not in desc.upper():
+                    kind = "fee"
+                elif amt < 0 and not PAYMENT_RE.search(desc) and "INTEREST" not in desc.upper():
                     kind = "credit"
                 else:
                     kind = "other"

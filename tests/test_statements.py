@@ -61,6 +61,29 @@ def test_detect_and_parse_amex():
     ]
 
 
+CAPONE = """Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit
+2026-06-18,2026-06-18,6207,CAPITAL ONE AUTOPAY PYMT,Payment/Credit,,2.52
+2026-05-23,2026-05-23,6207,INTEREST CHARGE:PURCHASES,Fee/Interest Charge,2.52,
+2026-04-07,2026-04-08,6207,APPLE.COM/BILL,Entertainment,,21.02
+2026-03-24,2026-03-27,6207,INTEREST CHARGE CREDIT,Payment/Credit,,8.06
+2026-03-01,2026-03-02,6207,CAPITAL ONE TRAVEL CREDIT,Payment/Credit,,300.00
+2026-02-21,2026-02-21,6207,CAPITAL ONE MEMBER FEE,Fee/Interest Charge,395.00,
+2026-02-18,2026-02-19,6207,APPLE.COM/BILL,Entertainment,21.02,
+"""
+
+
+def test_detect_and_parse_capital_one():
+    parsed = parse_statement(CAPONE, "2026-09-06_transaction_download.csv")
+    assert parsed.issuer == "capital_one" and parsed.last4s == {"6207"}
+    fee = latest_fee(parsed)
+    assert fee.date == date(2026, 2, 21) and fee.amount == 395.0
+    # payments and interest are not credits; a refund with no CREDIT word still counts
+    assert [(r.description, abs(r.amount)) for r in parsed.credit_rows] == [
+        ("APPLE.COM/BILL", 21.02),
+        ("CAPITAL ONE TRAVEL CREDIT", 300.0),
+    ]
+
+
 def test_unknown_format():
     import pytest
 

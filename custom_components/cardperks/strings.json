@@ -76,12 +76,12 @@
       "title": "Import statement",
       "entry_type": "Statement",
       "initiate_flow": {
-        "user": "Import statement (Chase / Amex CSV)"
+        "user": "Import statement (Chase / Amex / Capital One CSV)"
       },
       "step": {
         "user": {
           "title": "Import a statement export",
-          "description": "Upload the raw CSV exactly as downloaded from Chase (Activity export) or American Express (Download CSV). Nothing is sent anywhere; the file is read locally, its annual fee line sets the fee month and actual fee, and labelled credit lines (for example `TRAVEL CREDIT $300/YEAR` or `Platinum Resy Credit`) are recorded as benefit usage in the matching period. Re-importing the same file is safe.",
+          "description": "Upload the raw CSV exactly as downloaded from Chase (Activity export), American Express (Download CSV), or Capital One (Download Transactions). Nothing is sent anywhere; the file is read locally, its annual fee line sets the fee month and actual fee, and labelled credit lines (for example `TRAVEL CREDIT $300/YEAR` or `Platinum Resy Credit`) are recorded as benefit usage in the matching period. Re-importing the same file is safe.",
           "data": {
             "file": "Statement CSV"
           }
@@ -97,7 +97,7 @@
       },
       "error": {
         "nothing_to_import": "Upload a file.",
-        "unrecognised_statement": "That file is not a recognised Chase or American Express export."
+        "unrecognised_statement": "That file is not a recognised Chase, American Express, or Capital One export."
       },
       "abort": {
         "no_card_for_issuer": "No {issuer} card is configured yet. Add the card first, then import its statement.",
