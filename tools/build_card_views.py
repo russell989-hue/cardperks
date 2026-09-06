@@ -201,9 +201,7 @@ def build_view(card: dict) -> dict:
         "| selectattr('on', 'ge', lo) | selectattr('on', 'lt', hi) | list %}"
         "{% set total = rows | map(attribute='amount') | sum %}"
         "{% if not rows %}Nothing logged in this window.{% else %}"
-        "**${{ total | round(2) }}** over {{ rows | count }} entries
-
-"
+        "**${{ total | round(2) }}** over {{ rows | count }} entries\n\n"
         "| When | Benefit | Amount | How |\n|---|---|---:|---|\n"
         "{% for r in rows[:60] %}| {{ r.on }} | {{ r.benefit }} | "
         "{{ ('-' if r.amount < 0 else '') ~ '$' ~ (r.amount | abs | round(2)) }} | "
