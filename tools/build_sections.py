@@ -18,11 +18,12 @@ import sys
 
 from lovelace import (
     DAYS_UNTIL,
+    DOLLARS,
     attr,
     auto_cards,
     auto_rows,
     base_filter,
-    gauge_grid,
+    donut_by_card,
     heading,
     note,
 )
@@ -40,13 +41,11 @@ def dollars_left() -> dict:
         "type": "grid",
         "cards": [
             heading("Dollars left by benefit", "mdi:cash-clock"),
-            note("Each arc is what is left of that credit, in its card's colour. Tap for detail."),
-            gauge_grid(
-                "benefit_remaining",
-                name="s.attributes.benefit",
-                maximum="(s.attributes.amount or (s.state | float(0)))",
-                where="(s.state | float(0)) > 0",
-                by_value=True,
+            auto_cards(
+                [{**with_status(base_filter(kind="benefit_remaining")), "state": "> 0"}],
+                primary="{{ state_attr(entity, 'benefit') }}",
+                secondary=DOLLARS + " left · {{ state_attr(entity, 'card') }}",
+                icon="mdi:cash-clock",
             ),
         ],
     }
@@ -76,10 +75,21 @@ def by_card() -> dict:
         "cards": [
             heading("By card", "mdi:credit-card-multiple"),
             note(
-                "Share of each card's yearly credits captured over the trailing twelve "
-                "months. Tap a gauge for the dollars behind it."
+                "Trailing twelve months. Forfeited is money a period closed without you "
+                "using it, which is gone rather than pending."
             ),
-            gauge_grid("capture_rate"),
+            auto_cards(
+                [with_status(base_filter(kind="capture_rate"))],
+                primary="{{ state_attr(entity, 'card') }}",
+                secondary=(
+                    "${{ " + attr("captured_12m") + " | round(0) | int }} of "
+                    "${{ " + attr("annual_value") + " | round(0) | int }} captured · "
+                    "${{ " + attr("forfeited_12m") + " | round(0) | int }} forfeited · "
+                    "{{ states(entity) | float(0) | round(0) | int }}%"
+                ),
+                icon="mdi:cash-100",
+                sort={"method": "friendly_name"},
+            ),
         ],
     }
 
@@ -164,6 +174,37 @@ def perk_values() -> dict:
     }
 
 
+def outstanding() -> dict:
+    """The money left to use right now, as one ring sliced by card and benefit."""
+    total = (
+        "{% set vals = states.sensor | selectattr('attributes.kind', 'eq', 'unused_value') "
+        "| selectattr('attributes.card_status', 'eq', 'active') "
+        "| rejectattr('state', 'in', ['unknown', 'unavailable']) "
+        "| map(attribute='state') | map('float', 0) | list %}"
+        "{% set total = (vals | sum) or 1 %}"
+    )
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Left to use, by card", "mdi:chart-donut"),
+            note(
+                "Each card is a slice, largest first; the shades within it are its "
+                "individual credits."
+            ),
+            donut_by_card(),
+            auto_cards(
+                [{**with_status(base_filter(kind="unused_value")), "state": "> 0"}],
+                primary="{{ state_attr(entity, 'card') }}",
+                secondary=(
+                    total + DOLLARS + " · {{ ((states(entity) | float(0)) / total * 100) "
+                    "| round(0) | int }}% of the total"
+                ),
+                icon="mdi:circle-slice-8",
+            ),
+        ],
+    }
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
@@ -178,6 +219,7 @@ def main() -> int:
         "expiring": expiring(),
         "coverage": coverage(),
         "perk_values": perk_values(),
+        "outstanding": outstanding(),
     }
     for name, section in sections.items():
         path = outdir / f"{name}.json"

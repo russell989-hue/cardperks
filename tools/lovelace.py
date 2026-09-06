@@ -204,6 +204,75 @@ def gauge_grid(
     }
 
 
+# What is left to use, gathered once for the ring and its centre label:
+#   ns.cards  [dollars, card_id, colour] per active card with money left
+#   ns.rems   [dollars, card_id] per benefit with money left
+#   ns.total  the sum of those benefits
+_LEFT_TO_USE = (
+    "{% set ns = namespace(total=0.0, cards=[], rems=[], acc=0.0, out=[]) %}"
+    "{% for s in states.sensor if s.attributes.kind == 'unused_value' "
+    "and s.attributes.card_status == 'active' "
+    "and s.state not in ['unknown', 'unavailable'] and (s.state | float(0)) > 0 %}"
+    "{% set ns.cards = ns.cards + [[s.state | float(0), s.attributes.card_id, "
+    "s.attributes.color or 'grey']] %}"
+    "{% endfor %}"
+    "{% for r in states.sensor if r.attributes.kind == 'benefit_remaining' "
+    "and r.attributes.card_status == 'active' "
+    "and r.state not in ['unknown', 'unavailable'] and (r.state | float(0)) > 0 %}"
+    "{% set ns.rems = ns.rems + [[r.state | float(0), r.attributes.card_id]] %}"
+    "{% set ns.total = ns.total + (r.state | float(0)) %}"
+    "{% endfor %}"
+)
+
+
+def donut_by_card(size: int = 240) -> dict:
+    """One ring of the dollars left to use: a slice per card, subdivided by benefit.
+
+    Cards run largest first; within a card each benefit is a segment, largest first,
+    in a shade of the card's colour that steps from full strength down to about half,
+    mixed towards the card background so it works in either theme.
+
+    A Markdown card: card-mod paints its background as a conic gradient computed by a
+    template, lays a disc of card background over the centre, and the card's own
+    content prints the total in the middle. All live; nothing to install beyond
+    card-mod. Shades use CSS color-mix, which every current browser supports.
+    """
+    slices = (
+        _LEFT_TO_USE + "{% for c in ns.cards | sort(attribute='0', reverse=true) %}"
+        "{% set parts = ns.rems | selectattr('1', 'eq', c[1]) "
+        "| sort(attribute='0', reverse=true) | list %}"
+        "{% set n = parts | count %}"
+        "{% for p in parts %}"
+        "{% set pct = p[0] / ns.total * 100 %}"
+        "{% set mix = (100 - loop.index0 * 55 / ([n - 1, 1] | max)) | round(0) | int %}"
+        "{% set ns.out = ns.out + ['color-mix(in srgb, var(--' ~ c[2] ~ '-color) ' ~ mix "
+        "~ '%, var(--card-background-color)) ' ~ (ns.acc | round(2)) ~ '% ' "
+        "~ ((ns.acc + pct) | round(2)) ~ '%'] %}"
+        "{% set ns.acc = ns.acc + pct %}"
+        "{% endfor %}{% endfor %}"
+        "{{ ns.out | join(', ') if ns.out else 'var(--divider-color) 0% 100%' }}"
+    )
+    style = (
+        "ha-card {\n"
+        f"  width: {size}px; height: {size}px; border-radius: 50%; margin: 8px auto;\n"
+        "  box-sizing: border-box; border: none; box-shadow: none;\n"
+        "  display: flex; align-items: center; justify-content: center;\n"
+        "  text-align: center; font-size: 1.15em;\n"
+        "  background:\n"
+        "    radial-gradient(circle, var(--ha-card-background, var(--card-background-color)) 58%, "
+        "transparent 59%),\n"
+        "    conic-gradient(" + slices + ");\n"
+        "}\n"
+        "ha-markdown { padding: 0 28px; }\n"
+    )
+    content = (
+        _LEFT_TO_USE + "**${{ ns.total | round(0) | int }}**<br>left to use<br>"
+        "{{ ns.rems | count }} credits on {{ ns.cards | count }} card"
+        "{{ '' if ns.cards | count == 1 else 's' }}"
+    )
+    return {"type": "markdown", "content": content, "card_mod": {"style": style}}
+
+
 def coloured_row(entity: str, name: str) -> dict:
     """An explicit entity row whose icon takes the card colour."""
     return {"entity": entity, "name": name, "card_mod": {"style": ROW_STYLE}}
