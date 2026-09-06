@@ -45,8 +45,9 @@ years, because curating old issuer terms from memory breaks the official-sources
 
 - [ ] Multi-year import in one pass, walking every period the file covers.
 - [ ] Reconstruct the period grid backwards from the open date or fee month.
-- [ ] Per-cardmember-year table: fee charged, captured before the next fee, net; a year
-      with partial evidence is marked as such.
+- [x] Per-cardmember-year table: fee seen, captured, net, months a statement covers; on the
+      Money tab (2026-09-06). Fee lines are kept per date from now on; statements imported
+      before that day show no fee for past years until they are dropped in again.
 
 ### Loyalty status tracker (airlines, hotels, rental cars)
 
