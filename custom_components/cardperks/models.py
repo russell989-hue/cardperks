@@ -51,6 +51,10 @@ class Benefit:
     # three cards is still one membership). Valued once for the household under this key
     # and split equally between the active cards that carry it.
     shared_key: str | None = None
+    # Where the credit can be spent, one short line per merchant or partner, with the
+    # rule that matters ("Peacock: standalone subscriptions only"). Lists like this
+    # change often; keeping them structured makes the change a visible diff.
+    eligible: tuple[str, ...] = ()
 
     def applies_to_role(self, role: Role) -> bool:
         if role is Role.PRIMARY:

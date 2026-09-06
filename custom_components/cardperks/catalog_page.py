@@ -120,7 +120,15 @@ def render_catalog(
                 rows.append(
                     "<tr>"
                     f'<td class="b-name"><div class="b-title">{_esc(b.name)} {" ".join(flags)}</div>'
-                    f'<div class="b-notes">{_esc(b.notes or "")}</div></td>'
+                    f'<div class="b-notes">{_esc(b.notes or "")}</div>'
+                    + (
+                        '<ul class="eligible">'
+                        + "".join(f"<li>{_esc(e)}</li>" for e in b.eligible)
+                        + "</ul>"
+                        if b.eligible
+                        else ""
+                    )
+                    + "</td>"
                     f'<td><span class="type type-{b.type.value}">{TYPE_WORDS[b.type]}</span></td>'
                     f'<td class="num">{amount}</td>'
                     f"<td>{_esc(cadence)}</td>"
@@ -226,6 +234,8 @@ th.num {{ text-align: right; }}
 .b-name {{ min-width: 260px; }}
 .b-title {{ font-weight: 500; }}
 .b-notes {{ color: var(--ink-2); font-size: 13px; max-width: 58ch; }}
+.eligible {{ margin: 6px 0 0; padding-left: 16px; color: var(--ink-2); font-size: 12.5px; max-width: 58ch; }}
+.eligible li {{ margin: 2px 0; }}
 .match {{ min-width: 160px; }}
 .match code {{ margin-right: 4px; }}
 .type {{ display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; }}

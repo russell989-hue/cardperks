@@ -68,7 +68,19 @@
           "applies_to": "primary",
           "statement_match": [
             "Digital Entertainment Credit"
-          ]
+          ],
+          "eligible": [
+            "Disney+: subscriptions and add-ons bought directly at disneyplus.com",
+            "ESPN: subscriptions, add-ons and pay-per-view bought directly at stream.espn.com",
+            "Hulu: subscriptions and add-ons bought directly at hulu.com",
+            "The New York Times: digital or print News, Cooking, Games, Wirecutter, All Access, bought directly at nytimes.com/subscription",
+            "Paramount+: subscriptions bought directly at paramountplus.com",
+            "Peacock: standalone Premium, Premium Plus or Select bought directly at peacocktv.com; not add-ons or bundles",
+            "The Wall Street Journal: news subscriptions and bundles such as WSJ Digital and WSJ+ bought directly at wsj.com",
+            "YouTube: YouTube TV, YouTube Music and YouTube Premium bought directly from YouTube",
+            "Not eligible anywhere: subscriptions bundled with cable, bought through third parties, promotional offers through third parties, advertising, gift cards"
+          ],
+          "notes": "Up to $25 a month on the eligible services below. Enrollment required. Eligible list as of 2026-09-06; it changes often."
         },
         {
           "id": "resy_credit",

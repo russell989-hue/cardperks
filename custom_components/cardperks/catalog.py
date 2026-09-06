@@ -46,6 +46,7 @@ BENEFIT_SCHEMA = vol.Schema(
         vol.Optional("conditional", default=False): bool,
         vol.Optional("condition"): vol.Any(None, str),
         vol.Optional("shared_key"): vol.Any(None, vol.Match(r"^[a-z0-9_]+$")),
+        vol.Optional("eligible", default=list): [str],
     }
 )
 
@@ -112,6 +113,7 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
             conditional=b["conditional"],
             condition=b.get("condition"),
             shared_key=b.get("shared_key"),
+            eligible=tuple(b.get("eligible", [])),
         )
         for b in raw["benefits"]
     )
