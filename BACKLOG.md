@@ -15,15 +15,13 @@ chosen card's last four (and its former numbers after a replacement); each uploa
 records the months it covers and a receipt; uncapped rebates are recorded as their
 own benefit type. Remaining gaps, in order:
 
-1. **"No statement since" reminder.** A repair or notification when a card's last
-   imported statement is older than its cadence, so gaps do not accumulate quietly.
-2. **One file, many cards.** Apply a multi-card export to every card it covers in one
+1. **One file, many cards.** Apply a multi-card export to every card it covers in one
    pass, and let the first upload of a household's Chase export stand up every card in
    it.
-3. **Repeat imports without ceremony.** A service that takes a file path, and/or a
+2. **Repeat imports without ceremony.** A service that takes a file path, and/or a
    watched folder such as `/config/cardperks/statements/`. Import is idempotent, so
    re-running is safe by construction.
-4. **Close the matching gap in-product.** Unmatched credit lines are listed, but fixing
+3. **Close the matching gap in-product.** Unmatched credit lines are listed, but fixing
    one means editing catalog JSON. Offer to write the pattern into the user override
    file straight from the import result.
 

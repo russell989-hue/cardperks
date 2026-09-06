@@ -21,7 +21,7 @@ from .const import (
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .devices import async_cleanup_entities, async_ensure_devices
 from .helpers import async_load_catalog
-from .repairs import async_check_catalog_issues
+from .repairs import async_check_catalog_issues, async_check_statement_issues
 from .services import async_setup_services
 from .store import CardPerksStore
 
@@ -114,6 +114,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) ->
         _LOGGER.debug("Removed %s stale entities after a catalog or card change", removed)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Statement reminders follow the snapshot: an upload clears one the moment it lands.
+    async_check_statement_issues(hass, coordinator)
+    entry.async_on_unload(
+        coordinator.async_add_listener(lambda: async_check_statement_issues(hass, coordinator))
+    )
 
     @callback
     def _scheduled_rollover(_now) -> None:

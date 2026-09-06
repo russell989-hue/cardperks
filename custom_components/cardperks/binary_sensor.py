@@ -1,4 +1,4 @@
-"""Binary sensors: annual fee due soon."""
+"""Binary sensors: annual fee due soon, statement upload overdue."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import FEE_WARNING_DAYS, SUBENTRY_CARD
+from .const import FEE_WARNING_DAYS, STATEMENT_GRACE_MONTHS, SUBENTRY_CARD
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .entity import CardEntity
 from .helpers import card_from_subentry
@@ -26,7 +26,10 @@ async def async_setup_entry(
             continue
         card = card_from_subentry(sub)
         async_add_entities(
-            [CardFeeWithinWarningBinarySensor(coordinator, card)],
+            [
+                CardFeeWithinWarningBinarySensor(coordinator, card),
+                CardStatementDueBinarySensor(coordinator, card),
+            ],
             config_subentry_id=sub.subentry_id,
         )
 
@@ -52,4 +55,36 @@ class CardFeeWithinWarningBinarySensor(CardEntity, BinarySensorEntity):
             "fee_due": s.fee_due.isoformat() if s and s.fee_due else None,
             "annual_fee": s.annual_fee if s else None,
             "warning_days": FEE_WARNING_DAYS,
+        }
+
+
+class CardStatementDueBinarySensor(CardEntity, BinarySensorEntity):
+    """On when a statement-tracked card has gone too long without an upload.
+
+    Every month without a statement is a month the totals cannot vouch for, and the
+    forfeited and unknown figures drift apart from reality. Off (never on) for a card
+    that has never had a statement imported.
+    """
+
+    _attr_translation_key = "statement_due"
+    _attr_icon = "mdi:file-document-alert-outline"
+
+    def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard) -> None:
+        super().__init__(coordinator, card)
+        self._attr_unique_id = f"{card.id}_statement_due"
+
+    @property
+    def is_on(self) -> bool | None:
+        s = self.summary
+        return s.statement_due if s else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        s = self.summary
+        return {
+            **self.card_attributes,
+            "last_statement_month": s.last_statement_month if s else None,
+            "expected_statement_month": s.expected_statement_month if s else None,
+            "months_behind": s.statement_months_behind if s else None,
+            "grace_months": STATEMENT_GRACE_MONTHS,
         }

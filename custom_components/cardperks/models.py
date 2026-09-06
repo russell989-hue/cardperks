@@ -545,6 +545,12 @@ class CardSummary:
     expiring: tuple[ExpiringItem, ...]
     totals: Totals = field(default_factory=Totals)
     benefit_totals: Mapping[str, Totals] = field(default_factory=dict)
+    # Statement freshness, for cards tracked by upload. None when no statement was ever
+    # imported: a hand-tracked card has nothing to be overdue.
+    last_statement_month: str | None = None  # newest YYYY-MM any statement vouched for
+    expected_statement_month: str | None = None  # newest month a statement could cover
+    statement_months_behind: int = 0
+    statement_due: bool = False
 
 
 @dataclass(frozen=True, slots=True)

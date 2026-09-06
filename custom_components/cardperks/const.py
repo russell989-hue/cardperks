@@ -87,6 +87,8 @@ DATA_IMPORTING = "importing"
 
 STALE_CATALOG_DAYS = 183
 FEE_WARNING_DAYS = 45
+# A statement for last month may not exist yet; one more month of slack before nagging.
+STATEMENT_GRACE_MONTHS = 1
 HISTORY_RETENTION_DAYS = 5 * 365
 ROLLOVER_HOUR = 0
 ROLLOVER_MINUTE = 5

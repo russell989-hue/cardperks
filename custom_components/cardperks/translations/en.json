@@ -277,6 +277,9 @@
     "binary_sensor": {
       "fee_within_45d": {
         "name": "Fee due within 45 days"
+      },
+      "statement_due": {
+        "name": "Statement upload overdue"
       }
     }
   },
@@ -410,6 +413,10 @@
     "invalid_override": {
       "title": "Catalog override file could not be loaded",
       "description": "The file {path} was skipped: {error}"
+    },
+    "statement_due": {
+      "title": "No recent statement for {card}",
+      "description": "The newest statement imported for {card} covers {last_month}, {months} months behind what could be covered by now. Months without a statement count as unknown rather than captured or forfeited, so this card's totals are drifting. Download the latest export from the issuer and import it (Settings, Integrations, CardPerks, Add statement)."
     }
   }
 }

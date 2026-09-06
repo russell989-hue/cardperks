@@ -7,6 +7,7 @@ import pytest
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.cardperks.const import DOMAIN, STORAGE_KEY
@@ -28,11 +29,10 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     # number where it has a dollar amount, and a value number for perks.
     #   monthly/dining/travel 5 each, lounge 6, sign-up bonus 4 (points, so no dollar box) = 25
     # Card-level: fee due, unused, net, annual value, captured, forfeited, capture rate,
-    # fee-within-45d = 8. Owners: 4 rollups + 3 dollar totals = 7 each.
-    # ...plus one colour select per card.
+    # fee-within-45d, statement-due = 9. Owners: 4 rollups + 3 dollar totals = 7 each.
     # ...plus a colour select and a statement-coverage sensor per card.
     # The uncapped inflight rebate gets a status sensor only.
-    assert len(ours) == (25 + 1 + 9 + 1) + (6 + 9 + 1) + (7 * 2)
+    assert len(ours) == (25 + 1 + 10 + 1) + (6 + 10 + 1) + (7 * 2)
 
     travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"
@@ -525,6 +525,60 @@ async def test_forfeited_consults_statement_coverage(hass, setup_integration: Mo
     forfeited = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_forfeited_12m"))
     assert float(forfeited.state) == 10 + 10 + 100
     assert forfeited.attributes["unknown_12m"] == 110.0
+
+
+async def test_statement_due_reminder(hass, setup_integration: MockConfigEntry):
+    """A card tracked by upload is nagged when its statements fall behind, and only then.
+
+    Today is 2026-09-05, so the newest month a statement could cover is August. One
+    month of grace means July is fine and June is overdue. A card with no statements at
+    all is never overdue: it is tracked by hand.
+    """
+    entry = setup_integration
+    coord = entry.runtime_data
+    registry = ir.async_get(hass)
+    eid = _eid(hass, "binary_sensor", f"{CARD_ID}_statement_due")
+
+    due = hass.states.get(eid)
+    assert due.state == "off" and due.attributes["last_statement_month"] is None
+    assert registry.async_get_issue(DOMAIN, f"statement_due_{CARD_ID}") is None
+
+    def imported(file_hash: str, months: set[str]) -> None:
+        coord.record_import(
+            CARD_ID,
+            file_hash=file_hash,
+            filename=f"{file_hash}.csv",
+            issuer="chase",
+            months=months,
+            first_date=None,
+            last_date=None,
+            rows=1,
+            credit_rows=0,
+            matched=0,
+            applied=0.0,
+        )
+        coord.commit()
+
+    imported("aaaaaaaaaaaa", {"2026-05", "2026-06"})
+    await hass.async_block_till_done()
+    due = hass.states.get(eid)
+    assert due.state == "on"
+    assert due.attributes["last_statement_month"] == "2026-06"
+    assert due.attributes["expected_statement_month"] == "2026-08"
+    assert due.attributes["months_behind"] == 2
+    issue = registry.async_get_issue(DOMAIN, f"statement_due_{CARD_ID}")
+    assert issue is not None and issue.translation_placeholders["months"] == "2"
+
+    # July arrives: within grace, so the nag clears at once.
+    imported("bbbbbbbbbbbb", {"2026-07"})
+    await hass.async_block_till_done()
+    due = hass.states.get(eid)
+    assert due.state == "off" and due.attributes["months_behind"] == 1
+    assert registry.async_get_issue(DOMAIN, f"statement_due_{CARD_ID}") is None
+
+    # The AU card never had a statement and stays quiet.
+    au = hass.states.get(_eid(hass, "binary_sensor", f"{AU_CARD_ID}_statement_due"))
+    assert au.state == "off" and au.attributes["last_statement_month"] is None
 
 
 async def test_not_applicable_leaves_the_totals(hass, setup_integration: MockConfigEntry):

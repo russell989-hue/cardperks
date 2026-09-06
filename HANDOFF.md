@@ -67,7 +67,8 @@ git-filter-repo to enforce this, so do not merge anything from an old clone.
 - **Entities per benefit**: `_used` number (the dollar box), `_remaining`, `_status`,
   `_expires` sensors, a mark-used button, and `_value` number for perks. Per card:
   fee due, unused value, net value, annual value, captured, forfeited, capture rate,
-  statement coverage, fee-within-45-days, and the status select. Per owner: rollups.
+  statement coverage, fee-within-45-days, statement-upload-overdue (with a matching
+  repair issue), and the status select. Per owner: rollups.
 - **Every entity carries** `kind` (its translation key), `card`, `card_id`, `color`,
   `card_status`, and benefit entities add `benefit`. Dashboards filter on these and
   never on entity ids, which follow whatever an entity was called when created.

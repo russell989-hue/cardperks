@@ -23,7 +23,8 @@ Per benefit on each card:
 
 Per card: annual credit value, captured and forfeited over the trailing 12 months, capture
 rate, annual fee due date, unused value this period, net value (captured minus fee), and a
-binary sensor that turns on 45 days before the fee posts.
+binary sensor that turns on 45 days before the fee posts, and another that turns on
+(with a Repairs entry) when a card you track by statement is more than a month behind.
 
 Per owner: the same three dollar totals, plus unused credits, counts expiring within 7 and
 30 days, and a 5/24 count.

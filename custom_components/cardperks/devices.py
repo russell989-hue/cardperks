@@ -99,6 +99,7 @@ def async_cleanup_entities(
                 "unused_value",
                 "net_value_12m",
                 "fee_within_45d",
+                "statement_due",
                 "annual_value",
                 "captured_12m",
                 "forfeited_12m",

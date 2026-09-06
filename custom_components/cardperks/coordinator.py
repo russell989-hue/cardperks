@@ -15,6 +15,7 @@ from .const import (
     CARD_COLORS,
     DOMAIN,
     FEE_WARNING_DAYS,
+    STATEMENT_GRACE_MONTHS,
     BenefitStatus,
     BenefitType,
     CardStatus,
@@ -516,6 +517,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             totals = totals.plus(t)
 
         expiring.sort(key=lambda e: e.period_end)
+        freshness = self._statement_freshness(card, covered, today)
         return CardSummary(
             held_card_id=card.id,
             fee_due=fee_due,
@@ -527,7 +529,31 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             expiring=tuple(expiring),
             totals=totals,
             benefit_totals=per_benefit,
+            **freshness,
         )
+
+    @staticmethod
+    def _statement_freshness(card: HeldCard, covered: set[str], today: date) -> dict:
+        """How far a statement-tracked card has fallen behind on uploads.
+
+        The newest month a statement could vouch for is last month. With one month of
+        grace for issuers whose statement closes late, a card is due once its newest
+        covered month is older than that. Cards with no statements at all are never due:
+        they are tracked by hand, and the coverage sensor already says so.
+        """
+        if not covered or not card.is_active(today):
+            return {}
+        last = max(covered)
+        expected = add_months(today.replace(day=1), -1)
+        expected_month = f"{expected.year:04d}-{expected.month:02d}"
+        y, m = (int(x) for x in last.split("-"))
+        behind = max((expected.year - y) * 12 + (expected.month - m), 0)
+        return {
+            "last_statement_month": last,
+            "expected_statement_month": expected_month,
+            "statement_months_behind": behind,
+            "statement_due": behind > STATEMENT_GRACE_MONTHS,
+        }
 
     def _owner_summary(
         self, owner_id: str, card_summaries: dict[str, CardSummary], today: date
