@@ -11,8 +11,9 @@ Reading order is money first, then the things you do, then reference, then setti
   Ring             this card's credits left to use, beside the money-on-hand list
   This year        a stacked bar of where the year's dollars went, then gauges for
                    capture rate, net value and statement coverage, then the fee
+                   capture rate, net value and statement coverage, then the fee, then
+                   what the card's perks are worth to you
   Log a credit     the dollar boxes for anything not yet fully used, three peeking
-  Perk values      what lounge access and status are worth to you
   All benefits     every status, folded
   Card settings    status; colour is set in the card form; folded
 
@@ -146,21 +147,18 @@ def build_view(card: dict) -> dict:
         ]
     )
 
-    sections = [ring, wide_section(year), log]
+    # Perks live at the foot of "This year", under the fee: Brian arranged the Amex page
+    # that way and wants every card the same.
+    year += [
+        heading("What perks are worth to you", "mdi:tag-text-outline"),
+        note(
+            "These carry no issuer amount, so the value is your call. A perk shared with "
+            "other cards is one number for all of them; this card's share is shown."
+        ),
+        perk_rows_for_card(card_id),
+    ]
 
-    sections.append(
-        {
-            "type": "grid",
-            "cards": [
-                heading("What perks are worth to you", "mdi:tag-text-outline"),
-                note(
-                    "These carry no issuer amount, so the value is your call. A perk shared "
-                    "with other cards is one number for all of them; this card's share is shown."
-                ),
-                perk_rows_for_card(card_id),
-            ],
-        }
-    )
+    sections = [ring, wide_section(year), log]
 
     sections.append(
         wide_section(
