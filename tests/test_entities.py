@@ -45,8 +45,12 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
 
     # AU device only has lounge, and hangs off the primary card
     dev_reg = dr.async_get(hass)
-    au_dev = dev_reg.async_get_device(identifiers={(DOMAIN, AU_CARD_ID)})
-    primary_dev = dev_reg.async_get_device(identifiers={(DOMAIN, CARD_ID)})
+    au_dev = dev_reg.async_get_device_by_identifier(
+        (DOMAIN, AU_CARD_ID), setup_integration.entry_id
+    )
+    primary_dev = dev_reg.async_get_device_by_identifier(
+        (DOMAIN, CARD_ID), setup_integration.entry_id
+    )
     assert au_dev.via_device_id == primary_dev.id
     assert primary_dev.manufacturer == "Test Bank" and primary_dev.model == "Premium Card"
     assert hass.states.get(_eid(hass, "select", f"{AU_CARD_ID}_lounge_status")).state == "unused"
@@ -127,8 +131,12 @@ async def test_select_and_button_and_services(
 
 
 async def test_device_services(hass, setup_integration: MockConfigEntry):
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, CARD_ID)})
-    owner_device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, f"owner:{OWNER_ID}")})
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, CARD_ID), setup_integration.entry_id
+    )
+    owner_device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, f"owner:{OWNER_ID}"), setup_integration.entry_id
+    )
 
     await hass.services.async_call(
         DOMAIN,

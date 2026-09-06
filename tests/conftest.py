@@ -128,6 +128,7 @@ def mock_entry() -> MockConfigEntry:
 
 @pytest.fixture
 async def setup_integration(hass, mock_entry: MockConfigEntry) -> AsyncGenerator[MockConfigEntry]:
+    await hass.config.async_set_time_zone("UTC")
     mock_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(mock_entry.entry_id)
     await hass.async_block_till_done()

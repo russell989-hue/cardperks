@@ -2,37 +2,22 @@
 
 from __future__ import annotations
 
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, Role
 from .coordinator import CardPerksCoordinator
+from .devices import card_identifier, owner_identifier
 from .models import Benefit, BenefitInstance, HeldCard, Owner
 
 
 def card_device_info(coordinator: CardPerksCoordinator, card: HeldCard) -> DeviceInfo:
-    product = coordinator.catalog.get(card.product_id)
-    info = DeviceInfo(
-        identifiers={(DOMAIN, card.id)},
-        name=card.title,
-        manufacturer=product.issuer_name if product else None,
-        model=product.name if product else card.product_id,
-        serial_number=card.last4 or None,
-        configuration_url=product.source_url if product else None,
-    )
-    if card.role is Role.AUTHORIZED_USER and card.parent_card_id:
-        info["via_device"] = (DOMAIN, card.parent_card_id)
-    return info
+    # The device itself (with manufacturer, model, via_device_id) is created in devices.py
+    # before platforms load; entities only need to point at it.
+    return DeviceInfo(identifiers={card_identifier(card.id)})
 
 
 def owner_device_info(owner: Owner) -> DeviceInfo:
-    return DeviceInfo(
-        identifiers={(DOMAIN, f"owner:{owner.id}")},
-        name=owner.name,
-        manufacturer="CardPerks",
-        model="Owner",
-        entry_type=DeviceEntryType.SERVICE,
-    )
+    return DeviceInfo(identifiers={owner_identifier(owner.id)})
 
 
 class CardPerksEntity(CoordinatorEntity[CardPerksCoordinator]):

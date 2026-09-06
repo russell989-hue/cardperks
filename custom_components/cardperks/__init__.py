@@ -11,6 +11,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import ROLLOVER_HOUR, ROLLOVER_MINUTE
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
+from .devices import async_ensure_devices
 from .helpers import async_load_catalog
 from .repairs import async_check_catalog_issues
 from .services import async_setup_services
@@ -41,6 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) ->
     await coordinator.async_run_rollover()
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
+    async_ensure_devices(hass, entry, coordinator)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
