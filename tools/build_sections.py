@@ -198,11 +198,19 @@ Nothing expires in the next 30 days.
 def coverage() -> dict:
     body = (
         EMOJI_MAP
-        + rows_from(
-            "_coverage_12m",
-            "'n': s.state | int(0), 'missing': a.get('missing', []),"
-            " 'files': a.get('statements_imported', 0)",
-        )
+        # Matched on an attribute rather than an entity id suffix: entity ids come from
+        # the display name, so a rename or a translation change would break a suffix.
+        + """
+{%- set ns = namespace(rows=[]) -%}
+{%- for s in states.sensor -%}
+  {%- if s.attributes.card_id is defined and s.attributes.missing is defined -%}
+    {%- set a = s.attributes -%}
+    {%- set ns.rows = ns.rows + [{'card': a.card, 'color': a.color,
+        'n': s.state | int(0), 'missing': a.get('missing', []),
+        'files': a.get('statements_imported', 0)}] -%}
+  {%- endif -%}
+{%- endfor -%}
+"""
         + """
 A month with no statement is unknown, not proof a credit went unused.
 
