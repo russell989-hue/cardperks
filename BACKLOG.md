@@ -52,10 +52,14 @@ that same history. What is missing is scale and honesty about gaps.
 - **Say what is unknown.** Periods with no evidence stay `unknown` rather than
   forfeited (the live year already works this way: a closed statement-credit period
   is forfeited only when statements cover every month of it).
-- **Catalog history is the hard part.** The Sapphire Reserve's 2022 credits were not
-  the 2026 ones and the fee was $550. Either benefits gain `valid_from` / `valid_to`,
-  or historical mode reports captured dollars and fees paid only and stays silent
-  about what was available. Settle this before building.
+- **Catalog history: settled 2026-09-06.** Historical mode reports what statements prove
+  and nothing else: fee paid, credits captured, net, per cardmember year. It does not say
+  what was available in past years, so it never reports past forfeited dollars. The
+  alternative, `valid_from` / `valid_to` on every benefit, would mean curating every
+  issuer's past terms from memory, which breaks the catalog's official-sources rule
+  (issuer pages do not publish history). "Was this card worth it" needs only captured
+  minus fee, and that is answerable from the statements alone. If a year's evidence is
+  partial, the year is marked as such.
 
 ### Loyalty status tracker (airlines, hotels, rental cars)
 

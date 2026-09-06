@@ -27,6 +27,7 @@ month. Manual dollar boxes exist as the fallback, not the main flow.
 | `tools/secrets.env` | untracked: the HA box address and SSH key for deploys |
 | `.github/workflows/validate.yml` | hassfest on every push |
 | `brands/` | icon and logo PNGs for the home-assistant/brands PR, rendered by `tools/make_brand.py` |
+| `docs/CATALOG.md` | catalog field reference and contribution rules |
 | `BACKLOG.md` | what is deferred and why |
 | `README.md` | user-facing install and usage |
 

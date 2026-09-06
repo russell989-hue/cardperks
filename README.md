@@ -58,7 +58,7 @@ Both run entirely on your Home Assistant box.
 
 ## Catalog
 
-Card products live in `custom_components/cardperks/catalog/*.json`, one file per issuer. The shipped data for Chase, American Express, and Capital One was drafted from general knowledge and is flagged `needs_verification` until checked against the issuer pages linked in each product's `source_url`. Home Assistant's Repairs panel lists what still needs checking.
+Card products live in `custom_components/cardperks/catalog/*.json`, one file per issuer, checked against the issuer page linked in each product's `source_url` (the date is in `last_verified`). Anything still drafted is flagged `needs_verification` and listed in Home Assistant's Repairs panel. The field reference and contribution rules are in [docs/CATALOG.md](docs/CATALOG.md).
 
 To correct or extend the catalog without editing the integration, drop JSON files in `config/cardperks/catalog/`. A product with an existing `id` replaces the shipped one entirely. A broken file is skipped and reported in Repairs.
 
