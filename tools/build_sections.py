@@ -178,7 +178,8 @@ def perk_values() -> dict:
 def outstanding() -> dict:
     """The money left to use right now, as one ring sliced by card and benefit."""
     total = (
-        "{% set vals = states.sensor | selectattr('attributes.kind', 'eq', 'unused_value') "
+        "{% set vals = states.sensor | selectattr('attributes.kind', 'defined') "
+        "| selectattr('attributes.kind', 'eq', 'unused_value') "
         "| selectattr('attributes.card_status', 'eq', 'active') "
         "| rejectattr('state', 'in', ['unknown', 'unavailable']) "
         "| map(attribute='state') | map('float', 0) | list %}"
@@ -215,7 +216,8 @@ def net_value() -> dict:
     """
     fee = "(s.attributes.annual_fee or 0)"
     annual = (
-        "((states.sensor | selectattr('attributes.kind', 'eq', 'capture_rate') "
+        "((states.sensor | selectattr('attributes.kind', 'defined') "
+        "| selectattr('attributes.kind', 'eq', 'capture_rate') "
         "| selectattr('attributes.card_id', 'eq', s.attributes.card_id) "
         "| map(attribute='attributes.annual_value') | list | first) or 0)"
     )

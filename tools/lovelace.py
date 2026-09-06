@@ -100,9 +100,9 @@ def auto_cards(
 
 def _jinja_where(inc: dict) -> str:
     """One include rule as a Jinja condition over a state object `s`."""
-    parts = ["s.attributes.card_id is defined"]
+    parts = ["s.attributes.get('card_id') is not none"]
     for key, val in inc.get("attributes", {}).items():
-        parts.append(f"s.attributes.{key} == {val!r}")
+        parts.append(f"s.attributes.get('{key}') == {val!r}")
     if "state" in inc:
         parts.append(f"(s.state | float(0)) {inc['state']}")
     return " and ".join(parts)
@@ -139,7 +139,7 @@ def auto_rows(
     )
     loops = "".join(
         f"{{% for s in states.{d} if s.state not in ['unavailable', 'unknown'] and ({where}) %}}"
-        "{% set c = s.attributes.color or 'grey' %}"
+        "{% set c = s.attributes.get('color') or 'grey' %}"
         "{% set ns.rows = ns.rows + [{'entity': s.entity_id, 'name': " + label + ", "
         "'card_mod': {'style': " + style + "}}] %}"
         "{% endfor %}"
@@ -176,7 +176,7 @@ def gauge_grid(
     The gauge card colours its arc with --gauge-color, which it sets inline to
     --info-color when no severity is configured, so both are overridden.
     """
-    cond = f"s.attributes.kind == '{kind}' and s.attributes.card_status == 'active'"
+    cond = f"s.attributes.get('kind') == '{kind}' and s.attributes.get('card_status') == 'active'"
     if where:
         cond += f" and ({where})"
     style = (
@@ -186,7 +186,7 @@ def gauge_grid(
     template = (
         "{% set ns = namespace(items=[]) %}"
         f"{{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and {cond} %}}"
-        "{% set c = s.attributes.color or 'grey' %}"
+        "{% set c = s.attributes.get('color') or 'grey' %}"
         "{% set ns.items = ns.items + [[s.state | float(0), {'type': 'gauge', "
         f"'entity': s.entity_id, 'name': {name}, 'min': {minimum}, 'max': {maximum}, "
         "'card_mod': {'style': " + style + "}}]] %}"
@@ -211,14 +211,14 @@ def gauge_grid(
 #   ns.total  the sum of those benefits
 _LEFT_TO_USE = (
     "{% set ns = namespace(total=0.0, cards=[], rems=[], acc=0.0, out=[]) %}"
-    "{% for s in states.sensor if s.attributes.kind == 'unused_value' "
-    "and s.attributes.card_status == 'active' "
+    "{% for s in states.sensor if s.attributes.get('kind') == 'unused_value' "
+    "and s.attributes.get('card_status') == 'active' "
     "and s.state not in ['unknown', 'unavailable'] and (s.state | float(0)) > 0 %}"
     "{% set ns.cards = ns.cards + [[s.state | float(0), s.attributes.card_id, "
-    "s.attributes.color or 'grey']] %}"
+    "s.attributes.get('color') or 'grey']] %}"
     "{% endfor %}"
-    "{% for r in states.sensor if r.attributes.kind == 'benefit_remaining' "
-    "and r.attributes.card_status == 'active' "
+    "{% for r in states.sensor if r.attributes.get('kind') == 'benefit_remaining' "
+    "and r.attributes.get('card_status') == 'active' "
     "and r.state not in ['unknown', 'unavailable'] and (r.state | float(0)) > 0 %}"
     "{% set ns.rems = ns.rems + [[r.state | float(0), r.attributes.card_id]] %}"
     "{% set ns.total = ns.total + (r.state | float(0)) %}"
@@ -233,10 +233,12 @@ def donut_by_card(size: int = 240) -> dict:
     in a shade of the card's colour that steps from full strength down to about half,
     mixed towards the card background so it works in either theme.
 
-    A Markdown card: card-mod paints its background as a conic gradient computed by a
-    template, lays a disc of card background over the centre, and the card's own
-    content prints the total in the middle. All live; nothing to install beyond
-    card-mod. Shades use CSS color-mix, which every current browser supports.
+    A Markdown card: card-mod paints its inner markdown element as a conic gradient
+    computed by a template, lays a disc of card background over the centre, and the
+    card's own content prints the total in the middle. The size is forced because the
+    card frame itself takes Home Assistant's sizing. All live; nothing to install
+    beyond card-mod. Shades use CSS color-mix, which every current browser supports.
+    Attribute lookups use .get() because the markdown card renders in strict mode.
     """
     slices = (
         _LEFT_TO_USE + "{% for c in ns.cards | sort(attribute='0', reverse=true) %}"
@@ -254,17 +256,16 @@ def donut_by_card(size: int = 240) -> dict:
         "{{ ns.out | join(', ') if ns.out else 'var(--divider-color) 0% 100%' }}"
     )
     style = (
-        "ha-card {\n"
-        f"  width: {size}px; height: {size}px; border-radius: 50%; margin: 8px auto;\n"
-        "  box-sizing: border-box; border: none; box-shadow: none;\n"
-        "  display: flex; align-items: center; justify-content: center;\n"
-        "  text-align: center; font-size: 1.15em;\n"
+        "ha-markdown {\n"
+        f"  width: {size}px !important; height: {size}px !important; border-radius: 50%;\n"
+        "  margin: 12px auto !important; padding: 0 !important; box-sizing: border-box;\n"
+        "  display: flex !important; align-items: center; justify-content: center;\n"
+        "  text-align: center; font-size: 1.15em; line-height: 1.5;\n"
         "  background:\n"
-        "    radial-gradient(circle, var(--ha-card-background, var(--card-background-color)) 58%, "
-        "transparent 59%),\n"
+        "    radial-gradient(circle closest-side, "
+        "var(--ha-card-background, var(--card-background-color)) 70%, transparent 71%),\n"
         "    conic-gradient(" + slices + ");\n"
         "}\n"
-        "ha-markdown { padding: 0 28px; }\n"
     )
     content = (
         _LEFT_TO_USE + "**${{ ns.total | round(0) | int }}**<br>left to use<br>"
