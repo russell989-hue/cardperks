@@ -245,8 +245,13 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         applied: float,
     ) -> str:
         """Log a statement upload and mark the months it vouches for. Does not commit."""
-        import_id = f"{file_hash[:12]}-{held_card_id[:8]}"
-        self.doc.imports = [i for i in self.doc.imports if i.id != import_id]
+        # One receipt per (file, card): the same export re-imported replaces its record.
+        import_id = f"{file_hash[:12]}-{held_card_id}"
+        self.doc.imports = [
+            i
+            for i in self.doc.imports
+            if not (i.file_hash == file_hash and i.held_card_id == held_card_id)
+        ]
         self.doc.imports.append(
             ImportRecord(
                 id=import_id,

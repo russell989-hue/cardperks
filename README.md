@@ -31,6 +31,11 @@ Per owner: the same three dollar totals, plus unused credits, counts expiring wi
 
 Benefits that do not apply to you are marked on the card and drop out of every total.
 
+Statements can also arrive by file: `cardperks.import_statement` reads an export already
+on the box (for example dropped into `config/cardperks/statements/`) and applies it to
+every card it covers, and `cardperks.add_statement_match` teaches the catalog a credit
+line that went unmatched, without editing JSON.
+
 Services: `cardperks.mark_used`, `cardperks.reset_benefit`, `cardperks.add_sub_spend`, `cardperks.set_perk_value`, `cardperks.activate_rotating_category`.
 
 A daily job at 00:05 local time closes expired periods into history and opens the next ones. It catches up correctly after downtime.

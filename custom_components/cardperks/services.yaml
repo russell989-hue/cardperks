@@ -96,3 +96,39 @@ import_cards:
       selector:
         text:
           multiline: true
+
+import_statement:
+  fields:
+    path:
+      required: true
+      example: "cardperks/statements/Chase1234_Activity_20260905.csv"
+      selector:
+        text:
+    device_id:
+      required: false
+      selector:
+        device:
+          integration: cardperks
+    apply_fee:
+      required: false
+      default: true
+      selector:
+        boolean:
+
+add_statement_match:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: cardperks
+    benefit_id:
+      required: true
+      example: "uber_cash"
+      selector:
+        text:
+    pattern:
+      required: true
+      example: "UBER CASH"
+      selector:
+        text:

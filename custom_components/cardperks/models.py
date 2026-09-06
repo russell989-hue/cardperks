@@ -62,7 +62,12 @@ class Benefit:
         This is the name entities and dashboards show.
         """
         tag = CADENCE_TAGS.get(self.cadence)
-        return f"{self.name} ({tag})" if tag else self.name
+        if not tag:
+            return self.name
+        if self.name.endswith(")") and "(" in self.name:
+            # "Hotel credit (FHR)" reads better as "(FHR, every 6 months)" than "(FHR) (every 6 months)".
+            return f"{self.name[:-1]}, {tag})"
+        return f"{self.name} ({tag})"
 
     @property
     def is_one_time(self) -> bool:

@@ -115,7 +115,7 @@
       },
       "abort": {
         "no_owners": "Add an owner first, then import a statement.",
-        "statement_complete": "{note}Statement applied to **{card}**.\n\n**Annual fee**: {fee}\n\n**Credits recorded**\n{applied}\n\nAlready imported earlier: {duplicates}\n\n**Credit lines with no matching benefit** (add a `statement_match` pattern in the catalog to pick these up)\n{unmatched}"
+        "statement_complete": "{note}Statement applied to **{card}**.\n\n**Annual fee**: {fee}\n\n**Credits recorded**\n{applied}\n\nAlready imported earlier: {duplicates}\n\n**Credit lines with no matching benefit** (use the `cardperks.add_statement_match` action to pick these up next time)\n{unmatched}"
       }
     },
     "held_card": {
@@ -373,6 +373,42 @@
           "description": "YYYY-Qn. Defaults to the current quarter."
         }
       }
+    },
+    "import_statement": {
+      "name": "Import statement from file",
+      "description": "Read an issuer CSV export already on this Home Assistant box (for example one dropped into config/cardperks/statements/) and apply it to every card it covers. Same result as uploading it in the CardPerks settings. Safe to repeat.",
+      "fields": {
+        "path": {
+          "name": "File path",
+          "description": "Path to the CSV. Relative paths are under the config folder; other folders must be in allowlist_external_dirs."
+        },
+        "device_id": {
+          "name": "Card",
+          "description": "Apply to this card only. Otherwise the cards are picked from the numbers in the file, or the file's issuer if it has exactly one card."
+        },
+        "apply_fee": {
+          "name": "Set fee from statement",
+          "description": "Set the fee month and actual annual fee from the statement's fee line."
+        }
+      }
+    },
+    "add_statement_match": {
+      "name": "Add statement match pattern",
+      "description": "Teach the catalog that a credit line on a statement belongs to a benefit, so the next import records it. Writes the product to config/cardperks/catalog/ with the pattern added and reloads.",
+      "fields": {
+        "device_id": {
+          "name": "Card",
+          "description": "A card of the product to change."
+        },
+        "benefit_id": {
+          "name": "Benefit",
+          "description": "The benefit id the credit line belongs to, as shown in the benefit entities."
+        },
+        "pattern": {
+          "name": "Pattern",
+          "description": "Regular expression matched against the statement description, case-insensitive. Plain text works; a distinctive part of the line is enough."
+        }
+      }
     }
   },
   "exceptions": {
@@ -399,6 +435,21 @@
     },
     "not_a_perk": {
       "message": "Benefit {benefit_id} is not a perk; its value comes from the catalog."
+    },
+    "statement_path_not_allowed": {
+      "message": "{path} is outside the config folder and not in allowlist_external_dirs."
+    },
+    "statement_file_missing": {
+      "message": "Could not read {path}."
+    },
+    "statement_unrecognised": {
+      "message": "{path} is not a recognised Chase, American Express, or Capital One export."
+    },
+    "statement_no_card": {
+      "message": "Could not tell which card {path} belongs to: it names no card numbers and {issuer} has more than one card set up. Pass a card."
+    },
+    "invalid_pattern": {
+      "message": "{pattern} is not a valid pattern: {error}"
     }
   },
   "issues": {

@@ -83,6 +83,10 @@ ATTR_FILE = "file"
 ATTR_CARD = "card"
 ATTR_APPLY_FEE = "apply_fee"
 ATTR_ADOPT_LAST4 = "adopt_last4"
+ATTR_PATH = "path"
+ATTR_PATTERN = "pattern"
+SERVICE_IMPORT_STATEMENT = "import_statement"
+SERVICE_ADD_STATEMENT_MATCH = "add_statement_match"
 DATA_IMPORTING = "importing"
 
 STALE_CATALOG_DAYS = 183

@@ -53,6 +53,11 @@ git-filter-repo to enforce this, so do not merge anything from an old clone.
 - **State** in `.storage/cardperks.state` (`store.py`, `StateDocument`): open benefit
   instances, closed history, perk values, card status, statement coverage, import
   receipts, and the set of already-applied statement lines.
+- **Statement path**: `statements.py` parses; `statement_apply.py` applies a parsed file to
+  one card (records usage, coverage, receipt, fee) and is shared by the upload flow and the
+  `import_statement` service. The flow offers "Every card in this file" for a multi-card
+  export. `add_statement_match` writes a pattern into the override folder via
+  `catalog_write.py` and reloads.
 - **Pure modules**: `periods.py` (calendar vs cardmember-year periods), `rollover.py`
   (idempotent daily close-and-open at 00:05, backfills gaps as `unknown`),
   `statements.py` (Chase, Amex, Capital One parsers; `statement_match` regexes from
@@ -181,10 +186,6 @@ installed but unused: apexcharts-card, mini-graph-card, button-card, layout-card
 
 ## Known rough edges
 
-- A benefit whose catalog name already ends in parentheses gets a second pair from
-  the cadence tag: "Hotel credit (FHR / The Hotel Collection) (every 6 months)".
 - Gauge titles can clip at three per row on narrower screens.
 - The shipped catalog is drafted from general knowledge and flagged
   `needs_verification`; Repairs lists it. Verified so far is noted in the backlog.
-- Statement import is one card per pass; a multi-card Chase export is uploaded once
-  per card (rows are scoped by last four, so nothing is misattributed).

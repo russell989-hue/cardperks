@@ -47,7 +47,7 @@ _ANNUAL = (
     "| map(attribute='attributes.annual_value') | list | first) or 0)"
 )
 NET_MIN = f"-{_FEE}"
-NET_MAX = f"([{_ANNUAL} - {_FEE}, 1 - {_FEE}] | max)"
+NET_MAX = f"(([{_ANNUAL} - {_FEE}, 1 - {_FEE}] | max) | round(2))"
 
 
 def attr(name: str, default: str = "0") -> str:

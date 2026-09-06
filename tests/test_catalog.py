@@ -96,6 +96,24 @@ async def test_repair_issues(hass, catalog):
     assert any(i.issue_id.startswith("invalid_override_") for i in registry.issues.values())
 
 
+def test_cadence_tag_joins_existing_brackets():
+    from custom_components.cardperks.const import AppliesTo, BenefitType, Cadence, ResetRule
+    from custom_components.cardperks.models import Benefit
+
+    b = Benefit(
+        id="fhr",
+        name="Hotel credit (FHR / The Hotel Collection)",
+        type=BenefitType.STATEMENT_CREDIT,
+        cadence=Cadence.SEMIANNUAL,
+        amount=300.0,
+        unit="USD",
+        reset=ResetRule.CALENDAR,
+        enrollment_required=False,
+        applies_to=AppliesTo.PRIMARY,
+    )
+    assert b.label == "Hotel credit (FHR / The Hotel Collection, every 6 months)"
+
+
 def test_benefit_label_carries_the_cadence(catalog):
     p = catalog.products["test_premium"]
     assert p.benefit("monthly_credit").label == "Monthly credit (monthly)"

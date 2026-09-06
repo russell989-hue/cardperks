@@ -18,7 +18,7 @@ from custom_components.cardperks.statements import (
     parse_statement,
 )
 
-from .conftest import CARD_ID, OWNER_ID
+from .conftest import CARD_ID, OWNER_ID, card_subentry
 
 CHASE = """Card,Transaction Date,Post Date,Description,Category,Type,Amount,Memo
 1234,08/12/2026,08/12/2026,Payment Thank You - Web,,Payment,306.84,
@@ -447,3 +447,180 @@ async def test_rebate_counts_as_captured_and_never_forfeits(
     assert after.totals.captured == round(before.totals.captured + 5.35, 2)
     assert after.totals.annual_value == round(before.totals.annual_value + 5.35, 2)
     assert after.unused_value == before.unused_value
+
+
+SECOND_CARD_ID = "card_premium_2"
+
+
+async def _add_second_card(hass, entry) -> None:
+    """A second card of the same product with number 9999, as the MULTI file has."""
+    from types import MappingProxyType
+
+    from homeassistant.config_entries import ConfigSubentry
+
+    d = card_subentry(subentry_id=SECOND_CARD_ID, last4="9999", title="Premium Card (Brian | 9999)")
+    hass.config_entries.async_add_subentry(
+        entry,
+        ConfigSubentry(
+            data=MappingProxyType(d["data"]),
+            subentry_type=d["subentry_type"],
+            title=d["title"],
+            unique_id=None,
+            subentry_id=d["subentry_id"],
+        ),
+    )
+    await hass.async_block_till_done()
+
+
+async def test_multi_card_statement_applies_every_card(
+    hass, setup_integration: MockConfigEntry, tmp_path
+):
+    """A household export offers, and defaults to, one pass over every card it covers."""
+    entry = setup_integration
+    await _add_second_card(hass, entry)
+    path = tmp_path / "Chase1234_Activity.csv"
+    path.write_text(MULTI, encoding="utf-8")
+
+    @contextmanager
+    def fake_upload(hass_, file_id):
+        yield path
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "statement"), context={"source": config_entries.SOURCE_USER}
+    )
+    with patch("custom_components.cardperks.config_flow.process_uploaded_file", fake_upload):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"file": UUID}
+        )
+    assert result["step_id"] == "card"
+    options = result["data_schema"].schema
+    card_key = next(k for k in options if k == "card")
+    assert card_key.default() == "__all__"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"card": "__all__", "apply_fee": False}
+    )
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "statement_complete"
+    ph = result["description_placeholders"]
+    assert "1234" in ph["card"] and "9999" in ph["card"]
+    assert "Premium Card (Brian | 1234): Travel credit: 100.00" in ph["applied"]
+    assert "Premium Card (Brian | 9999): Travel credit: 250.00" in ph["applied"]
+    assert "9999" not in ph["note"]
+    await hass.async_block_till_done()
+
+    reg = er.async_get(hass)
+    for card_id, used in ((CARD_ID, 100.0), (SECOND_CARD_ID, 250.0)):
+        st = hass.states.get(
+            reg.async_get_entity_id("sensor", DOMAIN, f"{card_id}_travel_credit_status")
+        )
+        assert st.attributes["amount_used"] == used
+    doc = entry.runtime_data.doc
+    assert set(doc.coverage) == {CARD_ID, SECOND_CARD_ID}
+    assert {i.held_card_id for i in doc.imports} == {CARD_ID, SECOND_CARD_ID}
+
+
+async def test_import_statement_service(hass, setup_integration: MockConfigEntry, tmp_path):
+    """A file on disk goes through the same path as an upload, picking cards by number."""
+    from homeassistant.exceptions import ServiceValidationError
+
+    entry = setup_integration
+    await _add_second_card(hass, entry)
+    folder = tmp_path / "statements"
+    folder.mkdir()
+    path = folder / "Chase_Activity.csv"
+    path.write_text(MULTI, encoding="utf-8")
+
+    # Outside the config folder and not allowlisted: refused.
+    import pytest
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN, "import_statement", {"path": str(path)}, blocking=True, return_response=True
+        )
+
+    hass.config.allowlist_external_dirs.add(str(tmp_path))
+    resp = await hass.services.async_call(
+        DOMAIN, "import_statement", {"path": str(path)}, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert resp["issuer"] == "chase" and resp["unassigned_last4"] == []
+    by_card = {c["card_id"]: c for c in resp["cards"]}
+    assert by_card[CARD_ID]["applied"] == {"Travel credit": 100.0}
+    assert by_card[SECOND_CARD_ID]["applied"] == {"Travel credit": 250.0}
+    assert "999" in by_card[SECOND_CARD_ID]["fee"]  # 999 differs from the catalog's 500
+
+    # Again: nothing new, everything counted as a duplicate.
+    resp = await hass.services.async_call(
+        DOMAIN, "import_statement", {"path": str(path)}, blocking=True, return_response=True
+    )
+    assert all(c["applied"] == {} and c["duplicates"] == 1 for c in resp["cards"])
+
+    # An Amex file names no card numbers; with one Amex-less product here it must be told.
+    amex = folder / "activity.csv"
+    amex.write_text(AMEX, encoding="utf-8")
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN, "import_statement", {"path": str(amex)}, blocking=True, return_response=True
+        )
+
+
+async def test_add_statement_match_service(
+    hass, setup_integration: MockConfigEntry, tmp_path, monkeypatch
+):
+    """An unmatched credit line becomes a catalog pattern without editing JSON by hand."""
+    import pytest
+    from homeassistant.exceptions import ServiceValidationError
+    from homeassistant.helpers import device_registry as dr
+
+    entry = setup_integration
+    overrides = tmp_path / "overrides"
+    monkeypatch.setattr("custom_components.cardperks.helpers.override_dir", lambda hass: overrides)
+    monkeypatch.setattr("custom_components.cardperks.services.override_dir", lambda hass: overrides)
+    device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, CARD_ID), entry.entry_id)
+    assert device is not None
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            "add_statement_match",
+            {"device_id": device.id, "benefit_id": "monthly_credit", "pattern": "("},
+            blocking=True,
+            return_response=True,
+        )
+
+    resp = await hass.services.async_call(
+        DOMAIN,
+        "add_statement_match",
+        {"device_id": device.id, "benefit_id": "monthly_credit", "pattern": "SOME OTHER CREDIT"},
+        blocking=True,
+        return_response=True,
+    )
+    await hass.async_block_till_done()
+    assert resp["changed"] is True and resp["patterns"][-1] == "SOME OTHER CREDIT"
+    written = overrides / "testbank.json"
+    assert written.exists() and "SOME OTHER CREDIT" in written.read_text(encoding="utf-8")
+
+    # The reloaded catalog carries it, and the shipped product is otherwise intact.
+    product = entry.runtime_data.catalog.get("test_premium")
+    assert product.benefit("monthly_credit").statement_match[-1] == "SOME OTHER CREDIT"
+    assert product.benefit("travel_credit").statement_match  # untouched
+    assert product.origin == str(written)
+
+    # Same pattern again is a no-op.
+    resp = await hass.services.async_call(
+        DOMAIN,
+        "add_statement_match",
+        {"device_id": device.id, "benefit_id": "monthly_credit", "pattern": "SOME OTHER CREDIT"},
+        blocking=True,
+        return_response=True,
+    )
+    assert resp["changed"] is False
+
+    # And the next import records the line.
+    hass.config.allowlist_external_dirs.add(str(tmp_path))
+    path = tmp_path / "Chase1234_Activity.csv"
+    path.write_text(CHASE, encoding="utf-8")
+    resp = await hass.services.async_call(
+        DOMAIN, "import_statement", {"path": str(path)}, blocking=True, return_response=True
+    )
+    assert resp["cards"][0]["applied"]["Monthly credit"] == 20.0

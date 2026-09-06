@@ -222,7 +222,7 @@ def net_value() -> dict:
             gauge_grid(
                 "net_value_12m",
                 minimum=f"-{fee}",
-                maximum=f"([{annual} - {fee}, 1 - {fee}] | max)",
+                maximum=f"(([{annual} - {fee}, 1 - {fee}] | max) | round(2))",
                 by_value=True,
             ),
         ],

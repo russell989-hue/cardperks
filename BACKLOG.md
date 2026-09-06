@@ -13,30 +13,24 @@ Everything should be built so the normal loop is **download a CSV, upload it, do
 Done so far: upload creates the card, prefilled from the file; rows are scoped to the
 chosen card's last four (and its former numbers after a replacement); each upload
 records the months it covers and a receipt; uncapped rebates are recorded as their
-own benefit type. Remaining gaps, in order:
+own benefit type. Done: upload creates the card; multi-card exports apply to every card in one pass;
+`cardperks.import_statement` takes a file path (point a `folder_watcher` automation at
+`/config/cardperks/statements/` for a drop folder); `cardperks.add_statement_match`
+writes a missing pattern into the override folder; forfeited consults coverage; a repair
+and binary sensor nag when uploads fall behind.
 
-1. **One file, many cards.** Apply a multi-card export to every card it covers in one
-   pass, and let the first upload of a household's Chase export stand up every card in
-   it.
-2. **Repeat imports without ceremony.** A service that takes a file path, and/or a
-   watched folder such as `/config/cardperks/statements/`. Import is idempotent, so
-   re-running is safe by construction.
-3. **Close the matching gap in-product.** Unmatched credit lines are listed, but fixing
-   one means editing catalog JSON. Offer to write the pattern into the user override
-   file straight from the import result.
+Remaining:
+
+1. **A shipped drop-folder automation.** A blueprint that wires `folder_watcher` to
+   `import_statement`, so the user does not have to write it.
 
 ## Small things
 
-- **Cadence tag inside existing brackets.** "Hotel credit (FHR / The Hotel Collection)
-  (every 6 months)" should read "Hotel credit (FHR / The Hotel Collection, every 6
-  months)". One line in `Benefit.label`.
 - **Navigation tiles from a template.** The Cards tiles now live in Brian's hand-built
   section and are static, so a new card needs a tile added by hand. An auto-entities
   template over the `unused_value` sensors with `tap_action: navigate` to
   `/dashboard-cardperks/{{ card | slugify }}` would make them appear by themselves.
 - **Gauges at two per row** if titles keep clipping on narrower screens.
-- **Round gauge bounds** in the generated config (`max: 1363.5100000000002` is
-  harmless but ugly).
 - **Cadence tags are English-only**, like everything in `strings.json`. Fine until
   the integration is published.
 

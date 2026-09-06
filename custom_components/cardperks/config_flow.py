@@ -69,7 +69,14 @@ from .const import (
 from .helpers import async_get_catalog
 from .importer import async_import_cards, parse_date
 from .models import Catalog
-from .statements import ParsedStatement, latest_fee, match_credits, parse_statement
+from .statement_apply import (
+    apply_statement,
+    cards_for_issuer,
+    cards_in_statement,
+    subentry_last4s,
+    summarise,
+)
+from .statements import ParsedStatement, latest_fee, parse_statement
 
 MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -629,6 +636,7 @@ async def _read_uploaded_text(hass, file_id: str) -> tuple[str, str | None]:
 
 
 NEW_CARD = "__new__"
+ALL_CARDS = "__all__"
 
 
 class ImportStatementSubentryFlow(ConfigSubentryFlow):
@@ -657,14 +665,7 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         ]
 
     def _cards_for_issuer(self, issuer: str, catalog: Catalog) -> list[ConfigSubentry]:
-        out = []
-        for s in self._get_entry().subentries.values():
-            if s.subentry_type != SUBENTRY_CARD:
-                continue
-            product = catalog.get(s.data.get(CONF_PRODUCT_ID, ""))
-            if product is not None and product.issuer == issuer:
-                out.append(s)
-        return out
+        return cards_for_issuer(self._get_entry(), catalog, issuer)
 
     def _statement_last4(self) -> str | None:
         """The card number to assume, when the file names exactly one."""
@@ -721,6 +722,8 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         if user_input is not None:
             if user_input[ATTR_CARD] == NEW_CARD:
                 return await self.async_step_new_card()
+            if user_input[ATTR_CARD] == ALL_CARDS:
+                return await self._apply_all(bool(user_input.get(ATTR_APPLY_FEE, True)))
             return await self._apply(
                 user_input[ATTR_CARD],
                 bool(user_input.get(ATTR_APPLY_FEE, True)),
@@ -738,6 +741,17 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         )
         options = [SelectOptionDict(value=c.subentry_id, label=c.title) for c in cards]
         options.append(SelectOptionDict(value=NEW_CARD, label="Add a new card from this statement"))
+        # A household's Chase export covers every Chase card at once; offer one pass.
+        covered = cards_in_statement(self._get_entry(), parsed)
+        if len(covered) > 1:
+            titles = ", ".join(c.title for c in covered)
+            options.insert(
+                0,
+                SelectOptionDict(
+                    value=ALL_CARDS, label=f"Every card in this file ({len(covered)}: {titles})"
+                ),
+            )
+            default = ALL_CARDS
         schema = vol.Schema(
             {
                 vol.Required(ATTR_CARD, default=default): SelectSelector(
@@ -916,79 +930,43 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         adopt = adopt or set()
         if adopt:
             await self._adopt_numbers(card_id, adopt)
-        coordinator = entry.runtime_data
-        card = coordinator.card(card_id)
-        product = coordinator.catalog.get(card.product_id)
-
-        # Only this account's rows: one Chase export often covers several cards, and a
-        # replaced card appears under both its old and new numbers.
-        mine = card.all_last4
-        parsed = self._parsed.for_last4(mine)
-        others = self._parsed.other_last4s(mine)
-        result = match_credits(parsed, product)
-
-        applied: dict[str, float] = {}
-        dupes = 0
-        for m in result.matched:
-            ok = coordinator.record_statement_usage(
-                card_id, m.benefit_id, m.row.date, abs(m.row.amount), m.row.description[:60]
-            )
-            if ok:
-                applied[m.benefit_id] = round(applied.get(m.benefit_id, 0.0) + abs(m.row.amount), 2)
-            else:
-                dupes += 1
-        rng = parsed.date_range
-        coordinator.record_import(
+        card = entry.runtime_data.card(card_id)
+        others = self._parsed.other_last4s(card.all_last4)
+        result = apply_statement(
+            self.hass,
+            entry,
             card_id,
+            self._parsed,
             file_hash=self._file_hash,
             filename=self._filename,
-            issuer=parsed.issuer,
-            months=parsed.months(),
-            first_date=rng[0].isoformat() if rng else None,
-            last_date=rng[1].isoformat() if rng else None,
-            rows=len(parsed.rows),
-            credit_rows=len(parsed.credit_rows),
-            matched=len(result.matched),
-            applied=sum(applied.values()),
+            apply_fee=apply_fee,
         )
-        coordinator.commit()
+        return self._finish([result], others, adopt)
 
-        fee_note = "not applied"
-        fee = latest_fee(parsed)
-        if apply_fee and fee is not None:
-            sub = entry.subentries[card_id]
-            new_data = dict(sub.data)
-            changed = False
-            if not new_data.get(CONF_FEE_MONTH) and not new_data.get(CONF_OPEN_DATE):
-                new_data[CONF_FEE_MONTH] = fee.date.month
-                changed = True
-            catalog_fee = product.annual_fee if product else None
-            if (
-                fee.amount > 0
-                and fee.amount != catalog_fee
-                and new_data.get(CONF_ANNUAL_FEE) != fee.amount
-            ):
-                new_data[CONF_ANNUAL_FEE] = fee.amount
-                changed = True
-            if changed:
-                self.hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
-                try:
-                    self.hass.config_entries.async_update_subentry(entry, sub, data=new_data)
-                finally:
-                    self.hass.data[DOMAIN][DATA_IMPORTING] = False
-                self.hass.config_entries.async_schedule_reload(entry.entry_id)
-                fee_note = (
-                    f"fee month set to {fee.date.strftime('%B')}, annual fee {fee.amount:.0f}"
-                )
-            else:
-                fee_note = f"{fee.amount:.0f} on {fee.date.isoformat()} (already configured)"
-        elif fee is None:
-            fee_note = "no fee line for this card in the export"
+    async def _apply_all(self, apply_fee: bool) -> SubentryFlowResult:
+        """One pass over every configured card the file covers."""
+        assert self._parsed is not None
+        entry = self._get_entry()
+        covered = cards_in_statement(entry, self._parsed)
+        known: set[str] = set()
+        for sub in covered:
+            known |= subentry_last4s(sub)
+        results = [
+            apply_statement(
+                self.hass,
+                entry,
+                sub.subentry_id,
+                self._parsed,
+                file_hash=self._file_hash,
+                filename=self._filename,
+                apply_fee=apply_fee,
+            )
+            for sub in covered
+        ]
+        return self._finish(results, self._parsed.last4s - known, set())
 
-        def _fmt(lines: list[str]) -> str:
-            return "\n".join(f"- {line}" for line in lines) if lines else "- none"
-
-        names = {b.id: b.name for b in product.benefits} if product else {}
+    def _finish(self, results, others: set[str], adopt: set[str]) -> SubentryFlowResult:
+        placeholders = summarise(results, others)
         note = ""
         if adopt:
             note += (
@@ -996,24 +974,5 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             )
         if getattr(self, "_created_title", None):
             note = f"Created the card **{self._created_title}** from this statement.\n\n"
-        if others:
-            note += (
-                f"This file also covers card(s) {', '.join(sorted(others))}; "
-                "their rows were left alone. Import it again and pick that card.\n\n"
-            )
-        return self.async_abort(
-            reason="statement_complete",
-            description_placeholders={
-                "card": card.title,
-                "note": note,
-                "fee": fee_note,
-                "applied": _fmt([f"{names.get(b, b)}: {amt:.2f}" for b, amt in applied.items()]),
-                "duplicates": str(dupes),
-                "unmatched": _fmt(
-                    [
-                        f"{r.date.isoformat()} {r.description} {abs(r.amount):.2f}"
-                        for r in result.unmatched
-                    ][:15]
-                ),
-            },
-        )
+        placeholders["note"] = note + placeholders["note"]
+        return self.async_abort(reason="statement_complete", description_placeholders=placeholders)
