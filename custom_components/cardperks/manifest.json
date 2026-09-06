@@ -6,7 +6,9 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "file_upload"
+    "file_upload",
+    "frontend",
+    "http"
   ],
   "documentation": "https://github.com/russell989-hue/cardperks",
   "integration_type": "hub",

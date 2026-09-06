@@ -11,7 +11,9 @@ import re
 from pathlib import Path
 
 COMPONENT_DIR = Path(__file__).resolve().parents[1] / "custom_components" / "cardperks"
-ALLOWED_NETWORK_MODULES: set[str] = set()  # cardperks makes no network calls at all
+# cardperks makes no network calls at all. panel.py imports aiohttp's `web` only to build
+# the HTTP response for the catalog page it serves inside Home Assistant.
+ALLOWED_NETWORK_MODULES: set[str] = {"panel.py"}
 NETWORK_IMPORT = re.compile(
     r"^\s*(import|from)\s+(aiohttp|requests|httpx|urllib|socket|http\.client)\b",
     re.MULTILINE,

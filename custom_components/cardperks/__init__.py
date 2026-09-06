@@ -21,6 +21,7 @@ from .const import (
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .devices import async_cleanup_entities, async_ensure_devices
 from .helpers import async_load_catalog
+from .panel import async_register_panel, async_remove_panel
 from .repairs import async_check_catalog_issues, async_check_statement_issues
 from .services import async_setup_services
 from .store import CardPerksStore
@@ -98,6 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) ->
 
     catalog, problems = await async_load_catalog(hass)
     async_check_catalog_issues(hass, catalog, problems)
+    async_register_panel(hass)
 
     store = CardPerksStore(hass)
     doc = await store.async_load_document()
@@ -145,5 +147,6 @@ async def _async_reload_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) 
 async def async_unload_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
+        async_remove_panel(hass)
         await entry.runtime_data.store.async_save_document(entry.runtime_data.doc)
     return unloaded

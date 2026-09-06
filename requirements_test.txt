@@ -2,3 +2,5 @@
 pytest-homeassistant-custom-component==0.13.363
 pytest-freezer
 ruff
+# The panel test needs the real frontend package; the version must match the HA release above.
+home-assistant-frontend==20260826.4
