@@ -118,7 +118,13 @@ SSH add-on for a marker the new code produces before pushing dashboards.
 
 ## Dashboards
 
-Dashboard `dashboard-cardperks`. The Overview (view path `cardperks`) has a hand-built
+Dashboard `dashboard-cardperks`. Every view carries `theme: CardPerks` (`themes/cardperks.yaml`,
+shipped by deploy.sh; fonts served by the integration, wired in via `extra_module_url` in
+configuration.yaml), so the dashboard matches the catalog page while the rest of HA keeps
+its own theme. `tools/set_view_theme.py` sets the theme on a hand-built view. The last tab,
+"Catalog", is an iframe over `/cardperks/catalog`.
+
+The Overview (view path `cardperks`) has a hand-built
 first section owned by Brian ("Unused Credits and Benefits", which also holds the
 per-card navigation tiles), followed by generated sections. Nine generated subviews,
 one per card, reached from those tiles.
@@ -128,8 +134,10 @@ Generators (run on Windows, output JSON):
 - `tools/cp_full.py` runs on the box and dumps the live card map (ids, titles,
   colours, per-card entity ids, status select, perk entities) as JSON.
 - `tools/build_sections.py outdir/` writes each Overview section.
-- `tools/build_card_views.py cards.json views.json nav.json` writes the subviews and
-  the navigation section (the nav is no longer pushed; it lives in Brian's section).
+- `tools/build_card_views.py cards.json views.json nav.json` writes the subviews, the
+  Catalog view and the navigation section (the nav is no longer pushed; it lives in
+  Brian's section). The "Dollars left by benefit" section is generated but not on the
+  Overview; Brian removed it, so do not append it.
 - `tools/lovelace.py` is the shared library: headings, notes, Mushroom rows, entity
   rows labelled benefit-first, gauges, the ring, the stacked money bars, expanders,
   two-column sections.

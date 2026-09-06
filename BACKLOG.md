@@ -26,6 +26,10 @@ Remaining:
 
 ## Small things
 
+- **Dashboard restyle, round two.** The theme covers fonts, palette, rules and radius. The
+  catalog page's eyebrow labels, type chips and per-product figure rows have no dashboard
+  equivalent yet; the heading cards could gain subtitles and the "All benefits" list a
+  type chip via Mushroom badges.
 - **Navigation tiles from a template.** The Cards tiles now live in Brian's hand-built
   section and are static, so a new card needs a tile added by hand. An auto-entities
   template over the `unused_value` sensors with `tap_action: navigate` to
