@@ -81,7 +81,7 @@ def card_subentry(
     fee_month: int | None = None,
     last4: str | None = "1234",
     nickname: str | None = None,
-    title: str = "Premium Card (Brian ·1234)",
+    title: str = "Premium Card (Brian | 1234)",
 ) -> dict:
     return {
         "subentry_id": subentry_id,

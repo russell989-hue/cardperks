@@ -36,7 +36,7 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"
     assert travel.attributes["amount"] == 300 and travel.attributes["period_end"] == "2027-06-30"
-    assert travel.name == "Premium Card (Brian ·1234) Travel credit status"
+    assert travel.name == "Premium Card (Brian | 1234) Travel credit status"
 
     expires = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_expires"))
     assert expires.state == "2026-12-31" and expires.attributes["days_left"] == 117

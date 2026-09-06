@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DATA_IMPORTING, DOMAIN, ROLLOVER_HOUR, ROLLOVER_MINUTE
+from .const import DATA_IMPORTING, DOMAIN, ROLLOVER_HOUR, ROLLOVER_MINUTE, SUBENTRY_CARD
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .devices import async_cleanup_entities, async_ensure_devices
 from .helpers import async_load_catalog
@@ -33,7 +33,35 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+OLD_SEPARATOR = " ·"
+NEW_SEPARATOR = " | "
+
+
+@callback
+def _migrate_card_titles(hass: HomeAssistant, entry: CardPerksConfigEntry) -> int:
+    """Rewrite card titles that still use the old last-four separator.
+
+    Titles are shown as device names, so this keeps existing cards consistent with
+    newly added ones without asking anyone to rename nine devices by hand.
+    """
+    changed = 0
+    hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
+    try:
+        for sub in list(entry.subentries.values()):
+            if sub.subentry_type == SUBENTRY_CARD and OLD_SEPARATOR in sub.title:
+                hass.config_entries.async_update_subentry(
+                    entry, sub, title=sub.title.replace(OLD_SEPARATOR, NEW_SEPARATOR)
+                )
+                changed += 1
+    finally:
+        hass.data[DOMAIN][DATA_IMPORTING] = False
+    return changed
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) -> bool:
+    if renamed := _migrate_card_titles(hass, entry):
+        _LOGGER.debug("Renamed %s card titles to the new separator", renamed)
+
     catalog, problems = await async_load_catalog(hass)
     async_check_catalog_issues(hass, catalog, problems)
 

@@ -285,7 +285,7 @@ async def async_import_cards(
 
             nickname = row.get("nickname", "") or None
             au = " (AU)" if role is Role.AUTHORIZED_USER else ""
-            suffix = f" ·{last4}" if last4 else ""
+            suffix = f" | {last4}" if last4 else ""
             title = nickname or f"{product.name}{au} ({owner.title}{suffix})"
             data = {
                 CONF_OWNER_ID: owner.subentry_id,

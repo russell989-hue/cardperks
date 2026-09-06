@@ -54,7 +54,7 @@ def note(text: str) -> dict:
 
 def auto_entities(
     title: str,
-    device: str,
+    card_id: str,
     *,
     pattern: str | None = None,
     domain: str | None = None,
@@ -65,13 +65,15 @@ def auto_entities(
     reverse: bool = True,
     show_empty: bool = True,
 ) -> dict:
-    base: dict = {"integration": "cardperks", "device": device}
+    # Matching on the card id survives a device rename, which matching on the
+    # device name does not.
+    base: dict = {"integration": "cardperks", "attributes": {"card_id": card_id}}
     if pattern:
         base["entity_id"] = pattern
     if domain:
         base["domain"] = domain
     if attributes:
-        include = [{**base, "attributes": a} for a in attributes]
+        include = [{**base, "attributes": {**base["attributes"], **a}} for a in attributes]
     else:
         item = dict(base)
         if state_filter:
@@ -89,7 +91,7 @@ def auto_entities(
     }
 
 
-def build_view(name: str, ids: dict, color: str | None, perks: list[dict]) -> dict:
+def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: list[dict]) -> dict:
     tint = color or "grey"
 
     at_a_glance = [heading(name, "mdi:credit-card")]
@@ -133,7 +135,7 @@ def build_view(name: str, ids: dict, color: str | None, perks: list[dict]) -> di
             "cards": [
                 heading("Money on hand", "mdi:cash-clock"),
                 auto_entities(
-                    "Credits with a balance", name, pattern="*_remaining", state_filter="> 0"
+                    "Credits with a balance", card_id, pattern="*_remaining", state_filter="> 0"
                 ),
             ],
         },
@@ -144,7 +146,7 @@ def build_view(name: str, ids: dict, color: str | None, perks: list[dict]) -> di
                 note("Type the dollars you captured. The status follows from the amount."),
                 auto_entities(
                     "Not yet fully used",
-                    name,
+                    card_id,
                     domain="number",
                     attributes=[{"status": "unused"}, {"status": "partial"}],
                     sort_method="friendly_name",
@@ -178,7 +180,7 @@ def build_view(name: str, ids: dict, color: str | None, perks: list[dict]) -> di
                 heading("All benefits", "mdi:format-list-bulleted"),
                 auto_entities(
                     "Status",
-                    name,
+                    card_id,
                     pattern="*_status",
                     sort_method="friendly_name",
                     numeric=False,
@@ -186,7 +188,7 @@ def build_view(name: str, ids: dict, color: str | None, perks: list[dict]) -> di
                 ),
                 auto_entities(
                     "Expiry dates",
-                    name,
+                    card_id,
                     pattern="*_expires",
                     sort_method="state",
                     numeric=False,
@@ -260,12 +262,13 @@ def load(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as fh:
         raw = json.load(fh)
     out = []
-    for val in raw.values():
+    for key, val in raw.items():
         ids = dict(val.get("card", {}))
         if val.get("color_entity"):
             ids["color"] = val["color_entity"]
         out.append(
             {
+                "id": key,
                 "title": val["title"],
                 "color": val.get("color"),
                 "ids": ids,
@@ -280,7 +283,7 @@ def main() -> int:
         print(__doc__)
         return 2
     cards = load(sys.argv[1])
-    views = [build_view(c["title"], c["ids"], c["color"], c["perks"]) for c in cards]
+    views = [build_view(c["title"], c["id"], c["ids"], c["color"], c["perks"]) for c in cards]
     with open(sys.argv[2], "w", encoding="utf-8") as fh:
         json.dump(views, fh, indent=2)
     if len(sys.argv) > 3:

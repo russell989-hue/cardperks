@@ -49,8 +49,8 @@ async def test_import_cards(hass, setup_integration: MockConfigEntry):
     await hass.async_block_till_done()
 
     assert resp["created_owners"] == ["Sam"]
-    assert resp["created_cards"] == ["Old Basic", "Premium Card (Sam ·7777)"]
-    # Brian ·1234 and the Nick AU card already exist in the fixture entry
+    assert resp["created_cards"] == ["Old Basic", "Premium Card (Sam | 7777)"]
+    # Brian | 1234 and the Nick AU card already exist in the fixture entry
     assert len(resp["skipped"]) == 2 and all("already have" in s for s in resp["skipped"])
     assert len(resp["errors"]) == 2
     assert "unknown product" in resp["errors"][0]
@@ -62,7 +62,7 @@ async def test_import_cards(hass, setup_integration: MockConfigEntry):
     assert cards["Old Basic"].data[CONF_OPEN_DATE] == "2022-03-15"
     assert cards["Old Basic"].data[CONF_LAST4] == "5555"
     assert cards["Old Basic"].data["annual_fee"] == 39.0
-    sam = cards["Premium Card (Sam ·7777)"]
+    sam = cards["Premium Card (Sam | 7777)"]
     assert sam.data[CONF_FEE_MONTH] == 11 and sam.data[CONF_OPEN_DATE] is None
     au = cards["Premium Card (AU) (Nick)"]
     assert au.data[CONF_ROLE] == "authorized_user" and au.data[CONF_PARENT_CARD_ID] == CARD_ID

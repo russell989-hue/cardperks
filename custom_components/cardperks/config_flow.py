@@ -439,7 +439,7 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         product = catalog.get(data[CONF_PRODUCT_ID])
         owner = next((o.title for o in self._owners() if o.subentry_id == data[CONF_OWNER_ID]), "?")
         name = product.name if product else data[CONF_PRODUCT_ID]
-        suffix = f" ·{data[CONF_LAST4]}" if data.get(CONF_LAST4) else ""
+        suffix = f" | {data[CONF_LAST4]}" if data.get(CONF_LAST4) else ""
         au = " (AU)" if Role(data.get(CONF_ROLE, "primary")) is Role.AUTHORIZED_USER else ""
         return f"{name}{au} ({owner}{suffix})"
 
@@ -855,7 +855,7 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             annual_fee = fee.amount
 
         name = product.name if product else user_input[CONF_PRODUCT_ID]
-        suffix = f" ·{last4}" if last4 else ""
+        suffix = f" | {last4}" if last4 else ""
         title = nickname or f"{name} ({owner.title if owner else '?'}{suffix})"
         data = {
             CONF_OWNER_ID: user_input[CONF_OWNER_ID],

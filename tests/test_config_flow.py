@@ -110,7 +110,7 @@ async def test_add_primary_card_subentry(hass, setup_integration: MockConfigEntr
         result["flow_id"], {CONF_FEE_MONTH: "11", CONF_LAST4: "9999"}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Basic Card (Brian ·9999)"
+    assert result["title"] == "Basic Card (Brian | 9999)"
     await hass.async_block_till_done()
     sub = next(s for s in entry.subentries.values() if s.data.get(CONF_LAST4) == "9999")
     assert sub.data[CONF_FEE_MONTH] == 11 and sub.data[CONF_OPEN_DATE] is None
@@ -195,7 +195,7 @@ async def test_import_subentry_flow(hass, setup_integration: MockConfigEntry):
     result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"csv": csv})
     assert result["type"] is FlowResultType.ABORT and result["reason"] == "import_complete"
     ph = result["description_placeholders"]
-    assert "Sam" in ph["owners"] and "Premium Card (Sam ·7777)" in ph["cards"]
+    assert "Sam" in ph["owners"] and "Premium Card (Sam | 7777)" in ph["cards"]
     assert "already have" in ph["skipped"] and ph["errors"] == "- none"
     await hass.async_block_till_done()
     assert hass.states.get("sensor.premium_card_sam_7777_travel_credit_status").state == "unused"
