@@ -248,7 +248,17 @@
           "enrollment_required": true,
           "applies_to": "au_own_allotment",
           "default_value": 100,
-          "shared_key": "amex_hotel_status"
+          "shared_key": "amex_hotel_status",
+          "grants_status": [
+            {
+              "program": "Hilton Honors",
+              "tier": "Gold"
+            },
+            {
+              "program": "Marriott Bonvoy",
+              "tier": "Gold Elite"
+            }
+          ]
         },
         {
           "id": "sub",
@@ -629,7 +639,17 @@
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary",
-          "shared_key": "amex_hotel_status"
+          "shared_key": "amex_hotel_status",
+          "grants_status": [
+            {
+              "program": "Hilton Honors",
+              "tier": "Gold"
+            },
+            {
+              "program": "Marriott Bonvoy",
+              "tier": "Gold Elite"
+            }
+          ]
         },
         {
           "id": "leaders_club",
@@ -641,7 +661,13 @@
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary",
-          "notes": "The Leading Hotels of the World; enrollment required."
+          "notes": "The Leading Hotels of the World; enrollment required.",
+          "grants_status": [
+            {
+              "program": "Leaders Club",
+              "tier": "Sterling"
+            }
+          ]
         },
         {
           "id": "hotel_collection",

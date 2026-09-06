@@ -81,6 +81,7 @@ This page is the field reference and the contribution rules. The schema itself l
 | `conditional` | no | `false` | Only some holders qualify; off until enabled on the card. |
 | `condition` | no | | Plain-language qualification, shown next to the toggle in the card form. |
 | `eligible` | no | `[]` | Where a credit can be spent: the merchant or partner names, nothing more (`["Disney+", "Hulu"]`). Rules go in `notes`. Shown on the catalog page; these lists change often and a diff should show it. |
+| `grants_status` | no | `[]` | Elite status holding the card confers, as `{program, tier}` pairs (`[{"program": "Hilton Honors", "tier": "Gold"}]`). Each becomes a status sensor for the cardholder while the card is held, renewing on the anniversary. |
 | `shared_key` | no | | Perks and insurance only. The same thing on several cards (Priority Pass, Centurion Lounge, cell phone protection) is one membership, so give each copy the same key: the household values it once and the value is split equally between the active cards that carry it. Keys are catalog-wide, so `priority_pass` on an Amex and a Chase card share. |
 
 ### Types

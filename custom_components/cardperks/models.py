@@ -30,6 +30,14 @@ CADENCE_TAGS: dict[Cadence, str] = {
 
 
 @dataclass(frozen=True, slots=True)
+class StatusGrant:
+    """Elite status that holding a card confers (Amex Platinum: Hilton Honors Gold)."""
+
+    program: str
+    tier: str
+
+
+@dataclass(frozen=True, slots=True)
 class Benefit:
     id: str
     name: str
@@ -55,6 +63,8 @@ class Benefit:
     # rule that matters ("Peacock: standalone subscriptions only"). Lists like this
     # change often; keeping them structured makes the change a visible diff.
     eligible: tuple[str, ...] = ()
+    # Status this benefit confers while the card is held; tracked as a status of its own.
+    grants_status: tuple[StatusGrant, ...] = ()
 
     def applies_to_role(self, role: Role) -> bool:
         if role is Role.PRIMARY:
@@ -238,6 +248,26 @@ class HeldCard:
         if self.status is not CardStatus.ACTIVE:
             return False
         return self.close_date is None or self.close_date >= today
+
+
+@dataclass(frozen=True, slots=True)
+class LoyaltyStatus:
+    """One elite status held by one owner, from a card or earned outright.
+
+    Status both comes from cards and unlocks card benefits, so it is tracked apart from
+    them. `card_id` is set when a held card grants it; then it lasts as long as the card
+    does and `valid_through` is the card's next anniversary. Otherwise the holder entered
+    it, with whatever expiry the program gave.
+    """
+
+    id: str
+    owner_id: str
+    program: str
+    tier: str
+    valid_through: date | None
+    source: str  # "Amex Platinum (Brian | 4003)" or how it was earned
+    card_id: str | None = None
+    notes: str | None = None
 
 
 # --------------------------------------------------------------------------- state
@@ -657,3 +687,4 @@ class CardPerksData:
     rotating_activations: Mapping[str, Mapping[str, Mapping[str, str]]]
     perk_values: Mapping[str, Mapping[str, float]]  # effective: shared splits folded in
     shared_perks: Mapping[str, SharedPerk] = field(default_factory=dict)
+    statuses: Mapping[str, LoyaltyStatus] = field(default_factory=dict)

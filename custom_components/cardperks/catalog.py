@@ -11,7 +11,15 @@ from typing import Any
 import voluptuous as vol
 
 from .const import AppliesTo, BenefitType, Cadence, ResetRule
-from .models import AuTerms, Benefit, Catalog, CatalogProblem, EarningRate, Product
+from .models import (
+    AuTerms,
+    Benefit,
+    Catalog,
+    CatalogProblem,
+    EarningRate,
+    Product,
+    StatusGrant,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +55,9 @@ BENEFIT_SCHEMA = vol.Schema(
         vol.Optional("condition"): vol.Any(None, str),
         vol.Optional("shared_key"): vol.Any(None, vol.Match(r"^[a-z0-9_]+$")),
         vol.Optional("eligible", default=list): [str],
+        vol.Optional("grants_status", default=list): [
+            vol.Schema({vol.Required("program"): str, vol.Required("tier"): str})
+        ],
     }
 )
 
@@ -114,6 +125,10 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
             condition=b.get("condition"),
             shared_key=b.get("shared_key"),
             eligible=tuple(b.get("eligible", [])),
+            grants_status=tuple(
+                StatusGrant(program=g["program"], tier=g["tier"])
+                for g in b.get("grants_status", [])
+            ),
         )
         for b in raw["benefits"]
     )

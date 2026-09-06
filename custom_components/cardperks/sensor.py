@@ -9,11 +9,16 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, Sen
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import SUBENTRY_CARD, SUBENTRY_OWNER, BenefitStatus
+from .const import (
+    STATUS_WARNING_DAYS,
+    SUBENTRY_CARD,
+    SUBENTRY_OWNER,
+    BenefitStatus,
+)
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
-from .entity import BenefitEntity, CardEntity, OwnerEntity
-from .helpers import card_from_subentry, owner_from_subentry
-from .models import Benefit, ExpiringItem, HeldCard, Owner
+from .entity import BenefitEntity, CardEntity, CardPerksEntity, OwnerEntity, owner_device_info
+from .helpers import card_from_subentry, owner_from_subentry, today_local
+from .models import Benefit, ExpiringItem, HeldCard, LoyaltyStatus, Owner
 
 
 async def async_setup_entry(
@@ -58,6 +63,18 @@ async def async_setup_entry(
                     entities.append(BenefitRemainingSensor(coordinator, card, b))
                 entities.append(BenefitStatusSensor(coordinator, card, b))
             async_add_entities(entities, config_subentry_id=sub.subentry_id)
+
+    # Elite status: one sensor each, on the owner's device and under the owner's
+    # subentry (a device belongs to one subentry). Card-granted ones vanish with the
+    # card; entered ones are cleaned up when their subentry is removed.
+    statuses = coordinator.statuses(today_local())
+    for sid, status in statuses.items():
+        owner = coordinator.owners.get(status.owner_id)
+        if owner is None or status.owner_id not in entry.subentries:
+            continue
+        async_add_entities(
+            [StatusSensor(coordinator, owner, sid)], config_subentry_id=status.owner_id
+        )
 
 
 def _items(items: tuple[ExpiringItem, ...]) -> list[dict[str, Any]]:
@@ -506,3 +523,59 @@ class OwnerTotalSensor(OwnerEntity, SensorEntity):
         out["annual_fees"] = s.annual_fees
         out["net_12m"] = round(s.totals.captured - s.annual_fees, 2)
         return {**out, **self.owner_attributes}
+
+
+class StatusSensor(CardPerksEntity, SensorEntity):
+    """One elite status: the tier as state, with who holds it, where it comes from, and
+    when it lapses. Card-granted statuses renew with the card's anniversary."""
+
+    _attr_translation_key = "status"
+    _attr_icon = "mdi:medal-outline"
+
+    def __init__(self, coordinator: CardPerksCoordinator, owner: Owner, status_id: str) -> None:
+        super().__init__(coordinator)
+        self.status_id = status_id
+        self._attr_unique_id = f"status_{status_id}"
+        self._attr_device_info = owner_device_info(owner)
+        st = coordinator.data.statuses.get(status_id)
+        self._attr_translation_placeholders = {"program": st.program if st else status_id}
+
+    @property
+    def status(self) -> LoyaltyStatus | None:
+        return self.coordinator.data.statuses.get(self.status_id)
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.status is not None
+
+    @property
+    def native_value(self) -> str | None:
+        st = self.status
+        return st.tier if st else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        st = self.status
+        if st is None:
+            return {}
+        data = self.coordinator.data
+        owner = data.owners.get(st.owner_id)
+        card = data.cards.get(st.card_id) if st.card_id else None
+        days = (st.valid_through - data.today).days if st.valid_through else None
+        return {
+            "kind": self.translation_key,
+            "program": st.program,
+            "tier": st.tier,
+            "owner": owner.name if owner else None,
+            "owner_id": st.owner_id,
+            "source": st.source,
+            "card": card.title if card else None,
+            "card_id": st.card_id,
+            "color": data.colors.get(st.card_id) if st.card_id else "grey",
+            "card_status": "active",
+            "from_card": st.card_id is not None,
+            "valid_through": st.valid_through.isoformat() if st.valid_through else None,
+            "days_left": days,
+            "expiring_soon": days is not None and days <= STATUS_WARNING_DAYS,
+            "notes": st.notes,
+        }

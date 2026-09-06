@@ -235,6 +235,33 @@ def by_year() -> dict:
     )
 
 
+def statuses() -> dict:
+    """Every elite status in the household, soonest to lapse first."""
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Elite status", "mdi:medal-outline"),
+            note(
+                "Status a card gives you appears by itself and renews with the card. Status you "
+                "earned outright is added under Settings, CardPerks, Add elite status."
+            ),
+            auto_cards(
+                [{"domain": "sensor", "attributes": {"kind": "status"}}],
+                primary="{{ states(entity) }} · {{ state_attr(entity, 'program') }}",
+                secondary=(
+                    "{{ state_attr(entity, 'owner') }} · via {{ state_attr(entity, 'source') }}"
+                    "{% if state_attr(entity, 'valid_through') %} · through "
+                    "{{ state_attr(entity, 'valid_through') }} · "
+                    "{{ state_attr(entity, 'days_left') }} days{% endif %}"
+                ),
+                icon="mdi:medal-outline",
+                sort={"method": "attribute", "attribute": "days_left", "numeric": True},
+                show_empty=True,
+            ),
+        ],
+    }
+
+
 def shared_perks() -> dict:
     """Every perk valued once for the household: what it is worth, each card's share,
     and which cards carry it. Tapping a row edits the household number."""

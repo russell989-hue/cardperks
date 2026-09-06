@@ -27,14 +27,19 @@ from .const import (
     CONF_PARENT_CARD_ID,
     CONF_PREVIOUS_LAST4,
     CONF_PRODUCT_ID,
+    CONF_PROGRAM,
     CONF_ROLE,
+    CONF_SOURCE,
+    CONF_TIER,
+    CONF_VALID_THROUGH,
     DOMAIN,
     OVERRIDE_DIR,
     SUBENTRY_CARD,
     SUBENTRY_OWNER,
+    SUBENTRY_STATUS,
     Role,
 )
-from .models import Catalog, CatalogProblem, HeldCard, Owner
+from .models import Catalog, CatalogProblem, HeldCard, LoyaltyStatus, Owner
 
 DATA_CATALOG = "catalog"
 DATA_PROBLEMS = "catalog_problems"
@@ -103,6 +108,27 @@ def card_from_subentry(sub: ConfigSubentry) -> HeldCard:
         not_applicable=tuple(d.get(CONF_NOT_APPLICABLE) or ()),
         color=d.get(CONF_COLOR) or None,
     )
+
+
+def status_from_subentry(sub: ConfigSubentry) -> LoyaltyStatus:
+    d = sub.data
+    return LoyaltyStatus(
+        id=sub.subentry_id,
+        owner_id=d[CONF_OWNER_ID],
+        program=d[CONF_PROGRAM],
+        tier=d[CONF_TIER],
+        valid_through=_parse_date(d.get(CONF_VALID_THROUGH)),
+        source=d.get(CONF_SOURCE) or "entered by hand",
+        notes=d.get(CONF_NOTES) or None,
+    )
+
+
+def statuses_from_entry(entry: ConfigEntry) -> dict[str, LoyaltyStatus]:
+    return {
+        sub.subentry_id: status_from_subentry(sub)
+        for sub in entry.subentries.values()
+        if sub.subentry_type == SUBENTRY_STATUS
+    }
 
 
 def owners_from_entry(entry: ConfigEntry) -> dict[str, Owner]:

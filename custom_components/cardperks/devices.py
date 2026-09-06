@@ -138,6 +138,7 @@ def async_cleanup_entities(
             if benefit.type in (BenefitType.PERK, BenefitType.INSURANCE) and not benefit.shared_key:
                 expected.add(f"{card.id}_{benefit.id}_value")
     expected.update(f"shared_{key}_value" for key in coordinator.shared_members(today_local()))
+    expected.update(f"status_{sid}" for sid in coordinator.statuses(today_local()))
 
     registry = er.async_get(hass)
     stale = [

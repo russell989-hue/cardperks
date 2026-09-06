@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import slugify
 
 from .const import (
     CARD_COLORS,
@@ -23,7 +24,13 @@ from .const import (
     CardStatus,
     Role,
 )
-from .helpers import cards_from_entry, now_iso, owners_from_entry, today_local
+from .helpers import (
+    cards_from_entry,
+    now_iso,
+    owners_from_entry,
+    statuses_from_entry,
+    today_local,
+)
 from .models import (
     Benefit,
     BenefitInstance,
@@ -34,6 +41,7 @@ from .models import (
     HeldCard,
     HistoryRecord,
     ImportRecord,
+    LoyaltyStatus,
     OwnerSummary,
     SharedPerk,
     StateDocument,
@@ -97,6 +105,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         self.doc = doc
         self.owners = owners_from_entry(entry)
         self.cards = self._cards_with_status(cards_from_entry(entry))
+        self.user_statuses = statuses_from_entry(entry)
         if seed_shared_values(self.doc, self.shared_members(today_local())):
             self.store.async_schedule_save(self.doc)
 
@@ -161,6 +170,39 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             _LOGGER.debug("Rollover: %s", result)
             self._commit()
         return result
+
+    # ------------------------------------------------------------------ loyalty status
+
+    def statuses(self, today: date) -> dict[str, LoyaltyStatus]:
+        """Every elite status in the household: granted by a held card, or entered.
+
+        A card-granted status lasts as long as the card is held, so its expiry is the
+        card's next anniversary and it disappears when the card is frozen, cancelled or
+        the benefit marked not applicable.
+        """
+        out: dict[str, LoyaltyStatus] = dict(self.user_statuses)
+        for card in self.cards.values():
+            if not card.is_active(today):
+                continue
+            product = self.catalog.get(card.product_id)
+            if product is None:
+                continue
+            renews = next_fee_date(today, card.open_date, card.fee_month)
+            for benefit in product.benefits_for(card):
+                if benefit.id in card.not_applicable:
+                    continue
+                for grant in benefit.grants_status:
+                    sid = f"card_{card.id}_{benefit.id}_{slugify(grant.program)}"
+                    out[sid] = LoyaltyStatus(
+                        id=sid,
+                        owner_id=card.owner_id,
+                        program=grant.program,
+                        tier=grant.tier,
+                        valid_through=renews,
+                        source=card.title,
+                        card_id=card.id,
+                    )
+        return out
 
     # ------------------------------------------------------------------ shared perks
 
@@ -543,6 +585,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             rotating_activations=dict(self.doc.rotating_activations),
             perk_values=perk_values,
             shared_perks=self.shared_perks(today),
+            statuses=self.statuses(today),
         )
 
     def _colors(self) -> dict[str, str]:

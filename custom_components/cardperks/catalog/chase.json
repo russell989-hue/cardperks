@@ -177,7 +177,13 @@
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary",
-          "notes": "Through 12/31/2027 after linking the IHG account."
+          "notes": "Through 12/31/2027 after linking the IHG account.",
+          "grants_status": [
+            {
+              "program": "IHG One Rewards",
+              "tier": "Platinum Elite"
+            }
+          ]
         },
         {
           "id": "global_entry",

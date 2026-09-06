@@ -21,6 +21,7 @@ from homeassistant.config_entries import (
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    DateSelector,
     FileSelector,
     FileSelectorConfig,
     SelectOptionDict,
@@ -57,13 +58,18 @@ from .const import (
     CONF_PARENT_CARD_ID,
     CONF_PREVIOUS_LAST4,
     CONF_PRODUCT_ID,
+    CONF_PROGRAM,
     CONF_ROLE,
+    CONF_SOURCE,
+    CONF_TIER,
+    CONF_VALID_THROUGH,
     DATA_IMPORTING,
     DOMAIN,
     SUBENTRY_CARD,
     SUBENTRY_IMPORT,
     SUBENTRY_OWNER,
     SUBENTRY_STATEMENT,
+    SUBENTRY_STATUS,
     Role,
 )
 from .helpers import async_get_catalog
@@ -131,6 +137,7 @@ class CardPerksConfigFlow(ConfigFlow, domain=DOMAIN):
             SUBENTRY_CARD: HeldCardSubentryFlow,
             SUBENTRY_IMPORT: ImportSubentryFlow,
             SUBENTRY_STATEMENT: ImportStatementSubentryFlow,
+            SUBENTRY_STATUS: StatusSubentryFlow,
         }
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -163,6 +170,92 @@ class CardPerksConfigFlow(ConfigFlow, domain=DOMAIN):
             }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+
+class StatusSubentryFlow(ConfigSubentryFlow):
+    """Elite status earned outright (flights, nights, a match), not from a card.
+
+    Card-granted status needs no entry: the catalog says what a card confers, and it
+    shows up by itself while the card is held.
+    """
+
+    def _owners(self) -> list[ConfigSubentry]:
+        return [
+            s for s in self._get_entry().subentries.values() if s.subentry_type == SUBENTRY_OWNER
+        ]
+
+    def _schema(self) -> vol.Schema:
+        return vol.Schema(
+            {
+                vol.Required(CONF_OWNER_ID): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(value=o.subentry_id, label=o.title)
+                            for o in self._owners()
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(CONF_PROGRAM): TextSelector(),
+                vol.Required(CONF_TIER): TextSelector(),
+                vol.Optional(CONF_VALID_THROUGH): DateSelector(),
+                vol.Optional(CONF_SOURCE): TextSelector(),
+                vol.Optional(CONF_NOTES): TextSelector(TextSelectorConfig(multiline=True)),
+            }
+        )
+
+    @staticmethod
+    def _clean(user_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+        errors: dict[str, str] = {}
+        program = (user_input.get(CONF_PROGRAM) or "").strip()
+        tier = (user_input.get(CONF_TIER) or "").strip()
+        if not program:
+            errors[CONF_PROGRAM] = "program_required"
+        if not tier:
+            errors[CONF_TIER] = "tier_required"
+        valid = user_input.get(CONF_VALID_THROUGH)
+        data = {
+            CONF_OWNER_ID: user_input[CONF_OWNER_ID],
+            CONF_PROGRAM: program,
+            CONF_TIER: tier,
+            CONF_VALID_THROUGH: str(valid) if valid else None,
+            CONF_SOURCE: (user_input.get(CONF_SOURCE) or "").strip() or None,
+            CONF_NOTES: (user_input.get(CONF_NOTES) or "").strip() or None,
+        }
+        return data, errors
+
+    def _title(self, data: dict[str, Any]) -> str:
+        owner = next((o.title for o in self._owners() if o.subentry_id == data[CONF_OWNER_ID]), "?")
+        return f"{data[CONF_PROGRAM]} {data[CONF_TIER]} ({owner})"
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        if not self._owners():
+            return self.async_abort(reason="no_owners")
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data, errors = self._clean(user_input)
+            if not errors:
+                return self.async_create_entry(title=self._title(data), data=data)
+        return self.async_show_form(step_id="user", data_schema=self._schema(), errors=errors)
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        entry = self._get_entry()
+        subentry = self._get_reconfigure_subentry()
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            data, errors = self._clean(user_input)
+            if not errors:
+                return self.async_update_and_abort(
+                    entry, subentry, title=self._title(data), data=data
+                )
+        current = {k: v for k, v in subentry.data.items() if v is not None}
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=self.add_suggested_values_to_schema(self._schema(), current),
+            errors=errors,
+        )
 
 
 class OwnerSubentryFlow(ConfigSubentryFlow):

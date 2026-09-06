@@ -14,6 +14,7 @@ SUBENTRY_OWNER = "owner"
 SUBENTRY_CARD = "held_card"
 SUBENTRY_IMPORT = "import"
 SUBENTRY_STATEMENT = "statement"
+SUBENTRY_STATUS = "status"
 
 OVERRIDE_DIR = DOMAIN  # /config/cardperks/catalog/
 
@@ -36,6 +37,10 @@ CONF_ENABLED_CONDITIONAL = "enabled_conditional"
 CONF_PREVIOUS_LAST4 = "previous_last4"
 CONF_NOT_APPLICABLE = "not_applicable"
 CONF_COLOR = "color"
+CONF_PROGRAM = "program"
+CONF_TIER = "tier"
+CONF_VALID_THROUGH = "valid_through"
+CONF_SOURCE = "source"
 
 # Home Assistant's tile-card palette, so a card's colour works anywhere in Lovelace.
 CARD_COLORS: tuple[str, ...] = (
@@ -91,6 +96,7 @@ DATA_IMPORTING = "importing"
 
 STALE_CATALOG_DAYS = 183
 FEE_WARNING_DAYS = 45
+STATUS_WARNING_DAYS = 45  # elite status about to lapse
 # A statement for last month may not exist yet; one more month of slack before nagging.
 STATEMENT_GRACE_MONTHS = 1
 HISTORY_RETENTION_DAYS = 5 * 365

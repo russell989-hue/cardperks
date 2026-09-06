@@ -92,7 +92,13 @@
           "applies_to": "au_own_allotment",
           "default_value": 50,
           "notes": "Capital One now lists a Gold Plus upgrade rather than President's Circle.",
-          "shared_key": "hertz_status"
+          "shared_key": "hertz_status",
+          "grants_status": [
+            {
+              "program": "Hertz Gold Plus Rewards",
+              "tier": "Gold Plus"
+            }
+          ]
         },
         {
           "id": "cell_phone_protection",
@@ -178,7 +184,13 @@
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary",
-          "shared_key": "hertz_status"
+          "shared_key": "hertz_status",
+          "grants_status": [
+            {
+              "program": "Hertz Gold Plus Rewards",
+              "tier": "Five Star"
+            }
+          ]
         },
         {
           "id": "lifestyle_collection",
@@ -301,7 +313,13 @@
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary",
-          "shared_key": "hertz_status"
+          "shared_key": "hertz_status",
+          "grants_status": [
+            {
+              "program": "Hertz Gold Plus Rewards",
+              "tier": "President's Circle"
+            }
+          ]
         },
         {
           "id": "sub",

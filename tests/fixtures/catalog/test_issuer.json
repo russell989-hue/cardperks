@@ -61,7 +61,13 @@
           "unit": "USD",
           "reset": "cardmember_year",
           "applies_to": "au_own_allotment",
-          "default_value": 100
+          "default_value": 100,
+          "grants_status": [
+            {
+              "program": "Test Lounge Club",
+              "tier": "Gold"
+            }
+          ]
         },
         {
           "id": "sub",

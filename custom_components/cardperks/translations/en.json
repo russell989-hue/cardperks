@@ -187,6 +187,47 @@
         "no_parent_card": "Add the primary cardholder's card from this issuer first.",
         "reconfigure_successful": "Card updated."
       }
+    },
+    "status": {
+      "title": "Elite status",
+      "entry_type": "Status",
+      "initiate_flow": {
+        "user": "Add elite status",
+        "reconfigure": "Edit elite status"
+      },
+      "step": {
+        "user": {
+          "title": "Add elite status",
+          "description": "Status you earned outright (flights, nights, a match). Status a card gives you, such as Hilton Gold from the Amex Platinum, shows up by itself while you hold the card.",
+          "data": {
+            "owner_id": "Owner",
+            "program": "Program",
+            "tier": "Tier",
+            "valid_through": "Valid through",
+            "source": "How it was earned",
+            "notes": "Notes"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit elite status",
+          "data": {
+            "owner_id": "Owner",
+            "program": "Program",
+            "tier": "Tier",
+            "valid_through": "Valid through",
+            "source": "How it was earned",
+            "notes": "Notes"
+          }
+        }
+      },
+      "error": {
+        "program_required": "Enter the program.",
+        "tier_required": "Enter the tier."
+      },
+      "abort": {
+        "no_owners": "Add an owner first.",
+        "reconfigure_successful": "Status updated."
+      }
     }
   },
   "selector": {
@@ -259,6 +300,9 @@
       },
       "five_24": {
         "name": "5/24 count"
+      },
+      "status": {
+        "name": "{program} status"
       }
     },
     "button": {
