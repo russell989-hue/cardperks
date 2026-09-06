@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from types import MappingProxyType
 from typing import Any
 
 import voluptuous as vol
@@ -558,12 +559,31 @@ async def _read_uploaded_text(hass, file_id: str) -> tuple[str, str | None]:
     return await hass.async_add_executor_job(_read)
 
 
+NEW_CARD = "__new__"
+
+
 class ImportStatementSubentryFlow(ConfigSubentryFlow):
-    """Read a raw Chase / Amex CSV export and record fee and credit usage on a card."""
+    """Read a raw issuer CSV export, creating the card if it is not set up yet.
+
+    Statement upload is meant to be the default way in: nobody can track fifteen
+    credits on four cadences by hand, so the flow will build the card from the file
+    rather than making the user configure it first.
+    """
 
     def __init__(self) -> None:
         super().__init__()
         self._parsed: ParsedStatement | None = None
+        self._catalog: Catalog | None = None
+
+    async def _catalog_or_load(self) -> Catalog:
+        if self._catalog is None:
+            self._catalog = await async_get_catalog(self.hass)
+        return self._catalog
+
+    def _owners(self) -> list[ConfigSubentry]:
+        return [
+            s for s in self._get_entry().subentries.values() if s.subentry_type == SUBENTRY_OWNER
+        ]
 
     def _cards_for_issuer(self, issuer: str, catalog: Catalog) -> list[ConfigSubentry]:
         out = []
@@ -575,6 +595,14 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
                 out.append(s)
         return out
 
+    def _statement_last4(self) -> str | None:
+        """The card number to assume, when the file names exactly one."""
+        assert self._parsed is not None
+        if len(self._parsed.last4s) == 1:
+            return next(iter(self._parsed.last4s))
+        return self._parsed.filename_last4
+
+    # ---- step 1: the file
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None and user_input.get(ATTR_FILE):
@@ -592,67 +620,185 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
+    def _summary(self) -> dict[str, str]:
+        assert self._parsed is not None
+        parsed = self._parsed
+        fee = latest_fee(parsed)
+        rng = parsed.date_range
+        return {
+            "issuer": parsed.issuer,
+            "rows": str(len(parsed.rows)),
+            "range": f"{rng[0].isoformat()} to {rng[1].isoformat()}" if rng else "no dated rows",
+            "credits": str(len(parsed.credit_rows)),
+            "fee": f"{fee.amount:.2f} on {fee.date.isoformat()}" if fee else "none found",
+            "cards": ", ".join(sorted(parsed.last4s)) or "not stated in the file",
+        }
+
+    # ---- step 2: which card, or a new one
     async def async_step_card(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         assert self._parsed is not None
         parsed = self._parsed
-        catalog = await async_get_catalog(self.hass)
-        # Prefer cards from the detected issuer; fall back to every card so the user can pick.
+        catalog = await self._catalog_or_load()
+        # Cards from the detected issuer, else every card, so a mislabelled issuer still
+        # lets the user pick rather than forcing a duplicate card.
         cards = self._cards_for_issuer(parsed.issuer, catalog) or [
             s for s in self._get_entry().subentries.values() if s.subentry_type == SUBENTRY_CARD
         ]
-        if not cards:
-            return self.async_abort(
-                reason="no_card_for_issuer", description_placeholders={"issuer": parsed.issuer}
-            )
 
         if user_input is not None:
+            if user_input[ATTR_CARD] == NEW_CARD:
+                return await self.async_step_new_card()
             return await self._apply(
                 user_input[ATTR_CARD], bool(user_input.get(ATTR_APPLY_FEE, True))
             )
 
-        # Preselect by last4 from the Card column or filename.
+        if not cards:
+            return await self.async_step_new_card()
+
         hints = set(parsed.last4s)
         if parsed.filename_last4:
             hints.add(parsed.filename_last4)
         default = next(
             (c.subentry_id for c in cards if c.data.get(CONF_LAST4) in hints), cards[0].subentry_id
         )
-        fee = latest_fee(parsed)
-        rng = parsed.date_range
+        options = [SelectOptionDict(value=c.subentry_id, label=c.title) for c in cards]
+        options.append(SelectOptionDict(value=NEW_CARD, label="Add a new card from this statement"))
         schema = vol.Schema(
             {
                 vol.Required(ATTR_CARD, default=default): SelectSelector(
-                    SelectSelectorConfig(
-                        options=[
-                            SelectOptionDict(value=c.subentry_id, label=c.title) for c in cards
-                        ],
-                        mode=SelectSelectorMode.DROPDOWN,
-                    )
+                    SelectSelectorConfig(options=options, mode=SelectSelectorMode.DROPDOWN)
                 ),
                 vol.Required(ATTR_APPLY_FEE, default=True): BooleanSelector(),
             }
         )
         return self.async_show_form(
-            step_id="card",
-            data_schema=schema,
-            description_placeholders={
-                "issuer": parsed.issuer,
-                "rows": str(len(parsed.rows)),
-                "range": f"{rng[0].isoformat()} to {rng[1].isoformat()}"
-                if rng
-                else "no dated rows",
-                "credits": str(len(parsed.credit_rows)),
-                "fee": f"{fee.amount:.2f} on {fee.date.isoformat()}" if fee else "none found",
-            },
+            step_id="card", data_schema=schema, description_placeholders=self._summary()
         )
 
-    async def _apply(self, card_id: str, apply_fee: bool) -> SubentryFlowResult:
+    # ---- step 3 (optional): build the card from the statement
+    async def async_step_new_card(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
         assert self._parsed is not None
         parsed = self._parsed
+        catalog = await self._catalog_or_load()
+        owners = self._owners()
+        if not owners:
+            return self.async_abort(reason="no_owners")
+        products = catalog.by_issuer().get(parsed.issuer) or sorted(
+            catalog.products.values(), key=lambda p: (p.issuer_name, p.name)
+        )
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            last4 = (user_input.get(CONF_LAST4) or "").strip()
+            if last4 and not LAST4_RE.match(last4):
+                errors[CONF_LAST4] = "invalid_last4"
+            if not user_input.get(CONF_FEE_MONTH):
+                errors[CONF_FEE_MONTH] = "need_anniversary"
+            if not errors:
+                card_id = await self._create_card(user_input)
+                return await self._apply(card_id, apply_fee=True)
+
+        fee = latest_fee(parsed)
+        defaults: dict[str, Any] = {}
+        if fee is not None:
+            defaults[CONF_FEE_MONTH] = str(fee.date.month)
+        if (l4 := self._statement_last4()) is not None:
+            defaults[CONF_LAST4] = l4
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_OWNER_ID): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(value=o.subentry_id, label=o.title) for o in owners
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(CONF_PRODUCT_ID): SelectSelector(
+                    SelectSelectorConfig(
+                        options=[
+                            SelectOptionDict(value=p.id, label=f"{p.issuer_name} {p.name}")
+                            for p in products
+                        ],
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(CONF_FEE_MONTH): _month_selector(),
+                vol.Optional(CONF_LAST4): TextSelector(),
+                vol.Optional(CONF_NICKNAME): TextSelector(),
+            }
+        )
+        return self.async_show_form(
+            step_id="new_card",
+            data_schema=self.add_suggested_values_to_schema(schema, defaults),
+            errors=errors,
+            description_placeholders=self._summary(),
+        )
+
+    async def _create_card(self, user_input: dict[str, Any]) -> str:
+        """Add the held-card subentry, then reload so its entities exist."""
+        assert self._parsed is not None
+        entry = self._get_entry()
+        catalog = await self._catalog_or_load()
+        product = catalog.get(user_input[CONF_PRODUCT_ID])
+        owner = next(
+            (o for o in self._owners() if o.subentry_id == user_input[CONF_OWNER_ID]), None
+        )
+        last4 = (user_input.get(CONF_LAST4) or "").strip() or None
+        nickname = (user_input.get(CONF_NICKNAME) or "").strip() or None
+
+        fee = latest_fee(self._parsed.for_last4(last4))
+        annual_fee = None
+        if fee is not None and product is not None and fee.amount != product.annual_fee:
+            annual_fee = fee.amount
+
+        name = product.name if product else user_input[CONF_PRODUCT_ID]
+        suffix = f" ·{last4}" if last4 else ""
+        title = nickname or f"{name} ({owner.title if owner else '?'}{suffix})"
+        data = {
+            CONF_OWNER_ID: user_input[CONF_OWNER_ID],
+            CONF_PRODUCT_ID: user_input[CONF_PRODUCT_ID],
+            CONF_ROLE: str(Role.PRIMARY),
+            CONF_PARENT_CARD_ID: None,
+            CONF_OPEN_DATE: None,
+            CONF_FEE_MONTH: int(user_input[CONF_FEE_MONTH]),
+            CONF_LAST4: last4,
+            CONF_NICKNAME: nickname,
+            CONF_NOTES: None,
+            CONF_ANNUAL_FEE: annual_fee,
+            CONF_ENABLED_CONDITIONAL: [],
+            CONF_CLOSE_DATE: None,
+        }
+        subentry = ConfigSubentry(
+            data=MappingProxyType(data),
+            subentry_type=SUBENTRY_CARD,
+            title=title,
+            unique_id=None,
+        )
+        # Suppress the listener-driven reload so we can await one deterministically:
+        # the coordinator must know about the card before usage is recorded.
+        self.hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
+        try:
+            self.hass.config_entries.async_add_subentry(entry, subentry)
+        finally:
+            self.hass.data[DOMAIN][DATA_IMPORTING] = False
+        await self.hass.config_entries.async_reload(entry.entry_id)
+        self._created_title = title
+        return subentry.subentry_id
+
+    # ---- apply
+    async def _apply(self, card_id: str, apply_fee: bool) -> SubentryFlowResult:
+        assert self._parsed is not None
         entry = self._get_entry()
         coordinator = entry.runtime_data
         card = coordinator.card(card_id)
         product = coordinator.catalog.get(card.product_id)
+
+        # Only this card's rows: one Chase export often covers several cards.
+        parsed = self._parsed.for_last4(card.last4)
+        others = self._parsed.other_last4s(card.last4)
         result = match_credits(parsed, product)
 
         applied: dict[str, float] = {}
@@ -698,16 +844,25 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             else:
                 fee_note = f"{fee.amount:.0f} on {fee.date.isoformat()} (already configured)"
         elif fee is None:
-            fee_note = "no fee line in this export"
+            fee_note = "no fee line for this card in the export"
 
         def _fmt(lines: list[str]) -> str:
             return "\n".join(f"- {line}" for line in lines) if lines else "- none"
 
         names = {b.id: b.name for b in product.benefits} if product else {}
+        note = ""
+        if getattr(self, "_created_title", None):
+            note = f"Created the card **{self._created_title}** from this statement.\n\n"
+        if others:
+            note += (
+                f"This file also covers card(s) {', '.join(sorted(others))}; "
+                "their rows were left alone. Import it again and pick that card.\n\n"
+            )
         return self.async_abort(
             reason="statement_complete",
             description_placeholders={
                 "card": card.title,
+                "note": note,
                 "fee": fee_note,
                 "applied": _fmt([f"{names.get(b, b)}: {amt:.2f}" for b, amt in applied.items()]),
                 "duplicates": str(dupes),

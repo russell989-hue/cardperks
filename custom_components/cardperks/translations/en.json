@@ -88,20 +88,33 @@
         },
         "card": {
           "title": "Which card is this?",
-          "description": "Detected a **{issuer}** export with {rows} rows ({range}), {credits} credit lines, annual fee {fee}.",
+          "description": "Detected a **{issuer}** export with {rows} rows ({range}), {credits} credit lines, annual fee {fee}. Card numbers in the file: {cards}.",
           "data": {
             "card": "Card",
             "apply_fee": "Set fee month and actual annual fee from the statement"
+          }
+        },
+        "new_card": {
+          "title": "Add this card",
+          "description": "No matching card is set up yet, so this statement will create one. Detected a **{issuer}** export with {rows} rows ({range}), {credits} credit lines, annual fee {fee}. Card numbers in the file: {cards}.",
+          "data": {
+            "owner_id": "Owner",
+            "product_id": "Card product",
+            "fee_month": "Annual fee month",
+            "last4": "Last four digits",
+            "nickname": "Nickname (optional)"
           }
         }
       },
       "error": {
         "nothing_to_import": "Upload a file.",
-        "unrecognised_statement": "That file is not a recognised Chase, American Express, or Capital One export."
+        "unrecognised_statement": "That file is not a recognised Chase, American Express, or Capital One export.",
+        "need_anniversary": "Pick the month the annual fee posts.",
+        "invalid_last4": "Last four must be exactly four digits."
       },
       "abort": {
-        "no_card_for_issuer": "No {issuer} card is configured yet. Add the card first, then import its statement.",
-        "statement_complete": "Statement applied to **{card}**.\n\n**Annual fee**: {fee}\n\n**Credits recorded**\n{applied}\n\nAlready imported earlier: {duplicates}\n\n**Credit lines with no matching benefit** (add a `statement_match` pattern in the catalog to pick these up)\n{unmatched}"
+        "no_owners": "Add an owner first, then import a statement.",
+        "statement_complete": "{note}Statement applied to **{card}**.\n\n**Annual fee**: {fee}\n\n**Credits recorded**\n{applied}\n\nAlready imported earlier: {duplicates}\n\n**Credit lines with no matching benefit** (add a `statement_match` pattern in the catalog to pick these up)\n{unmatched}"
       }
     },
     "held_card": {

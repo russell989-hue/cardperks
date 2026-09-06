@@ -45,6 +45,22 @@ class ParsedStatement:
     def credit_rows(self) -> list[StatementRow]:
         return [r for r in self.rows if r.kind == "credit"]
 
+    def for_last4(self, last4: str | None) -> ParsedStatement:
+        """Narrow to one card's rows.
+
+        Chase exports carry a Card No. column and often several cards at once; applying
+        every credit to one card would misattribute them. Exports with no per-row card
+        number (Amex, single-card Capital One downloads) are returned unchanged.
+        """
+        if not last4 or last4 not in self.last4s:
+            return self
+        rows = [r for r in self.rows if r.card_last4 == last4]
+        return ParsedStatement(self.issuer, rows, {last4}, self.filename_last4)
+
+    def other_last4s(self, last4: str | None) -> set[str]:
+        """Card numbers in the file that are not the one being applied."""
+        return {x for x in self.last4s if x != last4}
+
     @property
     def date_range(self) -> tuple[date, date] | None:
         if not self.rows:

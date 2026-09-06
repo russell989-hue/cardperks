@@ -11,14 +11,15 @@ check-off is the fallback for things statements cannot show, not the main flow.
 Everything should be built so the normal loop is **download a CSV, upload it, done**.
 Concrete gaps between that and today:
 
-- **Statement upload should create the card.** Import statement currently requires the
-  card to exist first. It should detect issuer and last four, offer to create the card
-  (asking only for the owner and confirming the product), then set fee month, actual fee,
-  and backfill usage in one pass. Card CSV import becomes the bulk-setup shortcut, not
-  the prerequisite.
-- **One file, many cards.** Chase exports carry a `Card No.` column and often several
-  cards at once. Split by last four and apply to each matching card instead of asking
-  for a single target.
+- ~~**Statement upload should create the card.**~~ Done: the flow offers "Add a new card
+  from this statement", prefills last four and fee month from the file, and applies the
+  credits in the same pass.
+- **One file, many cards.** Partly done: rows are now scoped to the chosen card's last
+  four, so a multi-card Chase export no longer misattributes credits, and the result says
+  which other cards the file covers. Still manual: importing the same file once per card.
+  Applying to every matching card in one pass is the remaining step.
+- **A statement should be able to create several cards at once.** With the above, the
+  first upload of a household's Chase export could stand up every card in it.
 - **Repeat imports without ceremony.** A service that takes a file path so a user can
   automate it, and/or a watched folder such as `/config/cardperks/statements/`. Import is
   already idempotent, so re-running is safe by construction.

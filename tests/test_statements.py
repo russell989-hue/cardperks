@@ -18,7 +18,7 @@ from custom_components.cardperks.statements import (
     parse_statement,
 )
 
-from .conftest import CARD_ID
+from .conftest import CARD_ID, OWNER_ID
 
 CHASE = """Card,Transaction Date,Post Date,Description,Category,Type,Amount,Memo
 1234,08/12/2026,08/12/2026,Payment Thank You - Web,,Payment,306.84,
@@ -179,10 +179,10 @@ async def test_import_statement_flow(hass, setup_integration: MockConfigEntry, t
     assert travel.attributes["amount_used"] == 112.94
 
 
-async def test_import_statement_falls_back_to_all_cards(
+async def test_import_statement_creates_the_card(
     hass, setup_integration: MockConfigEntry, tmp_path
 ):
-    """An Amex export with no Amex card configured still lets the user pick a card."""
+    """An export with no matching card set up builds the card from the file."""
     entry = setup_integration
     path = tmp_path / "activity.csv"
     path.write_text(AMEX, encoding="utf-8")
@@ -199,7 +199,37 @@ async def test_import_statement_falls_back_to_all_cards(
             result["flow_id"], {"file": UUID}
         )
     assert result["type"] is FlowResultType.FORM and result["step_id"] == "card"
-    assert result["description_placeholders"]["issuer"] == "amex"
+    ph = result["description_placeholders"]
+    assert ph["issuer"] == "amex" and "895.00" in ph["fee"]
+
+    # Ask for a new card rather than picking one of the existing ones.
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"card": "__new__", "apply_fee": True}
+    )
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "new_card"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "owner_id": OWNER_ID,
+            "product_id": "test_premium",
+            "fee_month": "5",
+            "last4": "8888",
+        },
+    )
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "statement_complete"
+    ph = result["description_placeholders"]
+    assert "Created the card" in ph["note"] and "8888" in ph["note"]
+    await hass.async_block_till_done()
+
+    sub = next(s for s in entry.subentries.values() if s.data.get("last4") == "8888")
+    assert sub.data["fee_month"] == 5 and sub.data["product_id"] == "test_premium"
+    assert sub.data["annual_fee"] == 895.0  # differs from the catalog's 500
+    assert sub.data["role"] == "primary"
+    # its entities exist and the fee flows into net value
+    reg = er.async_get(hass)
+    eid = reg.async_get_entity_id("sensor", DOMAIN, f"{sub.subentry_id}_net_value_12m")
+    assert float(hass.states.get(eid).state) == -895.0
 
 
 async def test_import_statement_unrecognised_file(
@@ -222,3 +252,55 @@ async def test_import_statement_unrecognised_file(
         )
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "unrecognised_statement"}
+
+
+MULTI = """Card,Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+1234,07/22/2026,07/23/2026,TRAVEL CREDIT $300/YEAR,Fees & Adjustments,Adjustment,100.00,
+9999,07/22/2026,07/23/2026,TRAVEL CREDIT $300/YEAR,Fees & Adjustments,Adjustment,250.00,
+9999,07/01/2026,07/01/2026,ANNUAL MEMBERSHIP FEE,Fees & Adjustments,Fee,-999.00,
+1234,07/01/2026,07/01/2026,ANNUAL MEMBERSHIP FEE,Fees & Adjustments,Fee,-450.00,
+"""
+
+
+def test_for_last4_scopes_rows():
+    parsed = parse_statement(MULTI)
+    assert parsed.last4s == {"1234", "9999"}
+    one = parsed.for_last4("1234")
+    assert [abs(r.amount) for r in one.credit_rows] == [100.0]
+    assert latest_fee(one).amount == 450.0
+    assert parsed.other_last4s("1234") == {"9999"}
+    # a card number the file does not mention leaves the statement untouched
+    assert parsed.for_last4("0000") is parsed
+    assert parsed.for_last4(None) is parsed
+
+
+async def test_multi_card_statement_applies_only_matching_rows(
+    hass, setup_integration: MockConfigEntry, tmp_path
+):
+    """One Chase file covering several cards must not misattribute the other cards' credits."""
+    entry = setup_integration
+    path = tmp_path / "Chase1234_Activity.csv"
+    path.write_text(MULTI, encoding="utf-8")
+
+    @contextmanager
+    def fake_upload(hass_, file_id):
+        yield path
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "statement"), context={"source": config_entries.SOURCE_USER}
+    )
+    with patch("custom_components.cardperks.config_flow.process_uploaded_file", fake_upload):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"file": UUID}
+        )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"card": CARD_ID, "apply_fee": False}
+    )
+    ph = result["description_placeholders"]
+    assert "Travel credit: 100.00" in ph["applied"]  # not 250, and not 350
+    assert "9999" in ph["note"]
+    reg = er.async_get(hass)
+    travel = hass.states.get(
+        reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_travel_credit_status")
+    )
+    assert travel.attributes["amount_used"] == 100.0
