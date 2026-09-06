@@ -324,6 +324,10 @@ class CardCaptureRateSensor(CardEntity, SensorEntity):
             (t.forfeited, names.get(bid, bid)) for bid, t in s.benefit_totals.items() if t.forfeited
         )
         return {
+            **self.card_attributes,
+            "annual_value": s.totals.annual_value,
+            "captured_12m": s.totals.captured,
+            "forfeited_12m": s.totals.forfeited,
             "worst_forfeited": [
                 {"benefit": name, "forfeited": amt} for amt, name in reversed(worst[-5:])
             ],
@@ -347,6 +351,10 @@ class OwnerUnusedCreditsSensor(OwnerEntity, SensorEntity):
     def native_value(self) -> float | None:
         s = self.summary
         return s.unused_credits if s else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return dict(self.owner_attributes)
 
 
 class OwnerExpiringSensor(OwnerEntity, SensorEntity):
@@ -434,4 +442,4 @@ class OwnerTotalSensor(OwnerEntity, SensorEntity):
         out = dict(s.totals.as_dict())
         out["annual_fees"] = s.annual_fees
         out["net_12m"] = round(s.totals.captured - s.annual_fees, 2)
-        return out
+        return {**out, **self.owner_attributes}

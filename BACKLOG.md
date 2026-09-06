@@ -32,6 +32,37 @@ Concrete gaps between that and today:
 
 ## Next up
 
+### Historical backfill: was this card ever worth it?
+
+Upload several years of statements and answer the question the yearly fee actually
+poses. The plumbing is already most of the way there: statement import writes into
+`history` for closed periods, it is idempotent, and the trailing-twelve-month totals
+read from that same history. What is missing is scale and honesty about gaps.
+
+What it needs:
+
+- **Multi-year import in one pass.** Today a file is applied against the periods it
+  overlaps; a five-year export should walk every period it covers, opening and closing
+  history records as it goes rather than only touching the current one.
+- **Reconstruct periods before the card was tracked.** Rollover only knows about periods
+  since setup. Backfill has to synthesise the period grid backwards from the open date or
+  fee month, so a 2022 credit lands in the 2022 period.
+- **Cardmember-year totals, not just trailing twelve months.** The judgement is per fee
+  paid: fee charged, credits captured before the next fee, net. A per-year table beats a
+  single rolling number for this question.
+- **Say what is unknown.** A statement proves a credit was used; nothing proves one was
+  not, since an unlabelled purchase may have triggered it. Periods with no evidence stay
+  `unknown` rather than counting as forfeited, and the report shows the three-way split.
+  Without that the tool will confidently tell people they wasted money they did not.
+- **Catalog history is the hard part.** The Sapphire Reserve's credits in 2022 were not
+  the 2026 ones, and the fee was $550 not $795. Judging 2022 against today's catalog is
+  wrong. This needs `valid_from` / `valid_to` on benefits, or an explicit decision to
+  report only what the statements themselves show and skip the potential side.
+
+That last point is the real design question, and it is worth settling before building:
+either the catalog gains time-versioned benefits, or historical mode reports captured
+dollars and fees paid only, and stays silent about what was available.
+
 ### Loyalty status tracker (airlines, hotels, rental cars)
 
 Track elite status separately from cards, because status both **comes from** cards and

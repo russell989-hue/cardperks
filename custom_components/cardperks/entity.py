@@ -74,6 +74,12 @@ class OwnerEntity(CardPerksEntity):
         self._attr_device_info = owner_device_info(owner)
 
     @property
+    def owner_attributes(self) -> dict[str, str | None]:
+        """Identity of the owner, so a dashboard can find these without guessing entity ids."""
+        owner = self.coordinator.data.owners.get(self.owner_id)
+        return {"owner": owner.name if owner else None, "owner_id": self.owner_id}
+
+    @property
     def summary(self):
         return self.coordinator.data.owner_summaries.get(self.owner_id)
 
