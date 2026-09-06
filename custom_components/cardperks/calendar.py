@@ -20,7 +20,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import BIG_TICKET_MIN, FEE_WARNING_DAYS, REVIEW_DAYS_BEFORE_FEE, BenefitStatus
+from .const import (
+    BIG_TICKET_MIN,
+    FEE_WARNING_DAYS,
+    REVIEW_DAYS_BEFORE_FEE,
+    BenefitStatus,
+    BenefitType,
+)
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .entity import CardPerksEntity, household_device_info
 from .periods import add_months, next_fee_date
@@ -117,7 +123,9 @@ class CardPerksCalendar(CardPerksEntity, CalendarEntity):
                 continue
             product = data.catalog.get(card.product_id)
             benefit = product.benefit(inst.benefit_id) if product else None
-            name = benefit.label if benefit else inst.benefit_id
+            if benefit is None or benefit.type is not BenefitType.STATEMENT_CREDIT:
+                continue  # perks are not "used by" a date; only credits close
+            name = benefit.label
             closes = date.fromisoformat(inst.period_end)
             add(
                 closes,
@@ -127,13 +135,12 @@ class CardPerksCalendar(CardPerksEntity, CalendarEntity):
             )
 
         for sid, status in data.statuses.items():
-            if status.valid_through is None:
-                continue
+            if status.valid_through is None or status.card_id:
+                continue  # card-granted status renews with the card; nothing to do
             add(
                 status.valid_through,
                 f"{status.program} {status.tier} lapses ({status.source})",
-                "Elite status ends today unless it was re-earned or the card that grants it is "
-                "still held.",
+                "Elite status ends today unless it was re-earned.",
                 f"status-{sid}",
             )
 

@@ -31,8 +31,10 @@ async def test_calendar_lists_fees_reviews_and_statuses(hass, setup_integration:
     assert fee["start"] == "2027-07-01" and fee["end"] == "2027-07-02"
     review = by_summary["Review Premium Card (Brian | 1234) before its $500 fee"]
     assert review["start"] == "2027-06-01"
-    # The status the lounge perk grants lapses with the card's anniversary.
-    assert any(s.startswith("Test Lounge Club Gold lapses") for s in by_summary)
+    # A card-granted status renews with the card, so it is not a calendar event.
+    assert not any(s.startswith("Test Lounge Club Gold lapses") for s in by_summary)
+    # Perks are not "used by" a date: the $100 lounge perk is not listed as closing.
+    assert not any("Lounge access" in s for s in by_summary)
     # Big credits still unused close on their period's last day: the $150 dining credit.
     dining = by_summary[
         "Use $150 Dining credit (every 6 months) by today: Premium Card (Brian | 1234)"
