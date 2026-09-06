@@ -226,6 +226,34 @@ def build_view(card: dict) -> dict:
     }
 
 
+CATALOG_FRAME_STYLE = (
+    "ha-card { height: calc(100vh - var(--header-height, 56px) - 16px); "
+    "border: none; background: transparent; } "
+    "#root { height: 100% !important; padding-top: 0 !important; } "
+    "iframe { height: 100%; }"
+)
+
+
+def catalog_view() -> dict:
+    """The card catalog as a tab of the dashboard: an iframe over the page the
+    integration serves at /cardperks/catalog, filling the view."""
+    return {
+        "title": "Catalog",
+        "path": "catalog",
+        "icon": "mdi:credit-card-search-outline",
+        "type": "panel",
+        "theme": THEME,
+        "cards": [
+            {
+                "type": "iframe",
+                "url": "/cardperks/catalog",
+                "aspect_ratio": "100%",
+                "card_mod": {"style": CATALOG_FRAME_STYLE},
+            }
+        ],
+    }
+
+
 def nav_section(cards: list[dict], url_path: str) -> dict:
     """One tap-through card per held card, in its own colour, hidden once cancelled."""
     tiles = []
@@ -268,14 +296,14 @@ def main() -> int:
         print(__doc__)
         return 2
     cards = load(sys.argv[1])
-    views = [build_view(c) for c in cards]
+    views = [build_view(c) for c in cards] + [catalog_view()]
     with open(sys.argv[2], "w", encoding="utf-8") as fh:
         json.dump(views, fh, indent=2, ensure_ascii=False)
     if len(sys.argv) > 3:
         with open(sys.argv[3], "w", encoding="utf-8") as fh:
             json.dump(nav_section(cards, "dashboard-cardperks"), fh, indent=2, ensure_ascii=False)
-    print(f"{len(views)} subviews")
-    for c, v in zip(cards, views, strict=True):
+    print(f"{len(views) - 1} subviews plus the Catalog view")
+    for c, v in zip(cards, views[:-1], strict=True):
         print(f"  {c['title']:45s} sections={len(v['sections'])} ids={len(c['ids'])}")
     return 0
 

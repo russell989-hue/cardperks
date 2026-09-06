@@ -508,7 +508,7 @@
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "primary",
-          "notes": "Up to $60 a calendar year after enrolment.",
+          "notes": "Up to $60 a calendar year after enrollment.",
           "statement_match": [
             "RIDESHARE.*CREDIT"
           ]
@@ -718,7 +718,7 @@
           "statement_match": [
             "RIDESHARE.*CREDIT"
           ],
-          "notes": "$12 a month January to November and $18 in December, $150 a calendar year, after enrolment."
+          "notes": "$12 a month January to November and $18 in December, $150 a calendar year, after enrollment."
         },
         {
           "id": "avis_budget_credit",
@@ -996,7 +996,7 @@
           "statement_match": [
             "RIDESHARE.*CREDIT"
           ],
-          "notes": "Up to $100 a calendar year after enrolment, paid monthly."
+          "notes": "Up to $100 a calendar year after enrollment, paid monthly."
         },
         {
           "id": "instacart_credit",

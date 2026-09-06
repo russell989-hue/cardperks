@@ -47,9 +47,17 @@ GOOGLE_FONTS = (
 
 
 def render_catalog(
-    catalog: Catalog, *, source_note: str = "", fonts_href: str = "/cardperks/static/fonts.css"
+    catalog: Catalog,
+    *,
+    source_note: str = "",
+    fonts_href: str = "/cardperks/static/fonts.css",
+    owned: frozenset[str] = frozenset(),
 ) -> str:
-    """The whole catalog as an HTML document body (title and styles included)."""
+    """The whole catalog as an HTML document (title and styles included).
+
+    `owned` is the set of product ids the household holds: those products are marked,
+    and the page opens showing only them, with a toggle for the rest.
+    """
     by_issuer = catalog.by_issuer()
     issuer_names = catalog.issuers()
     today = date.today().isoformat()
@@ -65,7 +73,11 @@ def render_catalog(
             total_products += 1
             flagged += p.needs_verification
             overridden += p.origin != "shipped"
-            nav.append(f'<li><a href="#{_esc(p.id)}">{_esc(p.name)}</a></li>')
+            held = p.id in owned
+            nav.append(
+                f'<li class="{"held" if held else "not-held"}"><a href="#{_esc(p.id)}">'
+                f"{_esc(p.name)}</a></li>"
+            )
             rows: list[str] = []
             annual = 0.0
             for b in p.benefits:
@@ -96,7 +108,7 @@ def render_catalog(
                         "if you qualify</span>"
                     )
                 if b.enrollment_required:
-                    flags.append('<span class="chip">enrol</span>')
+                    flags.append('<span class="chip">enroll</span>')
                 if b.applies_to.value != "primary":
                     flags.append('<span class="chip">AU too</span>')
                 rows.append(
@@ -115,12 +127,14 @@ def render_catalog(
             if au.notes:
                 au_text += f". {au.notes}"
             chips = ""
+            if held:
+                chips += '<span class="chip chip-held">you hold this</span>'
             if p.needs_verification:
                 chips += '<span class="chip chip-flag">needs verification</span>'
             if p.origin != "shipped":
                 chips += f'<span class="chip chip-over" title="{_esc(p.origin)}">override</span>'
             sections.append(
-                f'<section class="product" id="{_esc(p.id)}">'
+                f'<section class="product {"held" if held else "not-held"}" id="{_esc(p.id)}">'
                 '<header class="p-head">'
                 f'<div><p class="eyebrow">{_esc(p.issuer_name)}</p>'
                 f"<h2>{_esc(p.name)} {chips}</h2>"
@@ -140,6 +154,8 @@ def render_catalog(
             )
 
     summary = f"{total_products} products"
+    if owned:
+        summary += f", {len(owned)} held"
     if flagged:
         summary += f", {flagged} still to verify"
     if overridden:
@@ -214,6 +230,10 @@ th.num {{ text-align: right; }}
 .chip-cond {{ background: var(--brass-soft); color: var(--brass); }}
 .chip-flag, .chip-over {{ font: 500 12px/1.6 "IBM Plex Sans", sans-serif; vertical-align: middle; margin-left: 6px; }}
 .chip-flag {{ background: var(--flag-soft); color: var(--flag); }}
+.chip-held {{ background: var(--credit-soft); color: var(--credit); font: 500 12px/1.6 "IBM Plex Sans", sans-serif; vertical-align: middle; margin-left: 6px; }}
+.toggle {{ display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; }}
+.toggle input {{ width: auto; margin: 0; accent-color: var(--brass); }}
+body.only-held .not-held {{ display: none; }}
 .chip-over {{ background: var(--brass-soft); color: var(--brass); }}
 .muted {{ color: var(--ink-3); font-size: 12px; }}
 .hidden {{ display: none; }}
@@ -225,6 +245,7 @@ th.num {{ text-align: right; }}
     <h1>CardPerks Catalog</h1>
     <p class="sub">{_esc(summary)}. {_esc(source_note) or f"Rendered {today}."}</p>
     <input type="search" id="q" placeholder="Filter benefits…" aria-label="Filter benefits">
+    {'<label class="toggle"><input type="checkbox" id="only-held" checked> Only cards I hold</label>' if owned else ""}
     <ul>{"".join(nav)}</ul>
   </aside>
   <div class="main">
@@ -233,6 +254,16 @@ th.num {{ text-align: right; }}
   </div>
 </div>
 <script>
+  const only = document.getElementById("only-held");
+  if (only) {{
+    try {{ if (localStorage.getItem("cardperks.onlyHeld") === "0") only.checked = false; }} catch (e) {{}}
+    const apply = () => {{
+      document.body.classList.toggle("only-held", only.checked);
+      try {{ localStorage.setItem("cardperks.onlyHeld", only.checked ? "1" : "0"); }} catch (e) {{}}
+    }};
+    only.addEventListener("change", apply);
+    apply();
+  }}
   const q = document.getElementById("q");
   q.addEventListener("input", () => {{
     const term = q.value.trim().toLowerCase();

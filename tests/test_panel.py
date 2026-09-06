@@ -1,17 +1,14 @@
-"""The catalog page and its sidebar entry."""
+"""The catalog page the dashboard's Catalog view embeds."""
 
-from homeassistant.components import frontend
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.cardperks.catalog_page import render_catalog
 
 
-async def test_catalog_page_is_served_and_in_the_sidebar(
+async def test_catalog_page_is_served(
     hass, hass_client_no_auth, setup_integration: MockConfigEntry
 ):
-    """Reachable from the left menu, and readable in an iframe without a token."""
-    assert frontend.async_panel_exists(hass, "cardperks-catalog")
-
+    """Readable in an iframe card without a token, and carrying catalog data only."""
     client = await hass_client_no_auth()
     resp = await client.get("/cardperks/catalog")
     assert resp.status == 200
@@ -22,15 +19,15 @@ async def test_catalog_page_is_served_and_in_the_sidebar(
     # Catalog only: nothing about the household leaks onto a page without a login.
     assert "1234" not in body and "Brian" not in body
     assert "/cardperks/static/fonts.css" in body
+    # The household's products are marked and the page opens on them; the rest is a toggle.
+    assert "you hold this" in body and 'id="only-held" checked' in body
+    assert '<section class="product held" id="test_premium"' in body
+    assert '<section class="product not-held" id="test_basic"' in body
 
     css = await client.get("/cardperks/static/fonts.css")
     assert css.status == 200 and "Newsreader" in await css.text()
     font = await client.get("/cardperks/static/fonts/newsreader.woff2")
     assert font.status == 200 and (await font.read())[:4] == b"wOF2"
-
-    await hass.config_entries.async_unload(setup_integration.entry_id)
-    await hass.async_block_till_done()
-    assert not frontend.async_panel_exists(hass, "cardperks-catalog")
 
 
 def test_render_catalog_marks_overrides_and_flags(catalog):

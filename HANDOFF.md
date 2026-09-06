@@ -28,7 +28,7 @@ month. Manual dollar boxes exist as the fallback, not the main flow.
 | `.github/workflows/validate.yml` | hassfest on every push |
 | `brands/` | icon and logo PNGs for the home-assistant/brands PR, rendered by `tools/make_brand.py` |
 | `docs/CATALOG.md` | catalog field reference and contribution rules |
-| `custom_components/cardperks/panel.py` | "Card catalog" sidebar entry: an iframe panel over `/cardperks/catalog`, rendered live by `catalog_page.py` from the loaded catalog (overrides included); served without auth since it carries catalog data only |
+| `custom_components/cardperks/panel.py` | serves the catalog page at `/cardperks/catalog` (rendered live by `catalog_page.py`, overrides included, no auth: catalog data only) and the fonts at `/cardperks/static/`; the dashboard's Catalog view is an iframe over it |
 | `BACKLOG.md` | what is deferred and why |
 | `README.md` | user-facing install and usage |
 

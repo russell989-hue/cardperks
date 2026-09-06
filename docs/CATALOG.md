@@ -19,7 +19,7 @@ This page is the field reference and the contribution rules. The schema itself l
 3. **Say what you checked.** Set `last_verified` to the date you compared the entry with
    the issuer page, and clear `needs_verification` only when the whole product was
    checked, not one benefit.
-4. **Notes explain the fine print.** Enrolment, activation, split periods, end dates,
+4. **Notes explain the fine print.** Enrollment, activation, split periods, end dates,
    what the credit is paid as (statement credit, TravelBank cash, in-app promo). If a
    benefit cannot appear on a statement, say so in `notes` so nobody waits for it.
 5. **One product per card, not per pricing.** A card whose fee went up keeps one entry at
@@ -71,7 +71,7 @@ This page is the field reference and the contribution rules. The schema itself l
 | `amount` | yes | | Dollars per period for a statement credit; points for an earning; `null` for perk, insurance and rebate. |
 | `unit` | no | `USD` | `USD`, or `points` / `miles` for earnings. |
 | `reset` | no | `calendar` | `calendar` (January, quarters, halves) or `cardmember_year` (anchored on the account anniversary). `per_anniversary` implies `cardmember_year`. |
-| `enrollment_required` | no | `false` | The holder must enrol or activate before it pays. |
+| `enrollment_required` | no | `false` | The holder must enroll or activate before it pays. |
 | `applies_to` | no | `primary` | `primary`, `primary_and_au` (authorized users share the primary's allotment), `au_own_allotment` (each authorized user gets their own). |
 | `default_value` | no | | For perks and insurance: what a year of it is worth if the holder does not set a value. |
 | `expires_days_after_open` | no | | One-time benefits only: deadline counted from the open date. |

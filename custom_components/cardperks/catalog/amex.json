@@ -303,7 +303,7 @@
             "Dining Credit",
             "Grubhub"
           ],
-          "notes": "Up to $10 a month at Grubhub, Five Guys, The Cheesecake Factory, Buffalo Wild Wings and Wonder. Enrolment required. Statement wording unverified."
+          "notes": "Up to $10 a month at Grubhub, Five Guys, The Cheesecake Factory, Buffalo Wild Wings and Wonder. Enrollment required. Statement wording unverified."
         },
         {
           "id": "resy_credit",
@@ -318,7 +318,7 @@
           "statement_match": [
             "Resy Credit"
           ],
-          "notes": "Up to $50 January to June and again July to December. Enrolment required."
+          "notes": "Up to $50 January to June and again July to December. Enrollment required."
         },
         {
           "id": "dunkin_credit",
@@ -333,7 +333,7 @@
           "statement_match": [
             "Dunkin"
           ],
-          "notes": "Up to $7 a month at US Dunkin' locations. Enrolment required. Statement wording unverified."
+          "notes": "Up to $7 a month at US Dunkin' locations. Enrollment required. Statement wording unverified."
         },
         {
           "id": "hotel_collection",
@@ -556,7 +556,7 @@
           "reset": "cardmember_year",
           "enrollment_required": false,
           "applies_to": "primary",
-          "notes": "Enrolment required."
+          "notes": "Enrollment required."
         },
         {
           "id": "delta_sky_club",
@@ -655,7 +655,7 @@
             "Business Credit",
             "Flexible"
           ],
-          "notes": "Up to $20 a month on eligible purchases (FedEx, Grubhub, office supply stores and others; partners change). Enrolment required. Statement wording unverified."
+          "notes": "Up to $20 a month on eligible purchases (FedEx, Grubhub, office supply stores and others; partners change). Enrollment required. Statement wording unverified."
         },
         {
           "id": "sub",
