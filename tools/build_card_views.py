@@ -44,6 +44,7 @@ from lovelace import (
     money_bars,
     note,
     peek_rows,
+    perk_rows_for_card,
     template_card,
     third,
     wide_section,
@@ -68,7 +69,7 @@ def gauge(card_id: str, kind: str, label: str, **kw: str) -> dict:
 
 
 def build_view(card: dict) -> dict:
-    name, card_id, ids, perks = card["title"], card["id"], card["ids"], card["perks"]
+    name, card_id, ids = card["title"], card["id"], card["ids"]
     scope = base_filter(card_id)
 
     ring = wide_section(
@@ -147,20 +148,19 @@ def build_view(card: dict) -> dict:
 
     sections = [ring, wide_section(year), log]
 
-    if perks:
-        sections.append(
-            {
-                "type": "grid",
-                "cards": [
-                    heading("What perks are worth to you", "mdi:tag-text-outline"),
-                    note("These carry no issuer amount, so the value is your call."),
-                    {
-                        "type": "entities",
-                        "entities": [coloured_row(p["entity"], p["benefit"]) for p in perks],
-                    },
-                ],
-            }
-        )
+    sections.append(
+        {
+            "type": "grid",
+            "cards": [
+                heading("What perks are worth to you", "mdi:tag-text-outline"),
+                note(
+                    "These carry no issuer amount, so the value is your call. A perk shared "
+                    "with other cards is one number for all of them; this card's share is shown."
+                ),
+                perk_rows_for_card(card_id),
+            ],
+        }
+    )
 
     sections.append(
         wide_section(

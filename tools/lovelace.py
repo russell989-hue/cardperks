@@ -275,6 +275,42 @@ def auto_rows(
     }
 
 
+def perk_rows_for_card(card_id: str) -> dict:
+    """The perk value boxes for one card: its own perks, then the household numbers for
+    the perks it shares, labelled with this card's share. Built by a template so a perk
+    that becomes shared (or stops being) needs no regeneration."""
+    own = (
+        "{% for s in states.number if s.attributes.get('kind') == 'perk_value' "
+        f"and {ONLY_CARD.format(card_id=card_id)} %}}"
+        "{% set c = s.attributes.get('color') or 'grey' %}"
+        "{% set ns.rows = ns.rows + [{'entity': s.entity_id, "
+        "'name': s.attributes.get('benefit') ~ ' value', "
+        "'card_mod': {'style': ':host { --paper-item-icon-color: var(--' ~ c ~ '-color); "
+        "--state-icon-color: var(--' ~ c ~ '-color); }'}}] %}"
+        "{% endfor %}"
+    )
+    shared = (
+        "{% for s in states.number if s.attributes.get('kind') == 'shared_value' "
+        f"and '{card_id}' in (s.attributes.get('card_ids') or []) %}}"
+        "{% set ns.rows = ns.rows + [{'entity': s.entity_id, "
+        "'name': s.attributes.get('benefit') ~ ' value, all cards ($' "
+        "~ ((s.attributes.get('per_card') or 0) | round(0) | int) ~ ' this card)'}] %}"
+        "{% endfor %}"
+    )
+    template = (
+        "{% set ns = namespace(rows=[]) %}"
+        + own
+        + shared
+        + "{{ ns.rows | sort(attribute='name') }}"
+    )
+    return {
+        "type": "custom:auto-entities",
+        "card": {"type": "entities"},
+        "show_empty": False,
+        "filter": {"template": template},
+    }
+
+
 def peek_rows(
     includes: list[dict],
     title: str,

@@ -232,6 +232,7 @@ class SharedPerkValueNumber(CardPerksEntity, NumberEntity):
             "shared_key": self.key,
             "per_card": perk.per_card if perk else None,
             "cards": [cards[c].title for c in perk.card_ids if c in cards] if perk else [],
+            "card_ids": list(perk.card_ids) if perk else [],
             "customised": perk.customised if perk else False,
             "catalog_default": perk.default if perk else None,
         }
