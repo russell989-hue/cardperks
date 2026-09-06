@@ -56,7 +56,9 @@ CARD_COLORS: tuple[str, ...] = (
     "orange",
     "deep-orange",
     "brown",
+    "light-grey",
     "grey",
+    "dark-grey",
     "blue-grey",
 )
 

@@ -275,6 +275,25 @@ def donut_by_card(size: int = 240) -> dict:
     return {"type": "markdown", "content": content, "card_mod": {"style": style}}
 
 
+def expander(title: dict, cards: list[dict], *, expanded: bool = False) -> dict:
+    """Fold a section's cards behind its heading (HACS expander-card).
+
+    The heading card is the expander's title card, so the section keeps its look and
+    the push tools still find the section by that heading; clicking it toggles.
+    """
+    return {
+        "type": "custom:expander-card",
+        "title-card": title,
+        "title-card-clickable": True,
+        "title-card-button-overlay": True,
+        "expanded": expanded,
+        "clear": True,
+        "child-padding": "0",
+        "gap": "0.6em",
+        "cards": cards,
+    }
+
+
 def coloured_row(entity: str, name: str) -> dict:
     """An explicit entity row whose icon takes the card colour."""
     return {"entity": entity, "name": name, "card_mod": {"style": ROW_STYLE}}

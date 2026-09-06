@@ -24,6 +24,7 @@ from lovelace import (
     auto_rows,
     base_filter,
     donut_by_card,
+    expander,
     gauge_grid,
     heading,
     note,
@@ -56,15 +57,19 @@ def checkoff() -> dict:
     return {
         "type": "grid",
         "cards": [
-            heading("Check off", "mdi:cash-check"),
-            note("Type the dollars you captured. Status follows from the amount."),
-            auto_rows(
+            expander(
+                heading("Check off", "mdi:cash-check"),
                 [
-                    {**with_status(base_filter(), status=s), "domain": "number"}
-                    for s in ("unused", "partial")
+                    note("Type the dollars you captured. Status follows from the amount."),
+                    auto_rows(
+                        [
+                            {**with_status(base_filter(), status=s), "domain": "number"}
+                            for s in ("unused", "partial")
+                        ],
+                        "Credits with money left",
+                        suffix="used",
+                    ),
                 ],
-                "Credits with money left",
-                suffix="used",
             ),
         ],
     }
@@ -164,12 +169,19 @@ def perk_values() -> dict:
     return {
         "type": "grid",
         "cards": [
-            heading("What perks are worth to you", "mdi:tag-text-outline"),
-            note("Lounge access and status carry no issuer amount, so the value is your call."),
-            auto_rows(
-                [{**with_status(base_filter(), kind="perk_value"), "domain": "number"}],
-                "Perk values",
-                suffix="value",
+            expander(
+                heading("What perks are worth to you", "mdi:tag-text-outline"),
+                [
+                    note(
+                        "Lounge access and status carry no issuer amount, so the value is "
+                        "your call."
+                    ),
+                    auto_rows(
+                        [{**with_status(base_filter(), kind="perk_value"), "domain": "number"}],
+                        "Perk values",
+                        suffix="value",
+                    ),
+                ],
             ),
         ],
     }

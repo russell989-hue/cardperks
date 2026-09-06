@@ -19,9 +19,21 @@ import websocket  # websocket-client
 
 
 def heading_of(section: dict) -> str | None:
-    for card in section.get("cards", []):
+    """The section's first heading, looking inside wrapper cards such as an expander."""
+
+    def walk(card: dict) -> str | None:
         if card.get("type") == "heading":
             return card.get("heading")
+        for inner in ([card["title-card"]] if isinstance(card.get("title-card"), dict) else []) + [
+            c for c in card.get("cards", []) if isinstance(c, dict)
+        ]:
+            if (found := walk(inner)) is not None:
+                return found
+        return None
+
+    for card in section.get("cards", []):
+        if (found := walk(card)) is not None:
+            return found
     return None
 
 
