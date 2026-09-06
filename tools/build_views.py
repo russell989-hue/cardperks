@@ -34,6 +34,7 @@ from build_sections import (
     shared_perks,
     statuses,
     where_big_dollars_went,
+    worth_it,
 )
 from lovelace import ONLY_ACTIVE, _template_cards, auto_cards, full_width, heading, note
 
@@ -298,6 +299,7 @@ def money() -> dict:
         "max_columns": 4,
         "show_icon_and_title": True,
         "sections": [
+            span(worth_it(), 2),
             span(by_card(), 2),
             span(net_value(), 1),
             span(fees(), 1),

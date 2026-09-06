@@ -48,6 +48,9 @@ async def test_years_report_fee_captured_and_evidence(hass, setup_integration: M
     last = years[1]
     assert not last.current and last.fee == 450.0 and last.captured == 150.0
     assert last.net == -300.0 and (last.months, last.months_covered) == (12, 9)
+    assert last.fee_source == "statement"
+    # Nine covered months is not enough to judge; twelve would be.
+    assert last.verdict == "not enough statements" and this.verdict == "so far"
 
     # Two years back: nothing known, so not listed.
     assert all(y.start.year >= 2025 for y in years)
@@ -70,3 +73,48 @@ async def test_import_keeps_every_fee_line(hass, setup_integration: MockConfigEn
     )
     await hass.async_block_till_done()
     assert entry.runtime_data.doc.fees_seen[CARD_ID] == {"2026-07-01": 450.0}
+
+
+async def test_verdict_uses_perks_and_estimates_the_fee(hass, setup_integration: MockConfigEntry):
+    """A complete year with no fee line uses the card's fee today, marked as an estimate,
+    and a perk the holder marked used counts at the holder's value."""
+    entry = setup_integration
+    coord = entry.runtime_data
+    doc = coord.doc
+    doc.coverage[CARD_ID] = {f"2025-{m:02d}": "x" for m in range(7, 13)} | {
+        f"2026-{m:02d}": "x" for m in range(1, 7)
+    }
+    doc.history.append(
+        HistoryRecord(
+            held_card_id=CARD_ID,
+            benefit_id="travel_credit",
+            period_start="2025-07-01",
+            period_end="2026-06-30",
+            final_status="used",
+            amount=300.0,
+            amount_used=300.0,
+            closed_at="2026-07-01T00:05:00+00:00",
+            closed_by="statement",
+        )
+    )
+    doc.history.append(
+        HistoryRecord(
+            held_card_id=CARD_ID,
+            benefit_id="lounge",
+            period_start="2025-07-01",
+            period_end="2026-06-30",
+            final_status="used",
+            amount=250.0,
+            amount_used=250.0,
+            closed_at="2026-07-01T00:05:00+00:00",
+            closed_by="rollover",
+        )
+    )
+    coord.commit()
+    await hass.async_block_till_done()
+
+    last = next(y for y in coord.data.card_summaries[CARD_ID].years if not y.current)
+    assert (last.fee, last.fee_source) == (500.0, "estimate")  # the catalog fee, no line seen
+    assert last.captured == 300.0 and last.perks_value == 250.0
+    assert last.net == -200.0 and last.net_with_perks == 50.0
+    assert last.months_covered == 12 and last.verdict == "earned its keep"

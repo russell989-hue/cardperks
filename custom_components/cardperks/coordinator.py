@@ -623,17 +623,22 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             out[card_id] = self.cards[card_id].color or CARD_COLORS[i % len(CARD_COLORS)]
         return out
 
+    @staticmethod
+    def _card_fee(card: HeldCard, product) -> float:
+        """The fee the card carries today: the holder's override, else the catalog's."""
+        if card.annual_fee is not None:
+            return float(card.annual_fee)
+        if product is None:
+            return 0.0
+        return float(
+            product.au_terms.fee if card.role is Role.AUTHORIZED_USER else product.annual_fee
+        )
+
     def _card_summary(
         self, card: HeldCard, today: date, perks: Mapping[str, float] | None = None
     ) -> CardSummary:
         product = self.catalog.get(card.product_id)
-        annual_fee = 0.0
-        if card.annual_fee is not None:
-            annual_fee = card.annual_fee
-        elif product is not None:
-            annual_fee = (
-                product.au_terms.fee if card.role is Role.AUTHORIZED_USER else product.annual_fee
-            )
+        annual_fee = self._card_fee(card, product)
 
         fee_due = (
             next_fee_date(today, card.open_date, card.fee_month) if card.is_active(today) else None
@@ -754,43 +759,66 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         Anchored on the anniversary (fee month or open date). A year is listed when
         something is known about it: a fee line, a recorded credit, or a covered month.
         The current year is always listed. Nothing is claimed about what was available.
+
+        The fee is the statement's fee line for that year when one was imported; failing
+        that, the card's fee today, marked as an estimate. Credits count what statements
+        and the holder recorded; perks count only when the holder marked them used, at
+        the value the holder gave them.
         """
         nxt = next_fee_date(today, card.open_date, card.fee_month)
         if nxt is None:
             return ()
         fees = self.doc.fees_seen.get(card.id, {})
+        product = self.catalog.get(card.product_id)
+        perk_ids = {
+            b.id
+            for b in (product.benefits if product else ())
+            if b.type in (BenefitType.PERK, BenefitType.INSURANCE)
+        }
+        summary_fee = self._card_fee(card, product)
         oldest = today - timedelta(days=HISTORY_RETENTION_DAYS)
         out: list[YearRecord] = []
         start = add_months(nxt, -12)
         while start >= oldest:
             end = add_months(start, 12) - timedelta(days=1)
             s_iso, e_iso = start.isoformat(), end.isoformat()
-            captured = sum(
-                h.amount_used
-                for h in self.doc.history
-                if h.held_card_id == card.id and s_iso <= h.period_start <= e_iso
-            )
-            captured += sum(
-                i.amount_used
-                for i in self.doc.instances.values()
-                if i.held_card_id == card.id and s_iso <= i.period_start <= e_iso
-            )
+            captured = perks = 0.0
+            for h in self.doc.history:
+                if h.held_card_id == card.id and s_iso <= h.period_start <= e_iso:
+                    if h.benefit_id in perk_ids:
+                        perks += h.amount_used
+                    else:
+                        captured += h.amount_used
+            for i in self.doc.instances.values():
+                if i.held_card_id == card.id and s_iso <= i.period_start <= e_iso:
+                    if i.benefit_id in perk_ids:
+                        perks += i.amount_used
+                    else:
+                        captured += i.amount_used
             fee_total = [amt for d, amt in fees.items() if s_iso <= d <= e_iso]
             months = [
                 m for m in months_spanned(start, min(end, today)) if m <= today.strftime("%Y-%m")
             ]
             covered_here = sum(1 for m in months if m in covered)
             current = start <= today <= end
-            if current or fee_total or captured or covered_here:
+            if current or fee_total or captured or perks or covered_here:
+                if fee_total:
+                    fee, source = round(sum(fee_total), 2), "statement"
+                elif summary_fee:
+                    fee, source = summary_fee, "estimate"
+                else:
+                    fee, source = None, "none"
                 out.append(
                     YearRecord(
                         start=start,
                         end=end,
-                        fee=round(sum(fee_total), 2) if fee_total else None,
+                        fee=fee,
                         captured=round(captured, 2),
                         months_covered=covered_here,
                         months=len(months),
                         current=current,
+                        fee_source=source,
+                        perks_value=round(perks, 2),
                     )
                 )
             start = add_months(start, -12)

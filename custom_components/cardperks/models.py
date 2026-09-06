@@ -650,10 +650,25 @@ class YearRecord:
     months_covered: int
     months: int
     current: bool
+    fee_source: str = "statement"  # statement | estimate (the card's fee today) | none
+    perks_value: float = 0.0  # what the holder says the year's perks were worth to them
 
     @property
     def net(self) -> float | None:
         return None if self.fee is None else round(self.captured - self.fee, 2)
+
+    @property
+    def net_with_perks(self) -> float | None:
+        return None if self.fee is None else round(self.captured + self.perks_value - self.fee, 2)
+
+    @property
+    def verdict(self) -> str:
+        """One line a person can act on. Only a complete, well-covered year gets a real one."""
+        if self.current:
+            return "so far"
+        if self.months_covered < 10 or self.net is None:
+            return "not enough statements"
+        return "earned its keep" if (self.net_with_perks or 0) >= 0 else "did not earn its keep"
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -662,6 +677,10 @@ class YearRecord:
             "fee": self.fee,
             "captured": self.captured,
             "net": self.net,
+            "fee_source": self.fee_source,
+            "perks_value": self.perks_value,
+            "net_with_perks": self.net_with_perks,
+            "verdict": self.verdict,
             "months_covered": self.months_covered,
             "months": self.months,
             "current": self.current,

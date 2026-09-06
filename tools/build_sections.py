@@ -197,6 +197,51 @@ def big_ticket() -> dict:
     return {"type": "grid", "cards": top["cards"] + bottom["cards"][1:]}
 
 
+def worth_it() -> dict:
+    """One verdict per card from its newest complete cardmember year: fee against what came
+    back, with the perks the holder marked used at their own value, and how much of the
+    year statements cover. A thin year says so instead of guessing."""
+    template = (
+        "{% set ns = namespace(cards=[]) %}"
+        "{% for s in states.sensor if s.attributes.get('kind') == 'net_value_12m' "
+        f"and {ONLY_ACTIVE} and (s.attributes.get('years') or []) | count > 0 %}}"
+        "{% set done = s.attributes.get('years') | rejectattr('current') | list %}"
+        "{% set y = done[0] if done else s.attributes.get('years')[0] %}"
+        "{% set v = y.verdict %}"
+        "{% set color = 'green' if v == 'earned its keep' else ('red' if v == 'did not earn its keep' else 'grey') %}"
+        "{% set icon = 'mdi:check-circle-outline' if v == 'earned its keep' else "
+        "('mdi:close-circle-outline' if v == 'did not earn its keep' else 'mdi:help-circle-outline') %}"
+        "{% set fee = ('$' ~ (y.fee | round(0) | int) ~ (' est.' if y.fee_source == 'estimate' else '')) "
+        "if y.fee is not none else 'fee unknown' %}"
+        "{% set back = y.captured + y.perks_value %}"
+        "{% set net = y.net_with_perks %}"
+        "{% set nettext = (('-' if net < 0 else '+') ~ '$' ~ (net | abs | round(0) | int)) if net is not none else '' %}"
+        "{% set label = y.start[:7] ~ ' to ' ~ y.end[:7] ~ (' so far' if y.current else '') %}"
+        "{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', "
+        "'entity': s.entity_id, "
+        "'primary': s.attributes.get('card') ~ ' · ' ~ v, "
+        "'secondary': label ~ ': $' ~ (y.captured | round(0) | int) ~ ' credits' "
+        "~ (' + $' ~ (y.perks_value | round(0) | int) ~ ' perks' if y.perks_value else '') "
+        "~ ' against ' ~ fee ~ ' · net ' ~ nettext ~ ' · ' ~ y.months_covered ~ '/' ~ y.months ~ ' months', "
+        "'icon': icon, 'icon_color': color, 'multiline_secondary': true, "
+        "'sort': (0 if v == 'did not earn its keep' else (1 if v == 'earned its keep' else 2)) ~ s.attributes.get('card')}] %}"
+        "{% endfor %}"
+        "{{ ns.cards | sort(attribute='sort') }}"
+    )
+    return wide_section(
+        [
+            heading("Was it worth it?", "mdi:scale-balance"),
+            note(
+                "Each card's newest complete cardmember year: credits captured, plus perks you "
+                'marked used at your own value, against the fee that year. "est." means no '
+                "statement showed the fee, so the card's fee today stands in. A year with fewer "
+                "than ten months of statements gets no verdict."
+            ),
+            _template_cards(template, columns=2),
+        ]
+    )
+
+
 def by_year() -> dict:
     """One table per card: each cardmember year's fee, captured credits, net, and how
     much of the year statements vouch for. Only what statements prove; nothing about
