@@ -45,6 +45,7 @@ BENEFIT_SCHEMA = vol.Schema(
         vol.Optional("statement_match", default=list): [str],
         vol.Optional("conditional", default=False): bool,
         vol.Optional("condition"): vol.Any(None, str),
+        vol.Optional("shared_key"): vol.Any(None, vol.Match(r"^[a-z0-9_]+$")),
     }
 )
 
@@ -110,11 +111,14 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
             statement_match=tuple(b.get("statement_match", [])),
             conditional=b["conditional"],
             condition=b.get("condition"),
+            shared_key=b.get("shared_key"),
         )
         for b in raw["benefits"]
     )
     seen: set[str] = set()
     for b in benefits:
+        if b.shared_key and b.type not in (BenefitType.PERK, BenefitType.INSURANCE):
+            raise vol.Invalid(f"benefit {b.id}: shared_key is for perks and insurance only")
         if b.id in seen:
             raise vol.Invalid(f"product {raw['id']}: duplicate benefit id {b.id}")
         seen.add(b.id)

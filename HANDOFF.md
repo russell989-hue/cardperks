@@ -69,6 +69,12 @@ git-filter-repo to enforce this, so do not merge anything from an old clone.
   `insurance` (no issuer amount; the user assigns a value), `earning` (points, no
   dollars), `rebate` (a share of spend returned with no cap: nothing to check off,
   nothing to forfeit, a year of it is worth whatever it returned).
+- **Shared perks**: a perk with `shared_key` (Priority Pass, Centurion, hotel status, cell
+  phone protection, airline bags) is valued once for the household on a "Household"
+  device number (`shared_<key>_value`, kind `shared_value`) and split equally between the
+  active cards that carry it; the per-card `_value` number does not exist for it. The
+  coordinator folds the split into `effective_perk_values`, which rollover, summaries and
+  the snapshot all use.
 - **Card status** picklist: active, frozen (kept but excluded from totals), cancelled
   (also hidden from the overview).
 - **Entities per benefit**: `_used` number (the dollar box), `_remaining`, `_status`,

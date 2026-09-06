@@ -99,6 +99,17 @@
           "statement_match": [
             "UA INFLIGHT"
           ]
+        },
+        {
+          "id": "priority_pass",
+          "name": "Priority Pass",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary_and_au",
+          "shared_key": "priority_pass"
         }
       ],
       "earning_rates": [
@@ -119,7 +130,19 @@
       "reports_to_personal_credit": true,
       "last_verified": "2025-01-01",
       "source_url": "https://example.com/basic",
-      "benefits": [],
+      "benefits": [
+        {
+          "id": "priority_pass",
+          "name": "Priority Pass",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary_and_au",
+          "shared_key": "priority_pass"
+        }
+      ],
       "earning_rates": []
     }
   ]

@@ -47,6 +47,10 @@ class Benefit:
     statement_match: tuple[str, ...] = ()  # regexes matched against statement descriptions
     conditional: bool = False  # only some cardholders qualify; off unless enabled per card
     condition: str | None = None  # human-readable qualification, shown in the card form
+    # Perks and insurance only: the same thing offered by several cards (Priority Pass on
+    # three cards is still one membership). Valued once for the household under this key
+    # and split equally between the active cards that carry it.
+    shared_key: str | None = None
 
     def applies_to_role(self, role: Role) -> bool:
         if role is Role.PRIMARY:
@@ -438,6 +442,7 @@ class StateDocument:
     # card id -> ISO date of the newest annual-fee line any statement has shown. An older
     # file imported later must not overwrite the fee a newer one set.
     fee_seen: dict[str, str] = field(default_factory=dict)
+    shared_values: dict[str, float] = field(default_factory=dict)  # shared_key -> household $
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -453,6 +458,7 @@ class StateDocument:
             "last_rollover": self.last_rollover,
             "imported_refs": sorted(self.imported_refs),
             "fee_seen": self.fee_seen,
+            "shared_values": self.shared_values,
         }
 
     @classmethod
@@ -480,6 +486,7 @@ class StateDocument:
             last_rollover=d.get("last_rollover"),
             imported_refs=set(d.get("imported_refs", [])),
             fee_seen=dict(d.get("fee_seen", {})),
+            shared_values={k: float(v) for k, v in d.get("shared_values", {}).items()},
         )
 
 
@@ -576,6 +583,19 @@ class OwnerSummary:
 
 
 @dataclass(frozen=True, slots=True)
+class SharedPerk:
+    """One household-valued perk and how it is split right now."""
+
+    key: str
+    name: str
+    value: float  # the household's number, or the catalog default until one is set
+    per_card: float
+    card_ids: tuple[str, ...]
+    customised: bool
+    default: float | None
+
+
+@dataclass(frozen=True, slots=True)
 class CardPerksData:
     today: date
     owners: Mapping[str, Owner]
@@ -587,4 +607,5 @@ class CardPerksData:
     owner_summaries: Mapping[str, OwnerSummary]
     sub_trackers: Mapping[str, SubTracker]
     rotating_activations: Mapping[str, Mapping[str, Mapping[str, str]]]
-    perk_values: Mapping[str, Mapping[str, float]]
+    perk_values: Mapping[str, Mapping[str, float]]  # effective: shared splits folded in
+    shared_perks: Mapping[str, SharedPerk] = field(default_factory=dict)

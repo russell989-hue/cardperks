@@ -195,7 +195,8 @@
           "unit": "USD",
           "reset": "cardmember_year",
           "applies_to": "au_own_allotment",
-          "default_value": 400
+          "default_value": 400,
+          "shared_key": "centurion_lounge"
         },
         {
           "id": "delta_sky_club",
@@ -207,7 +208,8 @@
           "reset": "cardmember_year",
           "enrollment_required": false,
           "applies_to": "primary",
-          "notes": "Ten visits a year when flying Delta the same day; unlimited after $75,000 spend."
+          "notes": "Ten visits a year when flying Delta the same day; unlimited after $75,000 spend.",
+          "shared_key": "delta_sky_club"
         },
         {
           "id": "priority_pass",
@@ -219,7 +221,8 @@
           "reset": "cardmember_year",
           "enrollment_required": true,
           "applies_to": "au_own_allotment",
-          "default_value": 200
+          "default_value": 200,
+          "shared_key": "priority_pass"
         },
         {
           "id": "hotel_status",
@@ -231,7 +234,8 @@
           "reset": "calendar",
           "enrollment_required": true,
           "applies_to": "au_own_allotment",
-          "default_value": 100
+          "default_value": 100,
+          "shared_key": "amex_hotel_status"
         },
         {
           "id": "sub",
@@ -544,7 +548,8 @@
           "unit": "USD",
           "reset": "cardmember_year",
           "enrollment_required": false,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "shared_key": "centurion_lounge"
         },
         {
           "id": "priority_pass",
@@ -556,7 +561,8 @@
           "reset": "cardmember_year",
           "enrollment_required": false,
           "applies_to": "primary",
-          "notes": "Enrollment required."
+          "notes": "Enrollment required.",
+          "shared_key": "priority_pass"
         },
         {
           "id": "delta_sky_club",
@@ -568,7 +574,8 @@
           "reset": "cardmember_year",
           "enrollment_required": false,
           "applies_to": "primary",
-          "notes": "Ten visits a year when flying Delta the same day."
+          "notes": "Ten visits a year when flying Delta the same day.",
+          "shared_key": "delta_sky_club"
         },
         {
           "id": "points_rebate",
@@ -591,7 +598,8 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": false,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "shared_key": "amex_hotel_status"
         },
         {
           "id": "sub",

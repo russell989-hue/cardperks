@@ -8,7 +8,7 @@ from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, SUBENTRY_CARD, SUBENTRY_OWNER, BenefitType, Role
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
-from .helpers import card_from_subentry, owner_from_subentry
+from .helpers import card_from_subentry, owner_from_subentry, today_local
 
 
 def owner_identifier(owner_id: str) -> tuple[str, str]:
@@ -17,6 +17,10 @@ def owner_identifier(owner_id: str) -> tuple[str, str]:
 
 def card_identifier(held_card_id: str) -> tuple[str, str]:
     return (DOMAIN, held_card_id)
+
+
+def household_identifier() -> tuple[str, str]:
+    return (DOMAIN, "household")
 
 
 @callback
@@ -41,6 +45,17 @@ def async_ensure_devices(
             name=owner.name,
             manufacturer="CardPerks",
             model="Owner",
+            entry_type=dr.DeviceEntryType.SERVICE,
+        )
+
+    # Shared perks are valued for the household, so they need somewhere to live.
+    if coordinator.shared_members(today_local()):
+        registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={household_identifier()},
+            name="Household",
+            manufacturer="CardPerks",
+            model="Household",
             entry_type=dr.DeviceEntryType.SERVICE,
         )
 
@@ -120,8 +135,9 @@ def async_cleanup_entities(
             )
             if benefit.is_dollar:
                 expected.add(f"{card.id}_{benefit.id}_used")
-            if benefit.type in (BenefitType.PERK, BenefitType.INSURANCE):
+            if benefit.type in (BenefitType.PERK, BenefitType.INSURANCE) and not benefit.shared_key:
                 expected.add(f"{card.id}_{benefit.id}_value")
+    expected.update(f"shared_{key}_value" for key in coordinator.shared_members(today_local()))
 
     registry = er.async_get(hass)
     stale = [

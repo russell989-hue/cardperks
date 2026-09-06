@@ -6,7 +6,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import CardPerksCoordinator
-from .devices import card_identifier, owner_identifier
+from .devices import card_identifier, household_identifier, owner_identifier
 from .models import Benefit, BenefitInstance, HeldCard, Owner
 
 
@@ -18,6 +18,10 @@ def card_device_info(coordinator: CardPerksCoordinator, card: HeldCard) -> Devic
 
 def owner_device_info(owner: Owner) -> DeviceInfo:
     return DeviceInfo(identifiers={owner_identifier(owner.id)})
+
+
+def household_device_info() -> DeviceInfo:
+    return DeviceInfo(identifiers={household_identifier()})
 
 
 class CardPerksEntity(CoordinatorEntity[CardPerksCoordinator]):

@@ -47,7 +47,8 @@
           "unit": "USD",
           "reset": "cardmember_year",
           "applies_to": "au_own_allotment",
-          "default_value": 300
+          "default_value": 300,
+          "shared_key": "capital_one_lounge"
         },
         {
           "id": "priority_pass",
@@ -59,7 +60,8 @@
           "reset": "cardmember_year",
           "enrollment_required": true,
           "applies_to": "au_own_allotment",
-          "default_value": 200
+          "default_value": 200,
+          "shared_key": "priority_pass"
         },
         {
           "id": "global_entry",
@@ -87,7 +89,8 @@
           "enrollment_required": true,
           "applies_to": "au_own_allotment",
           "default_value": 50,
-          "notes": "Capital One now lists a Gold Plus upgrade rather than President's Circle."
+          "notes": "Capital One now lists a Gold Plus upgrade rather than President's Circle.",
+          "shared_key": "hertz_status"
         },
         {
           "id": "cell_phone_protection",
@@ -99,7 +102,8 @@
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary_and_au",
-          "notes": "Up to $800 per claim when the phone bill is paid with the card."
+          "notes": "Up to $800 per claim when the phone bill is paid with the card.",
+          "shared_key": "cell_phone_protection"
         },
         {
           "id": "sub",
@@ -169,7 +173,8 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": false,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "shared_key": "hertz_status"
         },
         {
           "id": "lifestyle_collection",
@@ -249,7 +254,8 @@
           "unit": "USD",
           "reset": "cardmember_year",
           "enrollment_required": false,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "shared_key": "capital_one_lounge"
         },
         {
           "id": "priority_pass",
@@ -260,7 +266,8 @@
           "unit": "USD",
           "reset": "cardmember_year",
           "enrollment_required": false,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "shared_key": "priority_pass"
         },
         {
           "id": "global_entry",
@@ -287,7 +294,8 @@
           "unit": "USD",
           "reset": "calendar",
           "enrollment_required": false,
-          "applies_to": "primary"
+          "applies_to": "primary",
+          "shared_key": "hertz_status"
         },
         {
           "id": "sub",

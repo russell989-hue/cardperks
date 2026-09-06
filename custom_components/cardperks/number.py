@@ -28,8 +28,8 @@ from .const import (
     BenefitType,
 )
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
-from .entity import BenefitEntity
-from .helpers import card_from_subentry
+from .entity import BenefitEntity, CardPerksEntity, household_device_info
+from .helpers import card_from_subentry, today_local
 from .models import Benefit, HeldCard
 
 VALUED_TYPES = (BenefitType.PERK, BenefitType.INSURANCE)
@@ -52,9 +52,14 @@ async def async_setup_entry(
         for benefit in product.benefits_for(card):
             if benefit.is_dollar and not benefit.is_uncapped:
                 entities.append(BenefitUsedNumber(coordinator, card, benefit))
-            if benefit.type in VALUED_TYPES:
+            if benefit.type in VALUED_TYPES and not benefit.shared_key:
                 entities.append(PerkValueNumber(coordinator, card, benefit))
         async_add_entities(entities, config_subentry_id=sub.subentry_id)
+
+    # One number per shared perk, for the household rather than any one card.
+    async_add_entities(
+        SharedPerkValueNumber(coordinator, key) for key in coordinator.shared_members(today_local())
+    )
 
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
@@ -173,6 +178,66 @@ class PerkValueNumber(BenefitEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         self.coordinator.set_perk_value(self.held_card_id, self.benefit_id, value)
+
+
+class SharedPerkValueNumber(CardPerksEntity, NumberEntity):
+    """What a perk carried by several cards is worth to the household, all cards together.
+
+    The number is split equally between the active cards that carry it, and each
+    card's perk shows its share. Carries the same `kind`/`card`/`color` attributes as
+    the per-card numbers so the dashboards can list it alongside them.
+    """
+
+    _attr_translation_key = "shared_value"
+    _attr_device_class = NumberDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
+    _attr_mode = NumberMode.BOX
+    _attr_native_min_value = 0
+    _attr_native_max_value = 100000
+    _attr_native_step = 1
+    _attr_icon = "mdi:tag-multiple-outline"
+
+    def __init__(self, coordinator: CardPerksCoordinator, key: str) -> None:
+        super().__init__(coordinator)
+        self.key = key
+        self._attr_unique_id = f"shared_{key}_value"
+        self._attr_device_info = household_device_info()
+        perk = coordinator.data.shared_perks.get(key)
+        self._attr_translation_placeholders = {"perk": perk.name if perk else key}
+
+    @property
+    def perk(self):
+        return self.coordinator.data.shared_perks.get(self.key)
+
+    @property
+    def available(self) -> bool:
+        return super().available and self.perk is not None
+
+    @property
+    def native_value(self) -> float | None:
+        perk = self.perk
+        return perk.value if perk else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        perk = self.perk
+        cards = self.coordinator.data.cards
+        return {
+            "kind": self.translation_key,
+            "card": "All cards",
+            "card_id": "household",
+            "color": "grey",
+            "card_status": "active",
+            "benefit": perk.name if perk else self.key,
+            "shared_key": self.key,
+            "per_card": perk.per_card if perk else None,
+            "cards": [cards[c].title for c in perk.card_ids if c in cards] if perk else [],
+            "customised": perk.customised if perk else False,
+            "catalog_default": perk.default if perk else None,
+        }
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.coordinator.set_shared_value(self.key, value)
 
 
 def _unused(status: BenefitStatus) -> bool:  # kept for readability in tests

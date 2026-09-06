@@ -20,6 +20,7 @@ Per benefit on each card:
 - `sensor.<card>_<benefit>_expires`, the date the current period ends.
 - `button.<card>_<benefit>_mark_used` for one tap.
 - `number.<card>_<benefit>_value` for perks with no issuer amount, so lounge access is worth what it is worth to you.
+- `number.household_<perk>_value_all_cards` for a perk several cards share (Priority Pass): one value for the household, split equally between the cards that carry it.
 
 Per card: annual credit value, captured and forfeited over the trailing 12 months, capture
 rate, annual fee due date, unused value this period, net value (captured minus fee), and a

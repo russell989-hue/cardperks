@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import date, timedelta
 
@@ -33,6 +34,7 @@ from .models import (
     HistoryRecord,
     ImportRecord,
     OwnerSummary,
+    SharedPerk,
     StateDocument,
     SubTracker,
     Totals,
@@ -92,7 +94,16 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             ) from err
         self.doc.card_status[held_card_id] = str(new)
         self.cards = self._cards_with_status(cards_from_entry(self.config_entry))
-        rollover(self.doc, self.cards.values(), self.catalog, today_local(), now_iso())
+        today = today_local()
+        rollover(
+            self.doc,
+            self.cards.values(),
+            self.catalog,
+            today,
+            now_iso(),
+            perk_values=self.effective_perk_values(today),
+        )
+        self._sync_shared_amounts(today)
         self._commit()
 
     # ------------------------------------------------------------------ lifecycle
@@ -105,11 +116,99 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         self.async_set_updated_data(self._build_snapshot())
 
     async def async_run_rollover(self) -> RolloverResult:
-        result = rollover(self.doc, self.cards.values(), self.catalog, today_local(), now_iso())
+        today = today_local()
+        result = rollover(
+            self.doc,
+            self.cards.values(),
+            self.catalog,
+            today,
+            now_iso(),
+            perk_values=self.effective_perk_values(today),
+        )
+        if self._sync_shared_amounts(today):
+            result.changed = True
         if result.changed:
             _LOGGER.debug("Rollover: %s", result)
             self._commit()
         return result
+
+    # ------------------------------------------------------------------ shared perks
+
+    def shared_members(self, today: date) -> dict[str, list[tuple[HeldCard, Benefit]]]:
+        """Active cards carrying each shared perk, by shared key."""
+        out: dict[str, list[tuple[HeldCard, Benefit]]] = {}
+        for card in self.cards.values():
+            if not card.is_active(today):
+                continue
+            product = self.catalog.get(card.product_id)
+            if product is None:
+                continue
+            for benefit in product.benefits_for(card):
+                if benefit.shared_key and benefit.id not in card.not_applicable:
+                    out.setdefault(benefit.shared_key, []).append((card, benefit))
+        return out
+
+    def shared_perks(self, today: date) -> dict[str, SharedPerk]:
+        """Each shared perk's household value and its split across cards.
+
+        Priority Pass on three cards is one membership, so it is worth one number to the
+        household, and that number is divided equally between the cards that carry it.
+        Freezing or cancelling a card moves its share to the others.
+        """
+        out: dict[str, SharedPerk] = {}
+        for key, members in self.shared_members(today).items():
+            default = next((b.default_value for _, b in members if b.default_value), None)
+            override = self.doc.shared_values.get(key)
+            total = float(override) if override is not None else float(default or 0.0)
+            out[key] = SharedPerk(
+                key=key,
+                name=members[0][1].name,
+                value=round(total, 2),
+                per_card=round(total / len(members), 2),
+                card_ids=tuple(card.id for card, _ in members),
+                customised=override is not None,
+                default=default,
+            )
+        return out
+
+    def effective_perk_values(self, today: date) -> dict[str, dict[str, float]]:
+        """Per-card perk values with each shared perk replaced by its share."""
+        values = {cid: dict(v) for cid, v in self.doc.perk_values.items()}
+        perks = self.shared_perks(today)
+        for key, members in self.shared_members(today).items():
+            for card, benefit in members:
+                values.setdefault(card.id, {})[benefit.id] = perks[key].per_card
+        return values
+
+    def _sync_shared_amounts(self, today: date) -> bool:
+        """Bring open instances of shared perks to the current split. Returns whether any moved."""
+        changed = False
+        perks = self.shared_perks(today)
+        for key, members in self.shared_members(today).items():
+            per = perks[key].per_card
+            for card, benefit in members:
+                inst = self.doc.instances.get(instance_key(card.id, benefit.id))
+                if inst is None or inst.amount == per:
+                    continue
+                inst.amount = per
+                if inst.status is BenefitStatus.USED:
+                    inst.amount_used = per
+                inst.updated_at = now_iso()
+                changed = True
+        return changed
+
+    def set_shared_value(self, key: str, value: float) -> None:
+        """What a shared perk is worth to the household, all cards together."""
+        today = today_local()
+        if key not in self.shared_members(today):
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_shared",
+                translation_placeholders={"key": key},
+            )
+        self.doc.shared_values[key] = float(value)
+        self._sync_shared_amounts(today)
+        self._commit()
 
     # ------------------------------------------------------------------ lookups
 
@@ -285,6 +384,12 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 translation_key="not_a_perk",
                 translation_placeholders={"benefit_id": benefit_id},
             )
+        if benefit.shared_key:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="shared_perk",
+                translation_placeholders={"benefit_id": benefit_id, "key": benefit.shared_key},
+            )
         self.doc.perk_values.setdefault(held_card_id, {})[benefit_id] = float(value)
         inst = self.instance(held_card_id, benefit_id)
         if inst is not None:
@@ -387,7 +492,11 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
 
     def _build_snapshot(self) -> CardPerksData:
         today = today_local()
-        card_summaries = {cid: self._card_summary(card, today) for cid, card in self.cards.items()}
+        perk_values = self.effective_perk_values(today)
+        card_summaries = {
+            cid: self._card_summary(card, today, perk_values.get(cid, {}))
+            for cid, card in self.cards.items()
+        }
         owner_summaries = {
             oid: self._owner_summary(oid, card_summaries, today) for oid in self.owners
         }
@@ -402,7 +511,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             owner_summaries=owner_summaries,
             sub_trackers=dict(self.doc.sub_trackers),
             rotating_activations=dict(self.doc.rotating_activations),
-            perk_values=dict(self.doc.perk_values),
+            perk_values=perk_values,
+            shared_perks=self.shared_perks(today),
         )
 
     def _colors(self) -> dict[str, str]:
@@ -417,7 +527,9 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             out[card_id] = self.cards[card_id].color or CARD_COLORS[i % len(CARD_COLORS)]
         return out
 
-    def _card_summary(self, card: HeldCard, today: date) -> CardSummary:
+    def _card_summary(
+        self, card: HeldCard, today: date, perks: Mapping[str, float] | None = None
+    ) -> CardSummary:
         product = self.catalog.get(card.product_id)
         annual_fee = 0.0
         if card.annual_fee is not None:
@@ -435,7 +547,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         unused = 0.0
         expiring: list[ExpiringItem] = []
         cutoff = today - timedelta(days=365)
-        perks = self.doc.perk_values.get(card.id, {})
+        if perks is None:
+            perks = self.effective_perk_values(today).get(card.id, {})
 
         # Per benefit: what a year of it is worth, and what became of the last twelve months.
         per_benefit: dict[str, Totals] = {}

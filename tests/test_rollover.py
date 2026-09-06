@@ -27,11 +27,18 @@ def test_opens_all_benefits_for_primary(catalog):
     doc = StateDocument()
     result = rollover(doc, [_card()], catalog, date(2026, 9, 5), NOW)
     # sub opened in 2024 with a 90-day window is long expired, so it is never opened
-    assert result.opened == 5 and result.changed
+    assert result.opened == 6 and result.changed
     keys = set(doc.instances)
     assert keys == {
         f"c1:{b}"
-        for b in ("monthly_credit", "dining_credit", "travel_credit", "lounge", "inflight_rebate")
+        for b in (
+            "monthly_credit",
+            "dining_credit",
+            "travel_credit",
+            "lounge",
+            "inflight_rebate",
+            "priority_pass",
+        )
     }
     inst = doc.instances["c1:travel_credit"]
     assert (inst.period_start, inst.period_end) == ("2026-03-15", "2027-03-14")
@@ -44,7 +51,7 @@ def test_au_only_gets_own_allotment_benefits(catalog):
     doc = StateDocument()
     au = _card(id="au", role=Role.AUTHORIZED_USER, parent_card_id="c1")
     rollover(doc, [au], catalog, date(2026, 9, 5), NOW)
-    assert set(doc.instances) == {"au:lounge"}
+    assert set(doc.instances) == {"au:lounge", "au:priority_pass"}
 
 
 def test_idempotent(catalog):

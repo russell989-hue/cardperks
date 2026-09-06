@@ -154,9 +154,16 @@ def perk_values() -> dict:
     return wide_section(
         [
             heading("What perks are worth to you", "mdi:tag-text-outline"),
-            note("Lounge access and status carry no issuer amount, so the value is your call."),
+            note(
+                "Lounge access and status carry no issuer amount, so the value is your call. "
+                "A perk several cards share (Priority Pass) is one number for all cards, "
+                "split equally between them."
+            ),
             *peek_rows(
-                [{**with_status(base_filter(), kind="perk_value"), "domain": "number"}],
+                [
+                    {**with_status(base_filter(), kind="perk_value"), "domain": "number"},
+                    {**with_status(base_filter(), kind="shared_value"), "domain": "number"},
+                ],
                 "Perk values",
                 suffix="value",
                 noun="perks",

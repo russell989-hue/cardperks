@@ -41,6 +41,8 @@ def benefit_to_dict(b: Benefit) -> dict[str, Any]:
         out["conditional"] = True
     if b.condition:
         out["condition"] = b.condition
+    if b.shared_key:
+        out["shared_key"] = b.shared_key
     return out
 
 

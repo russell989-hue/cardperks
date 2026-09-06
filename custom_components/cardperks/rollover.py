@@ -69,6 +69,7 @@ def _open(
     period: Period,
     now_iso: str,
     sticky_na: bool = False,
+    perk_values: Mapping[str, float] | None = None,
 ) -> BenefitInstance:
     na = sticky_na or benefit.id in card.not_applicable
     inst = BenefitInstance(
@@ -77,7 +78,7 @@ def _open(
         period_start=period.start.isoformat(),
         period_end=_iso(period.end),
         status=BenefitStatus.NA if na else BenefitStatus.UNUSED,
-        amount=_amount_for(benefit, doc.perk_values.get(card.id, {})),
+        amount=_amount_for(benefit, perk_values or {}),
         sticky_na=na,
         updated_at=now_iso,
     )
@@ -102,9 +103,15 @@ def rollover(
     catalog: Catalog,
     today: date,
     now_iso: str,
+    perk_values: Mapping[str, Mapping[str, float]] | None = None,
 ) -> RolloverResult:
-    """Bring every benefit instance up to date with `today`. Idempotent."""
+    """Bring every benefit instance up to date with `today`. Idempotent.
+
+    `perk_values` are the dollars each perk is worth per card; the coordinator passes
+    the effective values with shared perks already split. Defaults to the raw ones.
+    """
     result = RolloverResult()
+    pv = perk_values if perk_values is not None else doc.perk_values
     active_cards = {c.id: c for c in cards}
 
     # 1. Close instances belonging to closed/removed cards or benefits no longer applicable.
@@ -169,7 +176,7 @@ def rollover(
                     continue  # one-time benefit already closed; never reopen
                 if expected.end is not None and expected.end < today:
                     continue  # e.g. one-time already expired before tracking began
-                _open(doc, card, benefit, expected, now_iso)
+                _open(doc, card, benefit, expected, now_iso, perk_values=pv.get(card.id, {}))
                 result.opened += 1
                 result.changed = True
                 continue
@@ -196,7 +203,7 @@ def rollover(
                             period_start=p.start.isoformat(),
                             period_end=p.end.isoformat(),
                             final_status="unknown",
-                            amount=_amount_for(benefit, doc.perk_values.get(card.id, {})),
+                            amount=_amount_for(benefit, pv.get(card.id, {})),
                             amount_used=0.0,
                             closed_at=now_iso,
                             closed_by="gap",
@@ -206,13 +213,29 @@ def rollover(
                     p = period_after(
                         p.end, benefit.cadence, benefit.reset, card.open_date, card.fee_month
                     )
-                _open(doc, card, benefit, expected, now_iso, sticky_na=sticky)
+                _open(
+                    doc,
+                    card,
+                    benefit,
+                    expected,
+                    now_iso,
+                    sticky_na=sticky,
+                    perk_values=pv.get(card.id, {}),
+                )
                 result.opened += 1
             elif inst_start != expected.start and benefit.cadence is not Cadence.ONE_TIME:
                 # Anchor changed (reconfigured open date / fee month).
                 sticky = inst.sticky_na
                 _close(doc, inst, now_iso, "reanchor")
-                _open(doc, card, benefit, expected, now_iso, sticky_na=sticky)
+                _open(
+                    doc,
+                    card,
+                    benefit,
+                    expected,
+                    now_iso,
+                    sticky_na=sticky,
+                    perk_values=pv.get(card.id, {}),
+                )
                 result.closed += 1
                 result.opened += 1
                 result.changed = True

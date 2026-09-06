@@ -80,6 +80,7 @@ This page is the field reference and the contribution rules. The schema itself l
 | `statement_match` | no | `[]` | Regular expressions, case-insensitive, matched against the description of credit lines. See below. |
 | `conditional` | no | `false` | Only some holders qualify; off until enabled on the card. |
 | `condition` | no | | Plain-language qualification, shown next to the toggle in the card form. |
+| `shared_key` | no | | Perks and insurance only. The same thing on several cards (Priority Pass, Centurion Lounge, cell phone protection) is one membership, so give each copy the same key: the household values it once and the value is split equally between the active cards that carry it. Keys are catalog-wide, so `priority_pass` on an Amex and a Chase card share. |
 
 ### Types
 
