@@ -52,7 +52,7 @@ from .statement_apply import (
     cards_in_statement,
     subentry_last4s,
 )
-from .statements import parse_statement
+from .statements import decode_statement, parse_statement
 
 IMPORT_CARDS_SCHEMA = vol.Schema({vol.Required(ATTR_CSV): cv.string})
 
@@ -176,13 +176,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             )
 
         def _read() -> str:
-            raw = path.read_bytes()
-            for enc in ("utf-8-sig", "utf-16", "cp1252"):
-                try:
-                    return raw.decode(enc)
-                except UnicodeDecodeError:
-                    continue
-            return raw.decode("utf-8", errors="replace")
+            return decode_statement(path.read_bytes(), path.name)
 
         try:
             text = await hass.async_add_executor_job(_read)

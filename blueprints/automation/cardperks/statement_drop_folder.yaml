@@ -1,7 +1,7 @@
 blueprint:
   name: CardPerks statement drop folder
   description: >-
-    Import every CSV statement export dropped into a folder on the Home Assistant box.
+    Import every statement export (CSV or Excel) dropped into a folder on the Home Assistant box.
     Needs the Folder Watcher integration set up on that folder (Settings, Devices &
     services, Add integration, Folder Watcher). The file is applied to every card it
     covers, exactly as an upload would be, and a notification reports what was recorded.
@@ -39,7 +39,7 @@ conditions:
     value_template: >-
       {{ trigger.event.data.event_type in ['closed', 'moved']
          and target_folder | regex_replace('/$', '') == folder | regex_replace('/$', '')
-         and path | lower is match('.*\\.csv$') }}
+         and path | lower is match('.*\\.(csv|xlsx)$') }}
 
 actions:
   - action: cardperks.import_statement

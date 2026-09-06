@@ -12,6 +12,8 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from datetime import date as _date
+from datetime import datetime as _datetime
 
 from .models import Product
 
@@ -108,6 +110,43 @@ def _amount(value: str) -> float:
     return float(value.replace("$", "").replace(",", "").strip() or 0)
 
 
+def decode_statement(raw: bytes, filename: str | None = None) -> str:
+    """The text of an export, whether it came as CSV or as an Excel workbook.
+
+    Amex offers both; a workbook's first sheet is read and written out as CSV so one
+    parser handles everything after this point. Dates in cells become MM/DD/YYYY, the
+    form the CSV exports use.
+    """
+    if raw[:2] == b"PK" or (filename or "").lower().endswith((".xlsx", ".xlsm")):
+        import openpyxl
+
+        wb = openpyxl.load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+        try:
+            out = io.StringIO()
+            writer = csv.writer(out)
+            for row in wb.worksheets[0].iter_rows(values_only=True):
+                if not row or all(c is None or str(c).strip() == "" for c in row):
+                    continue
+                cells = []
+                for c in row:
+                    if isinstance(c, (_datetime, _date)):
+                        cells.append(c.strftime("%m/%d/%Y"))
+                    elif c is None:
+                        cells.append("")
+                    else:
+                        cells.append(str(c))
+                writer.writerow(cells)
+            return out.getvalue()
+        finally:
+            wb.close()
+    for enc in ("utf-8-sig", "utf-16", "cp1252"):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
+
+
 def last4_from_filename(name: str | None) -> str | None:
     if not name:
         return None
@@ -130,14 +169,19 @@ def detect_issuer(header: list[str]) -> str | None:
 
 def parse_statement(text: str, filename: str | None = None) -> ParsedStatement:
     """Parse a raw CSV export. Raises ValueError if the format is not recognised."""
-    reader = csv.reader(io.StringIO(text.lstrip("﻿")))
-    try:
-        header = next(reader)
-    except StopIteration as err:
-        raise ValueError("empty file") from err
-    issuer = detect_issuer(header)
+    reader = csv.reader(io.StringIO(text.lstrip("\ufeff")))
+    header: list[str] = []
+    issuer = None
+    for _ in range(20):  # workbooks sometimes carry a title block above the header
+        try:
+            header = next(reader)
+        except StopIteration as err:
+            raise ValueError("empty file") from err
+        issuer = detect_issuer(header)
+        if issuer is not None:
+            break
     if issuer is None:
-        raise ValueError("not a recognised Chase or American Express export")
+        raise ValueError("not a recognised Chase, American Express or Capital One export")
     idx = {h.strip().lower(): i for i, h in enumerate(header)}
     rows: list[StatementRow] = []
     last4s: set[str] = set()

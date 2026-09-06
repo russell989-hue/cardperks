@@ -13,7 +13,9 @@
   "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/russell989-hue/cardperks/issues",
-  "requirements": [],
+  "requirements": [
+    "openpyxl>=3.1"
+  ],
   "single_config_entry": true,
   "version": "0.1.0"
 }

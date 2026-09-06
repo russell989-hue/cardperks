@@ -52,7 +52,7 @@ Per owner: the same three dollar totals, plus unused credits, counts expiring wi
 Benefits that do not apply to you are marked on the card and drop out of every total.
 
 Statements can also arrive by file: `cardperks.import_statement` reads an export already
-on the box (for example dropped into `config/cardperks/statements/`) and applies it to
+on the box (for example dropped into `config/cardperks/statements/`), CSV or Excel, and applies it to
 every card it covers, and `cardperks.add_statement_match` teaches the catalog a credit
 line that went unmatched, without editing JSON.
 

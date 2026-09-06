@@ -81,9 +81,9 @@
       "step": {
         "user": {
           "title": "Import a statement export",
-          "description": "Upload the raw CSV exactly as downloaded from Chase (Activity export), American Express (Download CSV), or Capital One (Download Transactions). Nothing is sent anywhere; the file is read locally, its annual fee line sets the fee month and actual fee, and labelled credit lines (for example `TRAVEL CREDIT $300/YEAR` or `Platinum Resy Credit`) are recorded as benefit usage in the matching period. Re-importing the same file is safe.",
+          "description": "Upload the raw CSV or Excel file exactly as downloaded from Chase (Activity export), American Express (Download CSV), or Capital One (Download Transactions). Nothing is sent anywhere; the file is read locally, its annual fee line sets the fee month and actual fee, and labelled credit lines (for example `TRAVEL CREDIT $300/YEAR` or `Platinum Resy Credit`) are recorded as benefit usage in the matching period. Re-importing the same file is safe.",
           "data": {
-            "file": "Statement CSV"
+            "file": "Statement export (CSV or Excel)"
           }
         },
         "card": {

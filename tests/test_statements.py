@@ -661,3 +661,49 @@ async def test_older_statement_never_overwrites_a_newer_fee(
     assert "older than the fee already recorded" in resp["cards"][0]["fee"]
     assert entry.subentries[CARD_ID].data[CONF_ANNUAL_FEE] == 450.0
     assert entry.runtime_data.doc.fee_seen[CARD_ID] == "2026-07-01"
+
+
+async def test_excel_export_imports_like_csv(hass, setup_integration: MockConfigEntry, tmp_path):
+    """An Amex .xlsx download is read like its CSV twin, dates and all."""
+    import csv as _csv
+    from datetime import datetime
+
+    import openpyxl
+    from homeassistant.helpers import device_registry as dr
+
+    from custom_components.cardperks.statements import decode_statement
+
+    entry = setup_integration
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["Statement download"])  # a title row above the header, as Amex writes it
+    ws.append([])
+    for i, line in enumerate(AMEX.strip().splitlines()):
+        cells = next(iter(_csv.reader([line])))
+        if i:
+            cells[0] = datetime.strptime(cells[0], "%m/%d/%Y")
+            cells[2] = float(cells[2])
+        ws.append(cells)
+    path = tmp_path / "activity.xlsx"
+    wb.save(path)
+
+    text = decode_statement(path.read_bytes(), "activity.xlsx")
+    assert "RENEWAL MEMBERSHIP FEE" in text and "05/20/2026" in text
+    parsed = parse_statement(text, "activity.xlsx")
+    assert parsed.issuer == "amex" and latest_fee(parsed).amount == 895.0
+    assert [r.description for r in parsed.credit_rows] == [
+        "Platinum Resy Credit",
+        "AMEX CLEAR PLUS CREDIT",
+    ]
+
+    # And through the service, aimed at the card since an Amex file names no numbers.
+    hass.config.allowlist_external_dirs.add(str(tmp_path))
+    device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, CARD_ID), entry.entry_id)
+    resp = await hass.services.async_call(
+        DOMAIN,
+        "import_statement",
+        {"path": str(path), "device_id": device.id, "apply_fee": False},
+        blocking=True,
+        return_response=True,
+    )
+    assert resp["issuer"] == "amex" and resp["cards"][0]["rows"] == 4

@@ -84,7 +84,7 @@ from .statement_apply import (
     subentry_last4s,
     summarise,
 )
-from .statements import ParsedStatement, latest_fee, parse_statement
+from .statements import ParsedStatement, decode_statement, latest_fee, parse_statement
 
 MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -779,7 +779,9 @@ class ImportSubentryFlow(ConfigSubentryFlow):
             )
         schema = vol.Schema(
             {
-                vol.Optional(ATTR_FILE): FileSelector(FileSelectorConfig(accept=".csv,text/csv")),
+                vol.Optional(ATTR_FILE): FileSelector(
+                    FileSelectorConfig(accept=".csv,.xlsx,text/csv")
+                ),
                 vol.Optional(ATTR_CSV): TextSelector(TextSelectorConfig(multiline=True)),
             }
         )
@@ -793,12 +795,7 @@ async def _read_uploaded_text(hass, file_id: str) -> tuple[str, str | None]:
         with process_uploaded_file(hass, file_id) as path:
             raw = path.read_bytes()
             name = path.name
-        for enc in ("utf-8-sig", "utf-16", "cp1252"):
-            try:
-                return raw.decode(enc), name
-            except UnicodeDecodeError:
-                continue
-        return raw.decode("utf-8", errors="replace"), name
+        return decode_statement(raw, name), name
 
     return await hass.async_add_executor_job(_read)
 
@@ -858,7 +855,11 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         elif user_input is not None:
             errors["base"] = "nothing_to_import"
         schema = vol.Schema(
-            {vol.Required(ATTR_FILE): FileSelector(FileSelectorConfig(accept=".csv,text/csv"))}
+            {
+                vol.Required(ATTR_FILE): FileSelector(
+                    FileSelectorConfig(accept=".csv,.xlsx,text/csv")
+                )
+            }
         )
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
