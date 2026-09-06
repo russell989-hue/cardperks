@@ -6,6 +6,9 @@ what was available when, since issuer pages do not publish theirs.
 
 ## 2026-09-06
 
+- **Amex Platinum Digital Entertainment credit**: YouTube counts only when bought directly at
+  youtube.com; a Google Play subscription (`GOOGLE *YOUTUBE`) is a third-party purchase and
+  never triggers it. Learned from a statement where it never did.
 - **Loyalty programs** join the catalog, starting with United MileagePlus: the four Premier
   tiers, how each is earned for 2027, and what each gives, from united.com.
 - **Amex Platinum Digital Entertainment credit**: eligible services recorded in the new
