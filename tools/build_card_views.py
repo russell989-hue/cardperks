@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 """Generate one Lovelace subview per card, plus a navigation section for the overview.
 
-Input is the card map produced on the HA box (device title -> card-level entity ids).
-Output is a JSON list of views that tools/push_dashboard.py merges by path, so an
-existing overview view is left alone.
+Input is the live entity map from tools/cp_full.py on the HA box, so nothing is
+hardcoded and the layout follows whatever benefits a card actually has.
 
-  python3 build_card_views.py cards.json views.json [nav.yaml]
+Reading order is money first, then the things you do, then reference, then settings:
+
+  At a glance      what is unused right now, and when the fee lands
+  This year        a year's worth, captured, forfeited, capture rate
+  Money on hand    credits with a balance, biggest first
+  Record spending  the dollar boxes for anything not yet fully used
+  Perk values      what lounge access and status are worth to you
+  All benefits     every status and expiry date, including used and n/a
+  Card settings    the colour this card wears everywhere
+
+  python3 build_card_views.py cards.json views.json [nav.json]
 """
 
 from __future__ import annotations
@@ -15,12 +24,26 @@ import re
 import sys
 import unicodedata
 
-SECTION_ICON = {
-    "money": "mdi:cash-clock",
-    "check": "mdi:check-circle-outline",
-    "value": "mdi:tag-text-outline",
-    "all": "mdi:format-list-bulleted",
-}
+# Mirrors CARD_COLORS in the integration's const.py.
+PALETTE = (
+    "red", "pink", "purple", "deep-purple", "indigo",
+    "blue", "light-blue", "cyan", "teal", "green",
+    "light-green", "lime", "yellow", "amber", "orange",
+    "deep-orange", "brown", "grey", "blue-grey",
+)  # fmt: skip
+
+CARD_TILES = (
+    ("unused_value", "Unused right now"),
+    ("fee_due", "Annual fee due"),
+)
+
+YEAR_TILES = (
+    ("annual_value", "A year's worth"),
+    ("captured", "Captured"),
+    ("forfeited", "Forfeited"),
+    ("capture_rate", "Capture rate"),
+    ("net_value", "Net of the fee"),
+)
 
 
 def slugify(name: str) -> str:
@@ -33,13 +56,17 @@ def heading(text: str, icon: str) -> dict:
     return {"type": "heading", "heading": text, "heading_style": "title", "icon": icon}
 
 
+def note(text: str) -> dict:
+    return {"type": "markdown", "text_only": True, "content": text}
+
+
 def auto_entities(
     title: str,
     device: str,
     *,
     pattern: str | None = None,
     domain: str | None = None,
-    states: list[str] | None = None,
+    attributes: list[dict] | None = None,
     state_filter: str | None = None,
     sort_method: str = "state",
     numeric: bool = True,
@@ -51,14 +78,13 @@ def auto_entities(
         base["entity_id"] = pattern
     if domain:
         base["domain"] = domain
-    include = []
-    if states:
-        include.extend({**base, "state": s} for s in states)
+    if attributes:
+        include = [{**base, "attributes": a} for a in attributes]
     else:
         item = dict(base)
         if state_filter:
             item["state"] = state_filter
-        include.append(item)
+        include = [item]
     return {
         "type": "custom:auto-entities",
         "card": {"type": "entities", "title": title, "state_color": True},
@@ -71,25 +97,17 @@ def auto_entities(
     }
 
 
-def build_view(name: str, ids: dict[str, str], color: str | None = None) -> dict:
+def build_view(name: str, ids: dict, color: str | None, perks: list[dict]) -> dict:
     tint = color or "grey"
-    summary = {
-        "type": "grid",
-        "cards": [
-            heading(name, "mdi:credit-card"),
-            {
-                "type": "tile",
-                "entity": ids["unused_value"],
-                "name": "Unused this period",
-                "color": tint,
-            },
-            {
-                "type": "tile",
-                "entity": ids["net_value"],
-                "name": "Net value, 12 months",
-                "color": tint,
-            },
-            {"type": "tile", "entity": ids["fee_due"], "name": "Annual fee due", "color": tint},
+
+    at_a_glance = [heading(name, "mdi:credit-card")]
+    at_a_glance += [
+        {"type": "tile", "entity": ids[key], "name": label, "color": tint}
+        for key, label in CARD_TILES
+        if ids.get(key)
+    ]
+    if ids.get("fee_soon"):
+        at_a_glance.append(
             {
                 "type": "conditional",
                 "conditions": [{"condition": "state", "entity": ids["fee_soon"], "state": "on"}],
@@ -99,16 +117,96 @@ def build_view(name: str, ids: dict[str, str], color: str | None = None) -> dict
                     "name": "Fee due soon",
                     "color": "red",
                 },
-            },
-        ],
-    }
-    if ids.get("color"):
-        summary["cards"].append(
-            {
-                "type": "entities",
-                "entities": [{"entity": ids["color"], "name": "Colour on dashboards"}],
             }
         )
+
+    this_year = [
+        heading("This year", "mdi:cash-100"),
+        note(
+            "Trailing twelve months. Forfeited is money a period closed without you "
+            "using it, which is gone rather than pending."
+        ),
+    ]
+    this_year += [
+        {"type": "tile", "entity": ids[key], "name": label, "color": tint}
+        for key, label in YEAR_TILES
+        if ids.get(key)
+    ]
+
+    sections = [
+        {"type": "grid", "cards": at_a_glance},
+        {"type": "grid", "cards": this_year},
+        {
+            "type": "grid",
+            "cards": [
+                heading("Money on hand", "mdi:cash-clock"),
+                auto_entities(
+                    "Credits with a balance", name, pattern="*_remaining", state_filter="> 0"
+                ),
+            ],
+        },
+        {
+            "type": "grid",
+            "cards": [
+                heading("Record what you spent", "mdi:cash-check"),
+                note("Type the dollars you captured. The status follows from the amount."),
+                auto_entities(
+                    "Not yet fully used",
+                    name,
+                    domain="number",
+                    attributes=[{"status": "unused"}, {"status": "partial"}],
+                    sort_method="friendly_name",
+                    numeric=False,
+                    reverse=False,
+                    show_empty=False,
+                ),
+            ],
+        },
+    ]
+
+    if perks:
+        sections.append(
+            {
+                "type": "grid",
+                "cards": [
+                    heading("What perks are worth to you", "mdi:tag-text-outline"),
+                    note("These carry no issuer amount, so the value is your call."),
+                    {
+                        "type": "entities",
+                        "entities": [{"entity": p["entity"], "name": p["benefit"]} for p in perks],
+                    },
+                ],
+            }
+        )
+
+    sections.append(
+        {
+            "type": "grid",
+            "cards": [
+                heading("All benefits", "mdi:format-list-bulleted"),
+                auto_entities(
+                    "Status",
+                    name,
+                    pattern="*_status",
+                    sort_method="friendly_name",
+                    numeric=False,
+                    reverse=False,
+                ),
+                auto_entities(
+                    "Expiry dates",
+                    name,
+                    pattern="*_expires",
+                    sort_method="state",
+                    numeric=False,
+                    reverse=False,
+                ),
+            ],
+        }
+    )
+
+    if ids.get("color"):
+        sections.append(colour_section(ids["color"]))
+
     return {
         "type": "sections",
         "title": name,
@@ -116,91 +214,55 @@ def build_view(name: str, ids: dict[str, str], color: str | None = None) -> dict
         "icon": "mdi:credit-card",
         "subview": True,
         "max_columns": 3,
-        "sections": [
-            summary,
+        "sections": sections,
+    }
+
+
+def colour_section(entity: str) -> dict:
+    """A palette you can see, not a list of colour names.
+
+    Home Assistant's select shows text only, so each colour is a tile tinted with the
+    colour it sets. Tapping one calls select.select_option.
+    """
+    swatches = {
+        "type": "grid",
+        "columns": 5,
+        "square": True,
+        "cards": [
             {
-                "type": "grid",
-                "cards": [
-                    heading("Annual dollars", "mdi:cash-100"),
-                    *[
-                        {"type": "tile", "entity": ids[k], "name": label, "color": tint}
-                        for k, label in (
-                            ("annual_value", "A year's worth"),
-                            ("captured", "Captured, 12 months"),
-                            ("forfeited", "Forfeited, 12 months"),
-                            ("capture_rate", "Capture rate"),
-                        )
-                        if ids.get(k)
-                    ],
-                ],
-            },
-            {
-                "type": "grid",
-                "cards": [
-                    heading("Money left", SECTION_ICON["money"]),
-                    auto_entities(
-                        "Credits with money left", name, pattern="*_remaining", state_filter="> 0"
-                    ),
-                ],
-            },
-            {
-                "type": "grid",
-                "cards": [
-                    heading("Check off", SECTION_ICON["check"]),
-                    auto_entities(
-                        "Not yet used",
-                        name,
-                        domain="select",
-                        states=["unused", "partial"],
-                        sort_method="friendly_name",
-                        numeric=False,
-                        reverse=False,
-                    ),
-                ],
-            },
-            {
-                "type": "grid",
-                "cards": [
-                    heading("What perks are worth to you", SECTION_ICON["value"]),
-                    auto_entities(
-                        "Perk values",
-                        name,
-                        domain="number",
-                        sort_method="friendly_name",
-                        numeric=False,
-                        reverse=False,
-                        show_empty=False,
-                    ),
-                ],
-            },
-            {
-                "type": "grid",
-                "cards": [
-                    heading("Every benefit", SECTION_ICON["all"]),
-                    auto_entities(
-                        "Status",
-                        name,
-                        domain="select",
-                        sort_method="friendly_name",
-                        numeric=False,
-                        reverse=False,
-                    ),
-                    auto_entities(
-                        "Expiry dates",
-                        name,
-                        pattern="*_expires",
-                        sort_method="state",
-                        numeric=False,
-                        reverse=False,
-                    ),
-                ],
-            },
+                "type": "tile",
+                "entity": entity,
+                "name": colour.replace("-", " "),
+                "color": colour,
+                "vertical": True,
+                "hide_state": True,
+                "tap_action": {
+                    "action": "perform-action",
+                    "perform_action": "select.select_option",
+                    "target": {"entity_id": entity},
+                    "data": {"option": colour},
+                },
+            }
+            for colour in PALETTE
+        ],
+    }
+    current = (
+        "{% set c = states('" + entity + "') %}"
+        'Currently <span style="color: var(--{{ c }}-color)">&#9679;</span> **{{ c }}**.'
+    )
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Card colour", "mdi:palette"),
+            {"type": "markdown", "content": current},
+            note("This colour identifies the card on every dashboard. Tap to change it."),
+            swatches,
         ],
     }
 
 
-def nav_section(cards: dict[str, dict], url_path: str) -> dict:
-    """A section for the overview: one tap-through tile per card."""
+def nav_section(cards: list[dict], url_path: str) -> dict:
+    """A section for the overview: one tap-through tile per card, in its own colour."""
     return {
         "type": "grid",
         "cards": [
@@ -208,45 +270,58 @@ def nav_section(cards: dict[str, dict], url_path: str) -> dict:
             *[
                 {
                     "type": "tile",
-                    "entity": ids["unused_value"],
-                    "name": name,
+                    "entity": c["ids"]["unused_value"],
+                    "name": c["title"],
                     "icon": "mdi:credit-card",
+                    "color": c["color"] or "grey",
                     "tap_action": {
                         "action": "navigate",
-                        "navigation_path": f"/{url_path}/{slugify(name)}",
+                        "navigation_path": f"/{url_path}/{slugify(c['title'])}",
                     },
                 }
-                for name, ids in sorted(cards.items())
+                for c in cards
+                if c["ids"].get("unused_value")
             ],
         ],
     }
+
+
+def load(path: str) -> list[dict]:
+    with open(path, encoding="utf-8") as fh:
+        raw = json.load(fh)
+    out = []
+    for val in raw.values():
+        ids = dict(val.get("card", {}))
+        if val.get("color_entity"):
+            ids["color"] = val["color_entity"]
+        out.append(
+            {
+                "title": val["title"],
+                "color": val.get("color"),
+                "ids": ids,
+                "perks": val.get("perks", []),
+            }
+        )
+    return sorted(out, key=lambda c: c["title"] or "")
 
 
 def main() -> int:
     if len(sys.argv) < 3:
         print(__doc__)
         return 2
-    with open(sys.argv[1], encoding="utf-8") as fh:
-        cards = json.load(fh)
-    # cards.json is keyed by card id with a nested shape; accept either form.
-    by_name: dict[str, dict] = {}
-    colors: dict[str, str] = {}
-    for key, val in cards.items():
-        if "card" in val and "title" in val:  # rich map from the box
-            ids = dict(val["card"])
-            ids["color"] = val.get("color_entity") or ids.get("color")
-            by_name[val["title"]] = ids
-            colors[val["title"]] = val.get("color")
-        else:
-            by_name[key] = val
-    complete = {n: i for n, i in by_name.items() if i.get("fee_due") and i.get("unused_value")}
-    views = [build_view(n, i, colors.get(n)) for n, i in sorted(complete.items())]
+    cards = load(sys.argv[1])
+    views = [build_view(c["title"], c["ids"], c["color"], c["perks"]) for c in cards]
     with open(sys.argv[2], "w", encoding="utf-8") as fh:
         json.dump(views, fh, indent=2)
     if len(sys.argv) > 3:
         with open(sys.argv[3], "w", encoding="utf-8") as fh:
-            json.dump(nav_section(complete, "dashboard-cardperks"), fh, indent=2)
-    print(f"{len(views)} subviews: {', '.join(v['path'] for v in views)}")
+            json.dump(nav_section(cards, "dashboard-cardperks"), fh, indent=2)
+    print(f"{len(views)} subviews")
+    for c, v in zip(cards, views, strict=True):
+        print(
+            f"  {c['title']:45s} {c['color'] or '-':12s} "
+            f"sections={len(v['sections'])} perks={len(c['perks'])} ids={len(c['ids'])}"
+        )
     return 0
 
 

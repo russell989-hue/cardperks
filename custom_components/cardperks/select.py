@@ -50,10 +50,8 @@ class CardColorSelect(CardEntity, SelectEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        card = self.card
         return {
-            "card": card.title if card else None,
-            "card_id": self.held_card_id,
+            **self.card_attributes,
             "chosen": self.held_card_id in self.coordinator.doc.card_colors,
         }
 
