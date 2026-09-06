@@ -89,11 +89,12 @@ def compute_period(
             return None
         anniv = anniversary_on_or_before(today, month, day)
         i = 0
-        start = anniv
         # Step from the anniversary (not the previous sub-period) so the day never drifts.
         while add_months(anniv, (i + 1) * n) <= today:
             i += 1
-            start = add_months(anniv, i * n)
+        start = add_months(anniv, i * n)
+        end = add_months(anniv, (i + 1) * n) - timedelta(days=1)
+        return Period(start, end)
 
     end = add_months(start, n) - timedelta(days=1)
     return Period(start, end)

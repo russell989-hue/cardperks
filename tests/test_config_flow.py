@@ -144,7 +144,7 @@ async def test_add_au_card_requires_parent(hass, setup_integration: MockConfigEn
     await hass.async_block_till_done()
     sub = next(s for s in entry.subentries.values() if s.title == "Nick's AU")
     # inherited from parent
-    assert sub.data[CONF_OPEN_DATE] == "2024-03-15"
+    assert sub.data[CONF_OPEN_DATE] == "2026-07-01"
     assert sub.data[CONF_PARENT_CARD_ID] == CARD_ID
 
 

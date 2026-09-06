@@ -197,7 +197,9 @@ def test_period_after_chains_without_drift():
     )
     assert p == Period(date(2026, 1, 31), date(2026, 2, 27))
     p = period_after(p.end, Cadence.MONTHLY, ResetRule.CARDMEMBER_YEAR, date(2025, 1, 31), None)
-    assert p == Period(date(2026, 2, 28), date(2026, 3, 30))
+    assert p == Period(
+        date(2026, 2, 28), date(2026, 3, 30)
+    )  # end from anniversary, not from Feb 28
     p = period_after(p.end, Cadence.MONTHLY, ResetRule.CARDMEMBER_YEAR, date(2025, 1, 31), None)
     assert p == Period(date(2026, 3, 31), date(2026, 4, 29))
 

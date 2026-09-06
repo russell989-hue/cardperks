@@ -77,7 +77,7 @@ def card_subentry(
     product_id: str = "test_premium",
     role: str = "primary",
     parent_card_id: str | None = None,
-    open_date: str | None = "2024-03-15",
+    open_date: str | None = "2026-07-01",
     fee_month: int | None = None,
     last4: str | None = "1234",
     nickname: str | None = None,

@@ -34,7 +34,6 @@ def test_opens_all_benefits_for_primary(catalog):
     assert (inst.period_start, inst.period_end) == ("2026-03-15", "2027-03-14")
     assert inst.amount == 300 and inst.status is BenefitStatus.UNUSED
     assert doc.instances["c1:lounge"].amount == 100  # perk default value
-    assert doc.instances["c1:sub"].amount is None  # points carry no dollar amount
     assert doc.last_rollover == "2026-09-05"
 
 
@@ -101,6 +100,7 @@ def test_one_time_closes_and_never_reopens(catalog):
     card = _card(open_date=date(2026, 7, 1))
     rollover(doc, [card], catalog, date(2026, 9, 5), NOW)
     assert doc.instances["c1:sub"].period_end == "2026-09-29"
+    assert doc.instances["c1:sub"].amount is None  # points carry no dollar amount
     rollover(doc, [card], catalog, date(2026, 10, 15), NOW)
     assert "c1:sub" not in doc.instances
     assert any(h.benefit_id == "sub" for h in doc.history)
