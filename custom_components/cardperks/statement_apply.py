@@ -149,7 +149,16 @@ def apply_statement(
     coordinator.commit()
 
     fee = latest_fee(mine)
+    seen = coordinator.doc.fee_seen.get(card_id)
+    if fee is not None and seen is not None and fee.date.isoformat() < seen:
+        # This file's fee line is older than one already applied (a prior year's export
+        # imported after this year's): it says nothing about the fee now.
+        out.fee_note = (
+            f"{fee.amount:.0f} on {fee.date.isoformat()} (older than the fee already recorded)"
+        )
+        fee = None
     if apply_fee and fee is not None:
+        coordinator.doc.fee_seen[card_id] = fee.date.isoformat()
         sub = entry.subentries[card_id]
         new_data = dict(sub.data)
         changed = False
@@ -177,7 +186,7 @@ def apply_statement(
             )
         else:
             out.fee_note = f"{fee.amount:.0f} on {fee.date.isoformat()} (already configured)"
-    elif fee is None:
+    elif fee is None and out.fee_note == "not applied":
         out.fee_note = "no fee line for this card in the export"
     return out
 

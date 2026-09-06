@@ -624,3 +624,40 @@ async def test_add_statement_match_service(
         DOMAIN, "import_statement", {"path": str(path)}, blocking=True, return_response=True
     )
     assert resp["cards"][0]["applied"]["Monthly credit"] == 20.0
+
+
+CHASE_LAST_YEAR = """Card,Transaction Date,Post Date,Description,Category,Type,Amount,Memo
+1234,07/01/2025,07/01/2025,ANNUAL MEMBERSHIP FEE,Fees & Adjustments,Fee,-350.00,
+1234,05/16/2025,05/18/2025,DINING CREDIT $300/YEAR,Fees & Adjustments,Adjustment,150.00,
+"""
+
+
+async def test_older_statement_never_overwrites_a_newer_fee(
+    hass, setup_integration: MockConfigEntry, tmp_path
+):
+    """Last year's export imported after this year's must not roll the fee back."""
+    from homeassistant.helpers import issue_registry as ir
+
+    entry = setup_integration
+    hass.config.allowlist_external_dirs.add(str(tmp_path))
+    this_year = tmp_path / "Chase1234_this.csv"
+    this_year.write_text(CHASE, encoding="utf-8")
+    last_year = tmp_path / "Chase1234_last.csv"
+    last_year.write_text(CHASE_LAST_YEAR, encoding="utf-8")
+
+    resp = await hass.services.async_call(
+        DOMAIN, "import_statement", {"path": str(this_year)}, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert "annual fee 450" in resp["cards"][0]["fee"]
+    assert entry.subentries[CARD_ID].data[CONF_ANNUAL_FEE] == 450.0
+    # 450 differs from the catalog's 500: flagged so the catalog gets looked at.
+    assert ir.async_get(hass).async_get_issue(DOMAIN, f"fee_differs_{CARD_ID}") is not None
+
+    resp = await hass.services.async_call(
+        DOMAIN, "import_statement", {"path": str(last_year)}, blocking=True, return_response=True
+    )
+    await hass.async_block_till_done()
+    assert "older than the fee already recorded" in resp["cards"][0]["fee"]
+    assert entry.subentries[CARD_ID].data[CONF_ANNUAL_FEE] == 450.0
+    assert entry.runtime_data.doc.fee_seen[CARD_ID] == "2026-07-01"

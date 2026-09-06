@@ -435,6 +435,9 @@ class StateDocument:
     imports: list[ImportRecord] = field(default_factory=list)
     last_rollover: str | None = None
     imported_refs: set[str] = field(default_factory=set)  # dedupe keys for statement imports
+    # card id -> ISO date of the newest annual-fee line any statement has shown. An older
+    # file imported later must not overwrite the fee a newer one set.
+    fee_seen: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -449,6 +452,7 @@ class StateDocument:
             "imports": [i.to_dict() for i in self.imports],
             "last_rollover": self.last_rollover,
             "imported_refs": sorted(self.imported_refs),
+            "fee_seen": self.fee_seen,
         }
 
     @classmethod
@@ -475,6 +479,7 @@ class StateDocument:
             imports=[ImportRecord.from_dict(i) for i in d.get("imports", [])],
             last_rollover=d.get("last_rollover"),
             imported_refs=set(d.get("imported_refs", [])),
+            fee_seen=dict(d.get("fee_seen", {})),
         )
 
 

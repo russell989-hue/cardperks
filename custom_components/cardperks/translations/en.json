@@ -468,6 +468,10 @@
     "statement_due": {
       "title": "No recent statement for {card}",
       "description": "The newest statement imported for {card} covers {last_month}, {months} months behind what could be covered by now. Months without a statement count as unknown rather than captured or forfeited, so this card's totals are drifting. Download the latest export from the issuer and import it (Settings, Integrations, CardPerks, Add statement)."
+    },
+    "fee_differs": {
+      "title": "Annual fee on {card} differs from the catalog",
+      "description": "{card} is set to a ${card_fee} annual fee (from the statement fee line dated {seen}), but the catalog lists {product} at ${catalog_fee}. If the issuer raised the fee, update the catalog entry (or add an override file in config/cardperks/catalog/) so every holder sees the new price. If you are on an older price, leave the card as it is."
     }
   }
 }
