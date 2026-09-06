@@ -97,3 +97,28 @@ async def test_shared_perk_is_valued_once_and_split(hass, setup_integration: Moc
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert float(hass.states.get(_eid(hass, "number", "shared_priority_pass_value")).state) == 300.0
+
+
+def test_per_card_values_seed_the_household_number(catalog):
+    """A value typed on one card before sharing existed becomes the household's number."""
+
+    from custom_components.cardperks.const import Role
+    from custom_components.cardperks.coordinator import seed_shared_values
+    from custom_components.cardperks.models import HeldCard, StateDocument
+
+    cards = [
+        HeldCard(id="a", owner_id="o", product_id="test_premium", role=Role.PRIMARY, title="A"),
+        HeldCard(id="b", owner_id="o", product_id="test_basic", role=Role.PRIMARY, title="B"),
+    ]
+    benefit = catalog.get("test_premium").benefit("priority_pass")
+    members = {"priority_pass": [(cards[0], benefit), (cards[1], benefit)]}
+
+    doc = StateDocument(perk_values={"a": {"priority_pass": 100.0, "lounge": 40.0}})
+    assert seed_shared_values(doc, members) == 1
+    assert doc.shared_values == {"priority_pass": 100.0}
+    # Idempotent, and a household value already set is never overwritten.
+    doc.shared_values["priority_pass"] = 250.0
+    assert seed_shared_values(doc, members) == 0
+    assert doc.shared_values["priority_pass"] == 250.0
+    # Nothing typed anywhere: nothing seeded, the catalog default applies at runtime.
+    assert seed_shared_values(StateDocument(), members) == 0

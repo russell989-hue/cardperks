@@ -111,6 +111,12 @@ def render_catalog(
                     flags.append('<span class="chip">enroll</span>')
                 if b.applies_to.value != "primary":
                     flags.append('<span class="chip">AU too</span>')
+                if b.shared_key:
+                    flags.append(
+                        f'<span class="chip" title="Valued once for the household as '
+                        f'{_esc(b.shared_key)} and split between the cards that carry it">'
+                        "shared</span>"
+                    )
                 rows.append(
                     "<tr>"
                     f'<td class="b-name"><div class="b-title">{_esc(b.name)} {" ".join(flags)}</div>'

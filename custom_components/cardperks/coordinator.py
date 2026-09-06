@@ -50,6 +50,32 @@ _LOGGER = logging.getLogger(__name__)
 type CardPerksConfigEntry = ConfigEntry[CardPerksCoordinator]
 
 
+def seed_shared_values(
+    doc: StateDocument, members: Mapping[str, list[tuple[HeldCard, Benefit]]]
+) -> int:
+    """Carry per-card perk values over to the household number, once.
+
+    Before shared perks existed, Priority Pass was valued on each card separately. A
+    holder who typed a value on one card was pricing the membership, so when a shared
+    key has no household value yet and any of its cards carries a typed value, the
+    household number starts as the sum of the typed values (catalog defaults are not
+    added in). Returns how many keys were seeded.
+    """
+    seeded = 0
+    for key, pairs in members.items():
+        if key in doc.shared_values:
+            continue
+        typed = [
+            doc.perk_values[card.id][benefit.id]
+            for card, benefit in pairs
+            if benefit.id in doc.perk_values.get(card.id, {})
+        ]
+        if typed:
+            doc.shared_values[key] = round(sum(typed), 2)
+            seeded += 1
+    return seeded
+
+
 class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
     """Holds the mutable state document and publishes immutable snapshots."""
 
@@ -69,6 +95,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         self.doc = doc
         self.owners = owners_from_entry(entry)
         self.cards = self._cards_with_status(cards_from_entry(entry))
+        if seed_shared_values(self.doc, self.shared_members(today_local())):
+            self.store.async_schedule_save(self.doc)
 
     def _cards_with_status(self, cards: dict[str, HeldCard]) -> dict[str, HeldCard]:
         out = {}

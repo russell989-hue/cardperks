@@ -358,7 +358,7 @@
         },
         {
           "id": "free_checked_bag",
-          "name": "First checked bag free",
+          "name": "Southwest first checked bag free",
           "type": "perk",
           "cadence": "annual",
           "amount": null,
@@ -597,7 +597,7 @@
         },
         {
           "id": "free_checked_bag",
-          "name": "First checked bag free",
+          "name": "United first checked bag free",
           "type": "perk",
           "cadence": "annual",
           "amount": null,
@@ -786,7 +786,7 @@
         },
         {
           "id": "free_checked_bags",
-          "name": "First and second checked bags free",
+          "name": "United first and second checked bags free",
           "type": "perk",
           "cadence": "annual",
           "amount": null,
@@ -1109,7 +1109,7 @@
         },
         {
           "id": "free_checked_bags",
-          "name": "First and second checked bags free",
+          "name": "United first and second checked bags free",
           "type": "perk",
           "cadence": "annual",
           "amount": null,
@@ -1201,7 +1201,7 @@
         },
         {
           "id": "free_checked_bag",
-          "name": "First checked bag free",
+          "name": "Southwest first checked bag free",
           "type": "perk",
           "cadence": "annual",
           "amount": null,
