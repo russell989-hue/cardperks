@@ -346,6 +346,22 @@ def expander(title: dict, cards: list[dict], *, expanded: bool = False) -> dict:
     }
 
 
+def full_width(card: dict) -> dict:
+    """Span the whole section, which matters once the section is two columns wide."""
+    return {**card, "grid_options": {"columns": "full"}}
+
+
+def wide_section(cards: list[dict], *, halves: int = 0) -> dict:
+    """A section spanning two dashboard columns.
+
+    Every card spans the full width except the last `halves`, which sit side by side.
+    Lists with long labels and dollar boxes need the room.
+    """
+    head = cards[: len(cards) - halves] if halves else cards
+    tail = cards[len(cards) - halves :] if halves else []
+    return {"type": "grid", "column_span": 2, "cards": [full_width(c) for c in head] + tail}
+
+
 def coloured_row(entity: str, name: str) -> dict:
     """An explicit entity row whose icon takes the card colour."""
     return {"entity": entity, "name": name, "card_mod": {"style": ROW_STYLE}}

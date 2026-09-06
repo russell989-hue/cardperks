@@ -10,7 +10,7 @@ Reading order is money first, then the things you do, then reference, then setti
   At a glance      what is unused right now, and when the fee lands
   This year        a year's worth, captured, forfeited, capture rate
   Money on hand    credits with a balance, biggest first
-  Record spending  the dollar boxes for anything not yet fully used
+  Log a credit     the dollar boxes for anything not yet fully used
   Perk values      what lounge access and status are worth to you
   All benefits     every status and expiry date
   Card settings    status; colour is set in the card form
@@ -120,7 +120,7 @@ def build_view(card: dict) -> dict:
         {
             "type": "grid",
             "cards": [
-                heading("Record what you spent", "mdi:cash-check"),
+                heading("Log a credit", "mdi:cash-check"),
                 note("Type the dollars you captured. Status follows from the amount."),
                 auto_rows(
                     [

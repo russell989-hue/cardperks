@@ -4,8 +4,14 @@
 Pulls the current config first and only adds, so hand-edited views are preserved.
 Idempotent: a section whose first card has the same heading is replaced, not duplicated.
 
+Layout set in the UI (a two-column span, a card stretched to full width) is carried
+over from the section being replaced unless the new section sets its own.
+
 Usage (on the HA box):
-  python3 append_section.py <url_path> <view_path> <section.json>
+  python3 append_section.py <url_path> <view_path> <section.json> [--was "<old heading>"]
+
+--was replaces the section that currently has the old heading, in place, when a
+section has been renamed.
 """
 
 from __future__ import annotations
@@ -37,11 +43,41 @@ def heading_of(section: dict) -> str | None:
     return None
 
 
+LAYOUT_KEYS = ("column_span", "row_span")
+CARD_LAYOUT_KEYS = ("grid_options", "layout_options")
+
+
+def keep_layout(new: dict, old: dict) -> dict:
+    """Carry layout set in the UI from the old section (or view) into its replacement.
+
+    Section-level spans, and per-card grid options where the card at the same index
+    is the same type, survive a regeneration unless the generator sets its own.
+    """
+    for key in LAYOUT_KEYS:
+        if key in old and key not in new:
+            new[key] = old[key]
+    for new_card, old_card in zip(new.get("cards", []), old.get("cards", []), strict=False):
+        if new_card.get("type") != old_card.get("type"):
+            continue
+        for key in CARD_LAYOUT_KEYS:
+            if key in old_card and key not in new_card:
+                new_card[key] = old_card[key]
+    for new_sec, old_sec in zip(new.get("sections", []), old.get("sections", []), strict=False):
+        keep_layout(new_sec, old_sec)
+    return new
+
+
 def main() -> int:
-    if len(sys.argv) != 4:
+    args = list(sys.argv[1:])
+    was = None
+    if "--was" in args:
+        i = args.index("--was")
+        was = args[i + 1]
+        del args[i : i + 2]
+    if len(args) != 3:
         print(__doc__)
         return 2
-    url_path, view_path, section_file = sys.argv[1], sys.argv[2], sys.argv[3]
+    url_path, view_path, section_file = args
     token = os.environ.get("SUPERVISOR_TOKEN")
     if not token:
         print("SUPERVISOR_TOKEN not set; run this inside the SSH add-on")
@@ -88,9 +124,9 @@ def main() -> int:
     sections = view.setdefault("sections", [])
     want = heading_of(section)
     for i, s in enumerate(sections):
-        if want is not None and heading_of(s) == want:
-            sections[i] = section
-            print(f"replaced existing '{want}' section at index {i}")
+        if (want is not None and heading_of(s) == want) or (was and heading_of(s) == was):
+            sections[i] = keep_layout(section, s)
+            print(f"replaced existing '{heading_of(s)}' section at index {i}")
             break
     else:
         sections.append(section)

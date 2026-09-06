@@ -12,6 +12,9 @@ each view's own path and <view_path> is ignored, so existing views are left alon
 e.g.
   python3 push_dashboard.py scratchpad-dashboard-wips cardperks /tmp/view.json
 
+Layout set in the UI (section spans, cards stretched to full width) is carried over
+from the view being replaced unless the new view sets its own.
+
 Auth: SUPERVISOR_TOKEN from the add-on environment.
 Backs the current config up to $CARDPERKS_BACKUP_DIR (default /tmp) first.
 """
@@ -24,6 +27,29 @@ import sys
 import time
 
 import websocket  # websocket-client
+
+LAYOUT_KEYS = ("column_span", "row_span")
+CARD_LAYOUT_KEYS = ("grid_options", "layout_options")
+
+
+def keep_layout(new: dict, old: dict) -> dict:
+    """Carry layout set in the UI from the old section (or view) into its replacement.
+
+    Section-level spans, and per-card grid options where the card at the same index
+    is the same type, survive a regeneration unless the generator sets its own.
+    """
+    for key in LAYOUT_KEYS:
+        if key in old and key not in new:
+            new[key] = old[key]
+    for new_card, old_card in zip(new.get("cards", []), old.get("cards", []), strict=False):
+        if new_card.get("type") != old_card.get("type"):
+            continue
+        for key in CARD_LAYOUT_KEYS:
+            if key in old_card and key not in new_card:
+                new_card[key] = old_card[key]
+    for new_sec, old_sec in zip(new.get("sections", []), old.get("sections", []), strict=False):
+        keep_layout(new_sec, old_sec)
+    return new
 
 
 def main() -> int:
@@ -74,7 +100,7 @@ def main() -> int:
         view["path"] = path
         for i, v in enumerate(views):
             if v.get("path") == path:
-                views[i] = view
+                views[i] = keep_layout(view, v)
                 print(f"replaced view '{path}'")
                 break
         else:

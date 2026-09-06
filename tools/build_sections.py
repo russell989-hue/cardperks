@@ -27,6 +27,7 @@ from lovelace import (
     heading,
     note,
     peek_rows,
+    wide_section,
 )
 
 ACTIVE_ONLY = {"card_status": "active"}
@@ -53,10 +54,9 @@ def dollars_left() -> dict:
 
 
 def checkoff() -> dict:
-    return {
-        "type": "grid",
-        "cards": [
-            heading("Check off", "mdi:cash-check"),
+    return wide_section(
+        [
+            heading("Log a credit", "mdi:cash-check"),
             note("Type the dollars you captured. Status follows from the amount."),
             *peek_rows(
                 [
@@ -66,8 +66,8 @@ def checkoff() -> dict:
                 "Credits with money left",
                 suffix="used",
             ),
-        ],
-    }
+        ]
+    )
 
 
 def by_card() -> dict:
@@ -161,9 +161,8 @@ def coverage() -> dict:
 
 
 def perk_values() -> dict:
-    return {
-        "type": "grid",
-        "cards": [
+    return wide_section(
+        [
             heading("What perks are worth to you", "mdi:tag-text-outline"),
             note("Lounge access and status carry no issuer amount, so the value is your call."),
             *peek_rows(
@@ -172,8 +171,8 @@ def perk_values() -> dict:
                 suffix="value",
                 noun="perks",
             ),
-        ],
-    }
+        ]
+    )
 
 
 def outstanding() -> dict:
@@ -186,9 +185,8 @@ def outstanding() -> dict:
         "| map(attribute='state') | map('float', 0) | list %}"
         "{% set total = (vals | sum) or 1 %}"
     )
-    return {
-        "type": "grid",
-        "cards": [
+    return wide_section(
+        [
             heading("Left to use, by card", "mdi:chart-donut"),
             note(
                 "Each card is a slice, largest first; the shades within it are its "
@@ -205,7 +203,8 @@ def outstanding() -> dict:
                 icon="mdi:circle-slice-8",
             ),
         ],
-    }
+        halves=2,  # the ring on the left, its legend on the right
+    )
 
 
 def net_value() -> dict:
