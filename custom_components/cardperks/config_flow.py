@@ -32,6 +32,7 @@ from homeassistant.helpers.selector import (
 from homeassistant.util import slugify
 
 from .const import (
+    ATTR_ADOPT_LAST4,
     ATTR_APPLY_FEE,
     ATTR_CARD,
     ATTR_CSV,
@@ -50,6 +51,7 @@ from .const import (
     CONF_OPEN_DATE,
     CONF_OWNER_ID,
     CONF_PARENT_CARD_ID,
+    CONF_PREVIOUS_LAST4,
     CONF_PRODUCT_ID,
     CONF_ROLE,
     DATA_IMPORTING,
@@ -71,6 +73,16 @@ MONTH_NAMES = [
 ]  # fmt: skip
 
 LAST4_RE = re.compile(r"^\d{4}$")
+
+
+def _split_last4(raw: Any) -> list[str] | None:
+    """Parse a comma or space separated list of card numbers. None if any is malformed."""
+    if isinstance(raw, list):
+        raw = ", ".join(raw)
+    parts = [p for p in re.split(r"[,\s]+", str(raw or "").strip()) if p]
+    if any(not LAST4_RE.match(p) for p in parts):
+        return None
+    return parts
 
 
 def _conditions_text(product, role: Role) -> str:
@@ -328,6 +340,7 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             vol.Optional(CONF_OPEN_DATE): TextSelector(),
             vol.Optional(CONF_FEE_MONTH): _month_selector(),
             vol.Optional(CONF_LAST4): TextSelector(),
+            vol.Optional(CONF_PREVIOUS_LAST4): TextSelector(),
             vol.Optional(CONF_NICKNAME): TextSelector(),
             vol.Optional(CONF_ANNUAL_FEE): TextSelector(),
             vol.Optional(CONF_NOTES): TextSelector(),
@@ -347,6 +360,11 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         last4 = (user_input.get(CONF_LAST4) or "").strip()
         if last4 and not LAST4_RE.match(last4):
             errors[CONF_LAST4] = "invalid_last4"
+        previous = _split_last4(user_input.get(CONF_PREVIOUS_LAST4))
+        if previous is None:
+            errors[CONF_PREVIOUS_LAST4] = "invalid_last4"
+        else:
+            user_input[CONF_PREVIOUS_LAST4] = previous
         for key in (CONF_OPEN_DATE, CONF_CLOSE_DATE):
             raw = (user_input.get(key) or "").strip()
             if raw:
@@ -377,6 +395,8 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         out[CONF_FEE_MONTH] = int(fee) if fee else None
         af = user_input.get(CONF_ANNUAL_FEE)
         out[CONF_ANNUAL_FEE] = float(af) if af not in (None, "") else None
+        prev = user_input.get(CONF_PREVIOUS_LAST4)
+        out[CONF_PREVIOUS_LAST4] = list(prev) if isinstance(prev, list) else []
         out[CONF_ENABLED_CONDITIONAL] = list(user_input.get(CONF_ENABLED_CONDITIONAL) or [])
         return out
 
@@ -463,9 +483,12 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
                 CONF_ANNUAL_FEE,
                 CONF_NOTES,
                 CONF_CLOSE_DATE,
+                CONF_PREVIOUS_LAST4,
             )
             and v is not None
         }
+        if CONF_PREVIOUS_LAST4 in current:
+            current[CONF_PREVIOUS_LAST4] = ", ".join(current[CONF_PREVIOUS_LAST4])
         if CONF_FEE_MONTH in current:
             current[CONF_FEE_MONTH] = str(current[CONF_FEE_MONTH])
         if CONF_ANNUAL_FEE in current:
@@ -649,7 +672,9 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             if user_input[ATTR_CARD] == NEW_CARD:
                 return await self.async_step_new_card()
             return await self._apply(
-                user_input[ATTR_CARD], bool(user_input.get(ATTR_APPLY_FEE, True))
+                user_input[ATTR_CARD],
+                bool(user_input.get(ATTR_APPLY_FEE, True)),
+                adopt=set(user_input.get(ATTR_ADOPT_LAST4) or ()),
             )
 
         if not cards:
@@ -671,9 +696,36 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
                 vol.Required(ATTR_APPLY_FEE, default=True): BooleanSelector(),
             }
         )
+        if unassigned := self._unassigned_last4s(catalog):
+            schema = schema.extend(
+                {
+                    vol.Optional(ATTR_ADOPT_LAST4): SelectSelector(
+                        SelectSelectorConfig(
+                            options=sorted(unassigned),
+                            multiple=True,
+                            mode=SelectSelectorMode.LIST,
+                        )
+                    )
+                }
+            )
         return self.async_show_form(
             step_id="card", data_schema=schema, description_placeholders=self._summary()
         )
+
+    def _unassigned_last4s(self, catalog: Catalog) -> set[str]:
+        """Numbers in the file that belong to no configured card.
+
+        Usually a replaced card: same account, new number after loss or theft.
+        """
+        assert self._parsed is not None
+        taken: set[str] = set()
+        for s in self._get_entry().subentries.values():
+            if s.subentry_type != SUBENTRY_CARD:
+                continue
+            if s.data.get(CONF_LAST4):
+                taken.add(s.data[CONF_LAST4])
+            taken.update(s.data.get(CONF_PREVIOUS_LAST4) or [])
+        return self._parsed.last4s - taken
 
     # ---- step 3 (optional): build the card from the statement
     async def async_step_new_card(
@@ -769,6 +821,7 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             CONF_NOTES: None,
             CONF_ANNUAL_FEE: annual_fee,
             CONF_ENABLED_CONDITIONAL: [],
+            CONF_PREVIOUS_LAST4: [],
             CONF_CLOSE_DATE: None,
         }
         subentry = ConfigSubentry(
@@ -788,17 +841,38 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         self._created_title = title
         return subentry.subentry_id
 
+    async def _adopt_numbers(self, card_id: str, adopt: set[str]) -> None:
+        """Record extra card numbers as earlier versions of this account."""
+        entry = self._get_entry()
+        sub = entry.subentries[card_id]
+        merged = sorted(set(sub.data.get(CONF_PREVIOUS_LAST4) or []) | adopt)
+        self.hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
+        try:
+            self.hass.config_entries.async_update_subentry(
+                entry, sub, data={**sub.data, CONF_PREVIOUS_LAST4: merged}
+            )
+        finally:
+            self.hass.data[DOMAIN][DATA_IMPORTING] = False
+        await self.hass.config_entries.async_reload(entry.entry_id)
+
     # ---- apply
-    async def _apply(self, card_id: str, apply_fee: bool) -> SubentryFlowResult:
+    async def _apply(
+        self, card_id: str, apply_fee: bool, adopt: set[str] | None = None
+    ) -> SubentryFlowResult:
         assert self._parsed is not None
         entry = self._get_entry()
+        adopt = adopt or set()
+        if adopt:
+            await self._adopt_numbers(card_id, adopt)
         coordinator = entry.runtime_data
         card = coordinator.card(card_id)
         product = coordinator.catalog.get(card.product_id)
 
-        # Only this card's rows: one Chase export often covers several cards.
-        parsed = self._parsed.for_last4(card.last4)
-        others = self._parsed.other_last4s(card.last4)
+        # Only this account's rows: one Chase export often covers several cards, and a
+        # replaced card appears under both its old and new numbers.
+        mine = card.all_last4
+        parsed = self._parsed.for_last4(mine)
+        others = self._parsed.other_last4s(mine)
         result = match_credits(parsed, product)
 
         applied: dict[str, float] = {}
@@ -851,6 +925,10 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
 
         names = {b.id: b.name for b in product.benefits} if product else {}
         note = ""
+        if adopt:
+            note += (
+                f"Also treating {', '.join(sorted(adopt))} as earlier numbers for this card.\n\n"
+            )
         if getattr(self, "_created_title", None):
             note = f"Created the card **{self._created_title}** from this statement.\n\n"
         if others:

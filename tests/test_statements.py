@@ -274,6 +274,14 @@ def test_for_last4_scopes_rows():
     assert parsed.for_last4(None) is parsed
 
 
+def test_for_last4_accepts_a_replaced_cards_old_numbers():
+    """A stolen card keeps its account; old statements carry the old number."""
+    parsed = parse_statement(MULTI)
+    both = parsed.for_last4({"1234", "9999"})
+    assert sorted(abs(r.amount) for r in both.credit_rows) == [100.0, 250.0]
+    assert parsed.other_last4s({"1234", "9999"}) == set()
+
+
 async def test_multi_card_statement_applies_only_matching_rows(
     hass, setup_integration: MockConfigEntry, tmp_path
 ):
@@ -304,3 +312,39 @@ async def test_multi_card_statement_applies_only_matching_rows(
         reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_travel_credit_status")
     )
     assert travel.attributes["amount_used"] == 100.0
+
+
+async def test_statement_adopts_a_replaced_cards_old_number(
+    hass, setup_integration: MockConfigEntry, tmp_path
+):
+    """Numbers in the file matching no card can be claimed as this account's former ones."""
+    from custom_components.cardperks.const import CONF_PREVIOUS_LAST4
+
+    entry = setup_integration
+    path = tmp_path / "Chase1234_Activity.csv"
+    path.write_text(MULTI, encoding="utf-8")
+
+    @contextmanager
+    def fake_upload(hass_, file_id):
+        yield path
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "statement"), context={"source": config_entries.SOURCE_USER}
+    )
+    with patch("custom_components.cardperks.config_flow.process_uploaded_file", fake_upload):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"file": UUID}
+        )
+    # 9999 belongs to no card, so it is offered for adoption
+    assert "adopt_last4" in str(result["data_schema"].schema)
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"card": CARD_ID, "apply_fee": False, "adopt_last4": ["9999"]}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    ph = result["description_placeholders"]
+    assert "9999" in ph["note"] and "earlier numbers" in ph["note"]
+    # both the old and the new number's credits land on the one card
+    assert "Travel credit: 350.00" in ph["applied"]
+    await hass.async_block_till_done()
+    assert entry.subentries[CARD_ID].data[CONF_PREVIOUS_LAST4] == ["9999"]

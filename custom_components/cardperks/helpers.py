@@ -23,6 +23,7 @@ from .const import (
     CONF_OPEN_DATE,
     CONF_OWNER_ID,
     CONF_PARENT_CARD_ID,
+    CONF_PREVIOUS_LAST4,
     CONF_PRODUCT_ID,
     CONF_ROLE,
     DOMAIN,
@@ -96,6 +97,7 @@ def card_from_subentry(sub: ConfigSubentry) -> HeldCard:
         notes=d.get(CONF_NOTES) or None,
         annual_fee=float(d[CONF_ANNUAL_FEE]) if d.get(CONF_ANNUAL_FEE) not in (None, "") else None,
         enabled_conditional=tuple(d.get(CONF_ENABLED_CONDITIONAL) or ()),
+        previous_last4=tuple(d.get(CONF_PREVIOUS_LAST4) or ()),
     )
 
 

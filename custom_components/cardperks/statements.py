@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import io
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
@@ -45,21 +46,25 @@ class ParsedStatement:
     def credit_rows(self) -> list[StatementRow]:
         return [r for r in self.rows if r.kind == "credit"]
 
-    def for_last4(self, last4: str | None) -> ParsedStatement:
+    def for_last4(self, last4: str | Iterable[str] | None) -> ParsedStatement:
         """Narrow to one card's rows.
 
         Chase exports carry a Card No. column and often several cards at once; applying
-        every credit to one card would misattribute them. Exports with no per-row card
-        number (Amex, single-card Capital One downloads) are returned unchanged.
+        every credit to one card would misattribute them. Pass every number the account
+        has had, since a replaced card keeps its benefits but changes number. Exports
+        with no per-row card number (Amex, single-card Capital One) come back unchanged.
         """
-        if not last4 or last4 not in self.last4s:
+        wanted = {last4} if isinstance(last4, str) else set(last4 or ())
+        wanted &= self.last4s
+        if not wanted:
             return self
-        rows = [r for r in self.rows if r.card_last4 == last4]
-        return ParsedStatement(self.issuer, rows, {last4}, self.filename_last4)
+        rows = [r for r in self.rows if r.card_last4 in wanted]
+        return ParsedStatement(self.issuer, rows, wanted, self.filename_last4)
 
-    def other_last4s(self, last4: str | None) -> set[str]:
-        """Card numbers in the file that are not the one being applied."""
-        return {x for x in self.last4s if x != last4}
+    def other_last4s(self, last4: str | Iterable[str] | None) -> set[str]:
+        """Card numbers in the file that are not this account's."""
+        known = {last4} if isinstance(last4, str) else set(last4 or ())
+        return {x for x in self.last4s if x not in known}
 
     @property
     def date_range(self) -> tuple[date, date] | None:

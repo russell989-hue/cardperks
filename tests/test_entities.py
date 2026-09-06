@@ -336,3 +336,21 @@ async def test_perk_value_number(hass, setup_integration: MockConfigEntry):
     await hass.config_entries.async_reload(setup_integration.entry_id)
     await hass.async_block_till_done()
     assert float(hass.states.get(num).state) == 250.0
+
+
+def test_all_last4_covers_replacements():
+    from custom_components.cardperks.const import Role
+    from custom_components.cardperks.models import HeldCard
+
+    card = HeldCard(
+        id="c1",
+        owner_id="o1",
+        product_id="p",
+        role=Role.PRIMARY,
+        title="t",
+        last4="1111",
+        previous_last4=("2222", "3333"),
+    )
+    assert card.all_last4 == frozenset({"1111", "2222", "3333"})
+    bare = HeldCard(id="c2", owner_id="o1", product_id="p", role=Role.PRIMARY, title="t")
+    assert bare.all_last4 == frozenset()

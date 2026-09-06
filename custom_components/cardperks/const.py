@@ -33,6 +33,7 @@ CONF_CLOSE_DATE = "close_date"
 CONF_NOTES = "notes"
 CONF_ANNUAL_FEE = "annual_fee"
 CONF_ENABLED_CONDITIONAL = "enabled_conditional"
+CONF_PREVIOUS_LAST4 = "previous_last4"
 
 ATTR_AMOUNT = "amount"
 ATTR_AMOUNT_USED = "amount_used"
@@ -54,6 +55,7 @@ ATTR_CSV = "csv"
 ATTR_FILE = "file"
 ATTR_CARD = "card"
 ATTR_APPLY_FEE = "apply_fee"
+ATTR_ADOPT_LAST4 = "adopt_last4"
 DATA_IMPORTING = "importing"
 
 STALE_CATALOG_DAYS = 183

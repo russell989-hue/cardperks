@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from types import MappingProxyType
@@ -25,6 +26,7 @@ from .const import (
     CONF_OPEN_DATE,
     CONF_OWNER_ID,
     CONF_PARENT_CARD_ID,
+    CONF_PREVIOUS_LAST4,
     CONF_PRODUCT_ID,
     CONF_ROLE,
     SUBENTRY_CARD,
@@ -54,6 +56,8 @@ COLUMN_ALIASES: dict[str, str] = {
     "notes": "notes",
     "annual_fee": "annual_fee",
     "fee": "annual_fee",
+    "previous_last4": "previous_last4",
+    "old_last4": "previous_last4",
 }
 
 MONTHS = {
@@ -292,6 +296,9 @@ async def async_import_cards(
                 CONF_NOTES: row.get("notes", "") or None,
                 CONF_ANNUAL_FEE: annual_fee,
                 CONF_ENABLED_CONDITIONAL: [],
+                CONF_PREVIOUS_LAST4: [
+                    p for p in re.split(r"[,\s]+", row.get("previous_last4", "").strip()) if p
+                ],
                 CONF_CLOSE_DATE: None,
             }
             sub = ConfigSubentry(

@@ -152,6 +152,16 @@ class HeldCard:
     notes: str | None = None
     annual_fee: float | None = None  # overrides the catalog fee (grandfathered pricing)
     enabled_conditional: tuple[str, ...] = ()  # conditional benefit ids this card qualifies for
+    previous_last4: tuple[str, ...] = ()  # numbers this account had before replacement
+
+    @property
+    def all_last4(self) -> frozenset[str]:
+        """Every card number this account has had.
+
+        A replaced card (lost, stolen, expired) keeps the same account and benefit
+        periods but gets a new number, and old statements still carry the old one.
+        """
+        return frozenset(x for x in (self.last4, *self.previous_last4) if x)
 
     def is_active(self, today: date) -> bool:
         return self.close_date is None or self.close_date >= today
