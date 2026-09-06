@@ -8,7 +8,7 @@ what was available when, since issuer pages do not publish theirs.
 
 - **Amex Platinum Digital Entertainment credit**: eligible services recorded in the new
   `eligible` field (Disney+, ESPN, Hulu, The New York Times, Paramount+, Peacock, The Wall
-  Street Journal, YouTube) with each one's direct-purchase rule.
+  Street Journal, YouTube).
 - **Amex Business Platinum and Business Gold** read from the official pages in a browser and
   `needs_verification` cleared. Business Platinum gains the $300 ChatGPT Business credit,
   Leaders Club Sterling status and The Hotel Collection $100 credit; the welcome offer shown

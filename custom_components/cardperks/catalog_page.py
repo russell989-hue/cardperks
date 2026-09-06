@@ -122,9 +122,7 @@ def render_catalog(
                     f'<td class="b-name"><div class="b-title">{_esc(b.name)} {" ".join(flags)}</div>'
                     f'<div class="b-notes">{_esc(b.notes or "")}</div>'
                     + (
-                        '<ul class="eligible">'
-                        + "".join(f"<li>{_esc(e)}</li>" for e in b.eligible)
-                        + "</ul>"
+                        f'<div class="eligible">Eligible: {_esc(", ".join(b.eligible))}</div>'
                         if b.eligible
                         else ""
                     )
@@ -234,8 +232,7 @@ th.num {{ text-align: right; }}
 .b-name {{ min-width: 260px; }}
 .b-title {{ font-weight: 500; }}
 .b-notes {{ color: var(--ink-2); font-size: 13px; max-width: 58ch; }}
-.eligible {{ margin: 6px 0 0; padding-left: 16px; color: var(--ink-2); font-size: 12.5px; max-width: 58ch; }}
-.eligible li {{ margin: 2px 0; }}
+.eligible {{ margin: 4px 0 0; color: var(--ink-3); font-size: 12.5px; max-width: 58ch; }}
 .match {{ min-width: 160px; }}
 .match code {{ margin-right: 4px; }}
 .type {{ display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; }}
