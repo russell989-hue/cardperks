@@ -77,6 +77,9 @@ git-filter-repo to enforce this, so do not merge anything from an old clone.
   active cards that carry it; the per-card `_value` number does not exist for it. The
   coordinator folds the split into `effective_perk_values`, which rollover, summaries and
   the snapshot all use.
+- **Ledger** (`doc.ledger`, a `_ledger` sensor per card): every dollar logged against a
+  benefit with date, amount, source (statement or manual) and note; corrections are
+  negative lines. Seeded once from `imported_refs`.
 - **Calendar** (`calendar.household_calendar`, on the Household device): fee dates, a review
   reminder 30 days before each, big credits closing with money still on them, statuses
   entered by hand lapsing, and the household's own reminders (`doc.reminders`, added from
@@ -143,7 +146,7 @@ integration and wired in via `extra_module_url` in configuration.yaml):
   use, captured this year, missed this year, the next big credit to close), Cards (one tile
   per active card from a template, tap opens the subview), Big ticket items, Expiring within
   30 days, the Left-to-use ring.
-- **Money**: Was it worth it? (a verdict per card from its newest complete cardmember year),
+- **Analysis** (path `money`): Was it worth it? (a verdict per card from its newest complete cardmember year),
   By card money bars, Net value gauges, Annual fees, Where the big dollars went (ring plus
   the forfeited list), By year (a table per card).
 - **Upkeep**: Statements (overdue, then coverage), Log a credit, What perks are worth to you.
