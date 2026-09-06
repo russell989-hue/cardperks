@@ -69,14 +69,24 @@ def templates(obj, path=""):
 def _any_fee_due() -> str:
     """One card-level sensor to stand in for `entity` while rendering templates."""
     mid_ = 9999
-    ws.send(json.dumps({"id": mid_, "type": "render_template", "template": "{{ states.sensor | selectattr('attributes.kind', 'defined') | selectattr('attributes.kind', 'eq', 'fee_due') | map(attribute='entity_id') | first }}", "timeout": 10}))
+    ws.send(
+        json.dumps(
+            {
+                "id": mid_,
+                "type": "render_template",
+                "template": "{{ states.sensor | selectattr('attributes.kind', 'defined') | selectattr('attributes.kind', 'eq', 'fee_due') | map(attribute='entity_id') | first }}",
+                "timeout": 10,
+            }
+        )
+    )
     while True:
         m = json.loads(ws.recv())
         if m.get("id") == mid_ and m.get("type") == "event":
             return m["event"]["result"]
 
 
-PRE = "{% set entity = '" + _any_fee_due() + "' %}{% set config = {'entity': entity} %}"bad = total = 0
+PRE = "{% set entity = '" + _any_fee_due() + "' %}{% set config = {'entity': entity} %}"
+bad = total = 0
 sources = [
     (n, load(f"/tmp/dash/sections/{n}.json"))
     for n in (
