@@ -37,6 +37,7 @@ from .const import (
     ATTR_FILE,
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
+    CONF_ENABLED_CONDITIONAL,
     CONF_FEE_MONTH,
     CONF_FIRST_OWNER,
     CONF_HOUSEHOLD_NAME,
@@ -69,6 +70,16 @@ MONTH_NAMES = [
 ]  # fmt: skip
 
 LAST4_RE = re.compile(r"^\d{4}$")
+
+
+def _conditions_text(product, role: Role) -> str:
+    """Explain each conditional benefit so the user can tell if they qualify."""
+    if product is None:
+        return ""
+    lines = [
+        f"- **{b.name}**: {b.condition}" for b in product.conditional_benefits(role) if b.condition
+    ]
+    return "\n".join(lines) if lines else ""
 
 
 def _month_selector() -> SelectSelector:
@@ -300,7 +311,18 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         )
 
     # ---- step 3: details
-    def _details_schema(self, include_close: bool) -> vol.Schema:
+    def _conditional_options(self, product_id: str, role: Role) -> list[SelectOptionDict]:
+        catalog = self._catalog
+        product = catalog.get(product_id) if catalog else None
+        if product is None:
+            return []
+        return [
+            SelectOptionDict(value=b.id, label=b.name) for b in product.conditional_benefits(role)
+        ]
+
+    def _details_schema(
+        self, include_close: bool, conditional: list[SelectOptionDict] | None = None
+    ) -> vol.Schema:
         schema: dict[Any, Any] = {
             vol.Optional(CONF_OPEN_DATE): TextSelector(),
             vol.Optional(CONF_FEE_MONTH): _month_selector(),
@@ -309,6 +331,12 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             vol.Optional(CONF_ANNUAL_FEE): TextSelector(),
             vol.Optional(CONF_NOTES): TextSelector(),
         }
+        if conditional:
+            schema[vol.Optional(CONF_ENABLED_CONDITIONAL)] = SelectSelector(
+                SelectSelectorConfig(
+                    options=conditional, multiple=True, mode=SelectSelectorMode.LIST
+                )
+            )
         if include_close:
             schema[vol.Optional(CONF_CLOSE_DATE)] = TextSelector()
         return vol.Schema(schema)
@@ -348,6 +376,7 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         out[CONF_FEE_MONTH] = int(fee) if fee else None
         af = user_input.get(CONF_ANNUAL_FEE)
         out[CONF_ANNUAL_FEE] = float(af) if af not in (None, "") else None
+        out[CONF_ENABLED_CONDITIONAL] = list(user_input.get(CONF_ENABLED_CONDITIONAL) or [])
         return out
 
     async def _title_for(self, data: dict[str, Any]) -> str:
@@ -395,10 +424,15 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
                     **details,
                 }
                 return self.async_create_entry(title=await self._title_for(data), data=data)
+        catalog = await self._catalog_or_load()
+        options = self._conditional_options(self._data[CONF_PRODUCT_ID], role)
         return self.async_show_form(
             step_id="details",
-            data_schema=self._details_schema(include_close=False),
+            data_schema=self._details_schema(include_close=False, conditional=options),
             errors=errors,
+            description_placeholders={
+                "conditions": _conditions_text(catalog.get(self._data[CONF_PRODUCT_ID]), role)
+            },
         )
 
     async def async_step_reconfigure(
@@ -435,12 +469,18 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             current[CONF_FEE_MONTH] = str(current[CONF_FEE_MONTH])
         if CONF_ANNUAL_FEE in current:
             current[CONF_ANNUAL_FEE] = str(current[CONF_ANNUAL_FEE])
+        catalog = await self._catalog_or_load()
+        product = catalog.get(subentry.data.get(CONF_PRODUCT_ID, ""))
+        options = self._conditional_options(subentry.data.get(CONF_PRODUCT_ID, ""), role)
+        if subentry.data.get(CONF_ENABLED_CONDITIONAL):
+            current[CONF_ENABLED_CONDITIONAL] = list(subentry.data[CONF_ENABLED_CONDITIONAL])
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=self.add_suggested_values_to_schema(
-                self._details_schema(include_close=True), current
+                self._details_schema(include_close=True, conditional=options), current
             ),
             errors=errors,
+            description_placeholders={"conditions": _conditions_text(product, role)},
         )
 
 

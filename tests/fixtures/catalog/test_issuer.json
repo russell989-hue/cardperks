@@ -73,6 +73,19 @@
           "applies_to": "primary",
           "expires_days_after_open": 90,
           "spend_required": 4000
+        },
+        {
+          "id": "status_bonus",
+          "name": "Status bonus",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "default_value": 200,
+          "conditional": true,
+          "condition": "Elite status required"
         }
       ],
       "earning_rates": [

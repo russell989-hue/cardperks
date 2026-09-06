@@ -28,6 +28,8 @@ class Benefit:
     spend_required: float | None = None
     notes: str | None = None
     statement_match: tuple[str, ...] = ()  # regexes matched against statement descriptions
+    conditional: bool = False  # only some cardholders qualify; off unless enabled per card
+    condition: str | None = None  # human-readable qualification, shown in the card form
 
     def applies_to_role(self, role: Role) -> bool:
         if role is Role.PRIMARY:
@@ -88,6 +90,16 @@ class Product:
     def benefits_for_role(self, role: Role) -> tuple[Benefit, ...]:
         return tuple(b for b in self.benefits if b.applies_to_role(role))
 
+    def conditional_benefits(self, role: Role) -> tuple[Benefit, ...]:
+        return tuple(b for b in self.benefits_for_role(role) if b.conditional)
+
+    def benefits_for(self, card: HeldCard) -> tuple[Benefit, ...]:
+        """Benefits active for this specific card: role-eligible, conditionals opted in."""
+        enabled = set(card.enabled_conditional)
+        return tuple(
+            b for b in self.benefits_for_role(card.role) if not b.conditional or b.id in enabled
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class CatalogProblem:
@@ -139,6 +151,7 @@ class HeldCard:
     close_date: date | None = None
     notes: str | None = None
     annual_fee: float | None = None  # overrides the catalog fee (grandfathered pricing)
+    enabled_conditional: tuple[str, ...] = ()  # conditional benefit ids this card qualifies for
 
     def is_active(self, today: date) -> bool:
         return self.close_date is None or self.close_date >= today

@@ -43,6 +43,8 @@ BENEFIT_SCHEMA = vol.Schema(
         vol.Optional("spend_required"): vol.Any(None, vol.Coerce(float)),
         vol.Optional("notes"): vol.Any(None, str),
         vol.Optional("statement_match", default=list): [str],
+        vol.Optional("conditional", default=False): bool,
+        vol.Optional("condition"): vol.Any(None, str),
     }
 )
 
@@ -106,6 +108,8 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
             spend_required=b.get("spend_required"),
             notes=b.get("notes"),
             statement_match=tuple(b.get("statement_match", [])),
+            conditional=b["conditional"],
+            condition=b.get("condition"),
         )
         for b in raw["benefits"]
     )

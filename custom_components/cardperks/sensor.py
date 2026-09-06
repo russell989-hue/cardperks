@@ -44,7 +44,7 @@ async def async_setup_entry(
                 CardUnusedValueSensor(coordinator, card),
                 CardNetValue12mSensor(coordinator, card),
             ]
-            for b in product.benefits_for_role(card.role):
+            for b in product.benefits_for(card):
                 entities.append(BenefitExpiresSensor(coordinator, card, b))
                 entities.append(BenefitRemainingSensor(coordinator, card, b))
             async_add_entities(entities, config_subentry_id=sub.subentry_id)

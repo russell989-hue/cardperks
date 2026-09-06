@@ -32,6 +32,7 @@ CONF_NICKNAME = "nickname"
 CONF_CLOSE_DATE = "close_date"
 CONF_NOTES = "notes"
 CONF_ANNUAL_FEE = "annual_fee"
+CONF_ENABLED_CONDITIONAL = "enabled_conditional"
 
 ATTR_AMOUNT = "amount"
 ATTR_AMOUNT_USED = "amount_used"

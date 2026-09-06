@@ -481,6 +481,20 @@
           "notes": "Primary cardholder only; authorized users do not get their own access"
         },
         {
+          "id": "all_access_au_passes",
+          "name": "United Club passes for authorized user (All Access)",
+          "type": "perk",
+          "cadence": "per_anniversary",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "primary",
+          "default_value": 236,
+          "conditional": true,
+          "condition": "United Club All Access, unlocked by $50,000 of calendar-year spend or United Premier Gold status or higher, plus an authorized user on the account. Four one-time passes are gifted each account anniversary.",
+          "notes": "Four one-time passes; the authorized user can use them travelling alone"
+        },
+        {
           "id": "hotel_credit",
           "name": "Renowned Hotels credit",
           "type": "statement_credit",

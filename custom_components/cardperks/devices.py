@@ -91,7 +91,7 @@ def async_cleanup_entities(
         product = coordinator.catalog.get(card.product_id)
         if product is None:
             continue
-        for benefit in product.benefits_for_role(card.role):
+        for benefit in product.benefits_for(card):
             expected.update(
                 f"{card.id}_{benefit.id}_{suffix}"
                 for suffix in ("status", "expires", "remaining", "mark_used")

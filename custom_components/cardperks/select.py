@@ -45,7 +45,7 @@ async def async_setup_entry(
         async_add_entities(
             [
                 BenefitStatusSelect(coordinator, card, benefit)
-                for benefit in product.benefits_for_role(card.role)
+                for benefit in product.benefits_for(card)
             ],
             config_subentry_id=sub.subentry_id,
         )

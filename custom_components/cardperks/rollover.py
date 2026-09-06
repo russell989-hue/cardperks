@@ -118,7 +118,9 @@ def rollover(
             _close(doc, inst, now_iso, "closed_card")
             result.closed += 1
             result.changed = True
-        elif not benefit.applies_to_role(card.role):
+        elif not benefit.applies_to_role(card.role) or (
+            benefit.conditional and benefit.id not in card.enabled_conditional
+        ):
             # Catalog corrected: this benefit no longer applies to this cardholder role.
             _close(doc, inst, now_iso, "not_applicable")
             result.closed += 1
@@ -131,7 +133,7 @@ def rollover(
         product = catalog.get(card.product_id)
         if product is None:
             continue
-        for benefit in product.benefits_for_role(card.role):
+        for benefit in product.benefits_for(card):
             key = instance_key(card.id, benefit.id)
             expected = _card_period(card, benefit, today)
             if expected is None:

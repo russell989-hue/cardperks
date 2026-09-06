@@ -129,24 +129,27 @@
         },
         "details": {
           "title": "Card details",
-          "description": "Open date or fee month is needed for anniversary-based benefits. Type dates as YYYY-MM-DD. Last four digits only help tell duplicate products apart; never enter a full card number.",
+          "description": "Open date or fee month is needed for anniversary-based benefits. Type dates as YYYY-MM-DD. Last four digits only help tell duplicate products apart; never enter a full card number.\n\n{conditions}",
           "data": {
             "open_date": "Open date (YYYY-MM-DD)",
             "fee_month": "Annual fee month",
             "last4": "Last four digits (optional)",
             "nickname": "Nickname (optional)",
             "annual_fee": "Annual fee override (optional, if yours differs from the catalog)",
+            "enabled_conditional": "Conditional benefits you qualify for",
             "notes": "Notes (optional)"
           }
         },
         "reconfigure": {
           "title": "Edit card",
+          "description": "{conditions}",
           "data": {
             "open_date": "Open date (YYYY-MM-DD)",
             "fee_month": "Annual fee month",
             "last4": "Last four digits (optional)",
             "nickname": "Nickname (optional)",
             "annual_fee": "Annual fee override (optional, if yours differs from the catalog)",
+            "enabled_conditional": "Conditional benefits you qualify for",
             "notes": "Notes (optional)",
             "close_date": "Close date (YYYY-MM-DD, if closed)"
           }

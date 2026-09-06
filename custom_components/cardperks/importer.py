@@ -16,6 +16,7 @@ from homeassistant.util import slugify
 from .const import (
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
+    CONF_ENABLED_CONDITIONAL,
     CONF_FEE_MONTH,
     CONF_LAST4,
     CONF_NAME,
@@ -290,6 +291,7 @@ async def async_import_cards(
                 CONF_NICKNAME: nickname,
                 CONF_NOTES: row.get("notes", "") or None,
                 CONF_ANNUAL_FEE: annual_fee,
+                CONF_ENABLED_CONDITIONAL: [],
                 CONF_CLOSE_DATE: None,
             }
             sub = ConfigSubentry(

@@ -264,3 +264,44 @@ async def test_catalog_change_removes_stale_entities(
     closed = [h for h in doc.history if h.held_card_id == AU_CARD_ID and h.benefit_id == "lounge"]
     assert len(closed) == 1 and closed[0].closed_by == "not_applicable"
     assert closed[0].final_status == "used"
+
+
+async def test_conditional_benefit_is_off_until_enabled(hass, mock_entry: MockConfigEntry):
+    """Conditional benefits only exist for cards whose holder says they qualify."""
+    from custom_components.cardperks.const import CONF_ENABLED_CONDITIONAL
+
+    mock_entry.add_to_hass(hass)
+    await hass.config.async_set_time_zone("UTC")
+    assert await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+
+    reg = er.async_get(hass)
+    assert reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_status_bonus_status") is None
+    assert f"{CARD_ID}:status_bonus" not in mock_entry.runtime_data.doc.instances
+    baseline = float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state)
+
+    sub = mock_entry.subentries[CARD_ID]
+    hass.config_entries.async_update_subentry(
+        mock_entry, sub, data={**sub.data, CONF_ENABLED_CONDITIONAL: ["status_bonus"]}
+    )
+    await hass.async_block_till_done()
+
+    assert hass.states.get(_eid(hass, "select", f"{CARD_ID}_status_bonus_status")).state == "unused"
+    rem = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_status_bonus_remaining"))
+    assert float(rem.state) == 200.0
+    assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state) == (
+        baseline + 200.0
+    )
+
+    # Turning it back off removes the entities and closes the instance.
+    sub = mock_entry.subentries[CARD_ID]
+    hass.config_entries.async_update_subentry(
+        mock_entry, sub, data={**sub.data, CONF_ENABLED_CONDITIONAL: []}
+    )
+    await hass.async_block_till_done()
+    assert reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_status_bonus_status") is None
+    doc = mock_entry.runtime_data.doc
+    assert f"{CARD_ID}:status_bonus" not in doc.instances
+    assert any(
+        h.benefit_id == "status_bonus" and h.closed_by == "not_applicable" for h in doc.history
+    )
