@@ -69,4 +69,8 @@ pytest -q
 ruff check .
 ```
 
-`tools/deploy.sh` copies the integration to a Home Assistant OS box over SSH and reloads it; `tools/deploy.sh --restart` restarts Core instead.
+`tools/deploy.sh` copies the integration to a Home Assistant OS box over SSH and reloads it; `tools/deploy.sh --restart` restarts Core instead. Any change to a `.py` file needs the restart, since a reload keeps the modules already imported.
+
+## Dashboards
+
+The Lovelace dashboard is generated: `tools/build_sections.py` and `tools/build_card_views.py` write JSON from the live entity map, and the push tools in `tools/` apply it over the Supervisor websocket while keeping layout set in the UI. `HANDOFF.md` explains the structure, the visual tricks, and the working agreements.
