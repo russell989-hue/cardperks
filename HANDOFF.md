@@ -1,7 +1,7 @@
 # CardPerks handoff
 
 State of the project as of 2026-09-06, written so someone new (or a future session)
-can pick it up without the conversation that built it. Read this, then `BACKLOG.md`.
+can pick it up without the conversation that built it. Read this, then `TODO.md`.
 
 ## What it is
 
@@ -29,7 +29,8 @@ month. Manual dollar boxes exist as the fallback, not the main flow.
 | `brands/` | icon and logo PNGs for the home-assistant/brands PR, rendered by `tools/make_brand.py` |
 | `docs/CATALOG.md` | catalog field reference and contribution rules |
 | `custom_components/cardperks/panel.py` | serves the catalog page at `/cardperks/catalog` (rendered live by `catalog_page.py`, overrides included, no auth: catalog data only) and the fonts at `/cardperks/static/`; the dashboard's Catalog view is an iframe over it |
-| `BACKLOG.md` | what is deferred and why |
+| `TODO.md` | one list of what is next and why |
+| `docs/CATALOG-LOG.md` | dated record of catalog changes |
 | `README.md` | user-facing install and usage |
 
 The repo is `C:\Users\BrianRussell\dev\cardperks`, branch `main`, with a private
