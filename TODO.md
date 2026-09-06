@@ -43,8 +43,10 @@ gaps. Decision (2026-09-06): historical mode reports what statements prove, fee 
 captured and net per cardmember year, and never claims what was available in past
 years, because curating old issuer terms from memory breaks the official-sources rule.
 
-- [ ] Multi-year import in one pass, walking every period the file covers.
-- [ ] Reconstruct the period grid backwards from the open date or fee month.
+- [x] Multi-year import in one pass: an export already writes every closed period it
+      covers into history, so nothing was needed beyond keeping fee lines by date.
+- [x] Reconstructing past periods is not needed under the decision above: past years report
+      captured and fees, never what was available.
 - [x] Per-cardmember-year table: fee seen, captured, net, months a statement covers; on the
       Money tab (2026-09-06). Fee lines are kept per date from now on; statements imported
       before that day show no fee for past years until they are dropped in again.
@@ -54,14 +56,16 @@ years, because curating old issuer terms from memory breaks the official-sources
 Status both comes from cards and unlocks card benefits; United Premier Gold is what
 makes the Club All Access authorized-user passes real, and that link is a note today.
 
-- [ ] A `status` subentry per program per owner: program, tier, qualifying period end,
-      how it was earned.
-- [ ] Entities: current tier, expiry, days remaining, progress where thresholds are public.
-- [ ] Catalog: `grants_status` on a benefit (holding the card confers Hilton Gold) and
-      `requires_status` on a conditional benefit, so qualification is evaluated instead of
-      hand-toggled. Renewal reminders reuse the 45-day fee pattern.
-- [ ] Decide which programs ship versus user-defined, and whether qualifying-activity
-      tracking (segments, nights, dollars) is worth the data entry.
+- [x] A `status` subentry per program per owner (2026-09-06): owner, program, tier, valid
+      through, how it was earned. Card-granted status comes from `grants_status` in the
+      catalog and needs no entry.
+- [x] A status sensor each: tier as state, source, valid through, days left, expiring-soon
+      flag; listed on the Upkeep tab soonest to lapse first.
+- [ ] `requires_status` on a conditional benefit, so qualification is evaluated from the
+      statuses held instead of hand-toggled (United Club All Access passes need Premier Gold
+      or better). Renewal reminders as a repair, reusing the 45-day fee pattern.
+- [ ] Progress toward the next tier where thresholds are public, and whether tracking
+      qualifying activity (segments, nights, dollars) is worth the data entry.
 
 ### Money views
 
