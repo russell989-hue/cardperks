@@ -37,13 +37,14 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"
     assert travel.attributes["amount"] == 300 and travel.attributes["period_end"] == "2027-06-30"
+    assert travel.attributes["kind"] == "benefit_status" and travel.attributes["card_id"] == CARD_ID
     assert travel.name == "Premium Card (Brian | 1234) Travel credit status"
 
     expires = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_expires"))
     assert expires.state == "2026-12-31" and expires.attributes["days_left"] == 117
 
     fee = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_fee_due"))
-    assert fee.state == "2027-07-01"
+    assert fee.state == "2027-07-01" and fee.attributes["kind"] == "fee_due"
     assert hass.states.get(_eid(hass, "binary_sensor", f"{CARD_ID}_fee_within_45d")).state == "off"
 
     rem = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_remaining"))

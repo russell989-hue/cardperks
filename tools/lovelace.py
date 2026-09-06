@@ -33,16 +33,18 @@ def note(text: str) -> dict:
     return {"type": "markdown", "text_only": True, "content": text}
 
 
-def base_filter(card_id: str | None = None) -> dict:
-    """Scope to this integration, and to one card when asked.
+def base_filter(card_id: str | None = None, **attrs: str) -> dict:
+    """An auto-entities rule made only of attribute matches.
 
-    Matching on the card id survives a device rename, which matching on the device
-    name does not.
+    Every CardPerks entity carries `kind`, `card_id` and `card_status`, so any list can
+    be expressed as attribute rules alone. The auto-entities visual editor can show
+    those; it cannot show integration or wildcard entity-id rules, and marks them
+    "Unknown". Matching on the card id also survives a device rename.
     """
-    f: dict = {"integration": "cardperks"}
+    attributes = dict(attrs)
     if card_id:
-        f["attributes"] = {"card_id": card_id}
-    return f
+        attributes["card_id"] = card_id
+    return {"attributes": attributes} if attributes else {}
 
 
 def template_card(

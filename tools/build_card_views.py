@@ -110,7 +110,7 @@ def build_view(card: dict) -> dict:
             "cards": [
                 heading("Money on hand", "mdi:cash-clock"),
                 auto_cards(
-                    [{**scope, "entity_id": "*_remaining", "state": "> 0"}],
+                    [{**base_filter(card_id, kind="benefit_remaining"), "state": "> 0"}],
                     primary="{{ state_attr(entity, 'benefit') }}",
                     secondary=DOLLARS + " left · expires {{ state_attr(entity, 'period_end') }}",
                     icon="mdi:cash-clock",
@@ -159,7 +159,7 @@ def build_view(card: dict) -> dict:
             "cards": [
                 heading("All benefits", "mdi:format-list-bulleted"),
                 auto_cards(
-                    [{**scope, "entity_id": "*_status"}],
+                    [base_filter(card_id, kind="benefit_status")],
                     primary="{{ state_attr(entity, 'benefit') }}",
                     secondary=(
                         "{{ states(entity) | replace('_', ' ') | replace('n a', 'not applicable') }}"

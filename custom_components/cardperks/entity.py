@@ -38,9 +38,15 @@ class CardEntity(CardPerksEntity):
 
     @property
     def card_attributes(self) -> dict[str, str | None]:
-        """Identity of the card, repeated on its entities so a dashboard can group and colour."""
+        """Identity of the card, repeated on its entities so a dashboard can group and colour.
+
+        `kind` names what the entity is (fee_due, benefit_remaining, perk_value, ...) so a
+        dashboard filter can say `attributes: {kind: fee_due}` instead of guessing at
+        entity ids, which follow whatever the entity was called when it was created.
+        """
         card = self.card
         return {
+            "kind": self.translation_key,
             "card": card.title if card else None,
             "card_id": self.held_card_id,
             "color": self.coordinator.data.colors.get(self.held_card_id),
@@ -78,7 +84,11 @@ class OwnerEntity(CardPerksEntity):
     def owner_attributes(self) -> dict[str, str | None]:
         """Identity of the owner, so a dashboard can find these without guessing entity ids."""
         owner = self.coordinator.data.owners.get(self.owner_id)
-        return {"owner": owner.name if owner else None, "owner_id": self.owner_id}
+        return {
+            "kind": self.translation_key,
+            "owner": owner.name if owner else None,
+            "owner_id": self.owner_id,
+        }
 
     @property
     def summary(self):

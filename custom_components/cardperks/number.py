@@ -167,7 +167,6 @@ class PerkValueNumber(BenefitEntity, NumberEntity):
             "benefit": self.benefit.name,
             "benefit_id": self.benefit_id,
             "catalog_default": self.benefit.default_value,
-            "kind": "perk_value",  # stable hook for dashboard filters
             "customised": override is not None,
             "notes": self.benefit.notes,
         }

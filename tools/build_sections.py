@@ -32,7 +32,7 @@ def dollars_left() -> dict:
         "cards": [
             heading("Dollars left by benefit", "mdi:cash-clock"),
             auto_cards(
-                [{**with_status(base_filter()), "entity_id": "*_remaining", "state": "> 0"}],
+                [{**with_status(base_filter(kind="benefit_remaining")), "state": "> 0"}],
                 primary="{{ state_attr(entity, 'benefit') }}",
                 secondary=DOLLARS + " left · {{ state_attr(entity, 'card') }}",
                 icon="mdi:cash-clock",
@@ -69,7 +69,7 @@ def by_card() -> dict:
                 "using it, which is gone rather than pending."
             ),
             auto_cards(
-                [{**with_status(base_filter()), "entity_id": "*_capture_rate"}],
+                [with_status(base_filter(kind="capture_rate"))],
                 primary="{{ state_attr(entity, 'card') }}",
                 secondary=(
                     "${{ " + attr("captured_12m") + " | round(0) | int }} of "
@@ -90,7 +90,7 @@ def fees() -> dict:
         "cards": [
             heading("Annual fees", "mdi:calendar-cash"),
             auto_cards(
-                [{**with_status(base_filter()), "entity_id": "*_annual_fee_due"}],
+                [with_status(base_filter(kind="fee_due"))],
                 primary="{{ state_attr(entity, 'card') }}",
                 secondary=(
                     "${{ " + attr("annual_fee") + " | round(0) | int }} · due "
@@ -110,10 +110,7 @@ def expiring() -> dict:
             heading("Expiring within 30 days", "mdi:timer-sand"),
             auto_cards(
                 [
-                    {
-                        **with_status(base_filter(), status=s, days_left="< 31"),
-                        "entity_id": "*_expires",
-                    }
+                    with_status(base_filter(kind="benefit_expires"), status=s, days_left="< 31")
                     for s in ("unused", "partial")
                 ],
                 primary="{{ state_attr(entity, 'benefit') }}",
@@ -136,7 +133,7 @@ def coverage() -> dict:
             heading("Statement coverage", "mdi:file-document-check-outline"),
             note("A month with no statement is unknown, not proof a credit went unused."),
             auto_cards(
-                [{**with_status(base_filter()), "entity_id": "*_statement_coverage"}],
+                [with_status(base_filter(kind="coverage_12m"))],
                 primary="{{ state_attr(entity, 'card') }}",
                 secondary=(
                     "{{ states(entity) }}/12 months · "

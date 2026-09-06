@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.button import ButtonEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -38,6 +40,11 @@ async def async_setup_entry(
 
 class BenefitMarkUsedButton(BenefitEntity, ButtonEntity):
     _attr_translation_key = "benefit_mark_used"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {**self.card_attributes, "benefit": self.benefit.name}
+
     _attr_icon = "mdi:check-circle-outline"
 
     def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard, benefit: Benefit) -> None:
