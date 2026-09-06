@@ -14,8 +14,9 @@ is based on: captured, forfeited, unknown, still open.
 
 ## Now
 
-- [ ] **Drop-folder blueprint.** Wire `folder_watcher` to `cardperks.import_statement` so
-      the user does not write the automation. Default folder `config/cardperks/statements/`.
+- [x] **Drop-folder blueprint.** `blueprints/automation/cardperks/statement_drop_folder.yaml`
+      wires Folder Watcher to `cardperks.import_statement`; deploy ships it and creates
+      `config/cardperks/statements/`. Files under `config/cardperks/` need no allowlist entry.
 - [ ] **Navigation tiles from a template.** The Cards tiles in the hand-built first section
       are static; an auto-entities template over the `unused_value` sensors with
       `tap_action: navigate` to `/dashboard-cardperks/{{ card | slugify }}` would add a new
@@ -99,9 +100,8 @@ A standalone, paid Android app would rebuild every screen and all storage, but t
 core (periods, rollover, statement parsing and matching, shared perks, coverage rules)
 and the catalog carry over as the spec. Two cheap things keep that possible:
 
-- [ ] A test that forbids any Home Assistant import in the pure modules (`periods`,
-      `rollover`, `statements`, `models`, `catalog`, `catalog_page`, `catalog_write`), the
-      way `test_privacy.py` forbids network clients.
+- [x] `tests/test_core_is_portable.py` forbids Home Assistant imports in the pure modules
+      and keeps them importing only each other.
 - [ ] Record catalog changes as dated entries in `docs/CATALOG-LOG.md` (started
       2026-09-06) so a future app can ship "what changed" and the history question has a
       real answer as a side effect.

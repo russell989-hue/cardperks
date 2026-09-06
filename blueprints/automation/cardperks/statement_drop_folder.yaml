@@ -1,0 +1,64 @@
+blueprint:
+  name: CardPerks statement drop folder
+  description: >-
+    Import every CSV statement export dropped into a folder on the Home Assistant box.
+    Needs the Folder Watcher integration set up on that folder (Settings, Devices &
+    services, Add integration, Folder Watcher). The file is applied to every card it
+    covers, exactly as an upload would be, and a notification reports what was recorded.
+    Re-dropping the same file changes nothing.
+  domain: automation
+  source_url: https://github.com/russell989-hue/cardperks/blob/main/blueprints/automation/cardperks/statement_drop_folder.yaml
+  input:
+    folder:
+      name: Folder
+      description: The folder Folder Watcher is watching. Files under config/cardperks/ need no allowlist entry.
+      default: /config/cardperks/statements
+      selector:
+        text:
+    notify:
+      name: Show a notification with the result
+      default: true
+      selector:
+        boolean:
+
+mode: queued
+max: 10
+
+triggers:
+  - trigger: event
+    event_type: folder_watcher
+
+variables:
+  folder: !input folder
+  notify: !input notify
+  path: "{{ trigger.event.data.get('dest_path') or trigger.event.data.path }}"
+  target_folder: "{{ trigger.event.data.get('dest_folder') or trigger.event.data.folder }}"
+
+conditions:
+  - condition: template
+    value_template: >-
+      {{ trigger.event.data.event_type in ['closed', 'moved']
+         and target_folder | regex_replace('/$', '') == folder | regex_replace('/$', '')
+         and path | lower is match('.*\\.csv$') }}
+
+actions:
+  - action: cardperks.import_statement
+    data:
+      path: "{{ path }}"
+    response_variable: result
+  - if:
+      - condition: template
+        value_template: "{{ notify }}"
+    then:
+      - action: persistent_notification.create
+        data:
+          notification_id: "cardperks_import_{{ result.file | slugify }}"
+          title: "Statement imported: {{ result.file }}"
+          message: >-
+            {% for c in result.cards -%}
+            **{{ c.card }}**: {{ c.applied_total | round(2) }} recorded
+            {%- if c.duplicates %}, {{ c.duplicates }} already imported{% endif %}
+            {%- if c.unmatched %}, {{ c.unmatched | count }} unmatched{% endif %}.
+            Fee: {{ c.fee }}.
+            {% endfor -%}
+            {% if result.unassigned_last4 %}Cards in the file with no match: {{ result.unassigned_last4 | join(', ') }}.{% endif %}

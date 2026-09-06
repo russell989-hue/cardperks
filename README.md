@@ -37,6 +37,11 @@ on the box (for example dropped into `config/cardperks/statements/`) and applies
 every card it covers, and `cardperks.add_statement_match` teaches the catalog a credit
 line that went unmatched, without editing JSON.
 
+For a drop folder, set up the Folder Watcher integration on `config/cardperks/statements/`
+and create an automation from the **CardPerks statement drop folder** blueprint
+(`blueprints/automation/cardperks/`): every CSV dropped there is imported and a
+notification reports what was recorded.
+
 Services: `cardperks.mark_used`, `cardperks.reset_benefit`, `cardperks.add_sub_spend`, `cardperks.set_perk_value`, `cardperks.activate_rotating_category`.
 
 A daily job at 00:05 local time closes expired periods into history and opens the next ones. It catches up correctly after downtime.

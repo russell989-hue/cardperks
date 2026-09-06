@@ -35,6 +35,7 @@ from .const import (
     ATTR_VALUE,
     DATA_IMPORTING,
     DOMAIN,
+    OVERRIDE_DIR,
     SERVICE_ACTIVATE_ROTATING_CATEGORY,
     SERVICE_ADD_STATEMENT_MATCH,
     SERVICE_ADD_SUB_SPEND,
@@ -163,7 +164,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
         path = Path(call.data[ATTR_PATH])
         if not path.is_absolute():
             path = Path(hass.config.path(str(path)))
-        if not hass.config.is_allowed_path(str(path)):
+        # The integration's own folder under config/ is always fine; anything else has
+        # to be in allowlist_external_dirs, the same rule the rest of HA applies.
+        own_folder = Path(hass.config.path(OVERRIDE_DIR)).resolve()
+        inside_own = path.resolve().is_relative_to(own_folder) if path.exists() else False
+        if not inside_own and not hass.config.is_allowed_path(str(path)):
             raise ServiceValidationError(
                 translation_domain=DOMAIN,
                 translation_key="statement_path_not_allowed",

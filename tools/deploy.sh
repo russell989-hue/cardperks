@@ -23,6 +23,10 @@ echo ">> syncing custom_components/cardperks -> /config/custom_components/cardpe
 tar -C "$REPO/custom_components" --exclude='__pycache__' --exclude='*.pyc' -cf - cardperks \
   | "${SSH[@]}" 'sudo -n rm -rf /config/custom_components/cardperks.new && sudo -n mkdir -p /config/custom_components && sudo -n tar -C /config/custom_components -xf - && echo synced'
 
+echo ">> syncing blueprints -> /config/blueprints/automation/cardperks/"
+tar -C "$REPO/blueprints/automation" -cf - cardperks \
+  | "${SSH[@]}" 'sudo -n mkdir -p /config/blueprints/automation && sudo -n tar -C /config/blueprints/automation -xf - && sudo -n mkdir -p /config/cardperks/statements && echo blueprints synced'
+
 echo ">> syncing themes/cardperks.yaml -> /config/themes/cardperks.yaml"
 tar -C "$REPO/themes" -cf - cardperks.yaml \
   | "${SSH[@]}" 'sudo -n mkdir -p /config/themes && sudo -n tar -C /config/themes -xf - && echo theme synced'
