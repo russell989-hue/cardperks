@@ -19,6 +19,7 @@ import sys
 from lovelace import (
     DAYS_UNTIL,
     DOLLARS,
+    _template_cards,
     attr,
     auto_cards,
     base_filter,
@@ -204,22 +205,24 @@ def shared_perks() -> dict:
             heading("Shared across cards", "mdi:tag-multiple-outline"),
             note(
                 "One membership, several cards. Each of these is one number for the household, "
-                "split equally between the cards that carry it."
+                "split equally between the cards that carry it. A shared perk only one of your "
+                "cards carries is listed under that card instead."
             ),
-            auto_cards(
-                [{"domain": "number", "attributes": {"kind": "shared_value"}}],
-                primary=(
-                    "${{ states(entity) | float(0) | round(0) | int }} · "
-                    "{{ state_attr(entity, 'benefit') }}"
-                ),
-                secondary=(
-                    "${{ " + attr("per_card") + " | round(0) | int }} each on "
-                    "{{ (state_attr(entity, 'cards') or []) | count }} cards: "
-                    "{{ (state_attr(entity, 'cards') or []) | join(', ') }}"
-                ),
-                icon="mdi:tag-multiple-outline",
-                sort={"method": "state", "numeric": True, "reverse": True},
-                show_empty=True,
+            _template_cards(
+                "{% set ns = namespace(cards=[]) %}"
+                "{% for s in states.number if s.attributes.get('kind') == 'shared_value' "
+                "and (s.attributes.get('card_ids') or []) | count > 1 %}"
+                "{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', "
+                "'entity': s.entity_id, "
+                "'primary': '$' ~ (s.state | float(0) | round(0) | int) ~ ' · ' "
+                "~ s.attributes.get('benefit'), "
+                "'secondary': '$' ~ ((s.attributes.get('per_card') or 0) | round(0) | int) "
+                "~ ' each on ' ~ (s.attributes.get('cards') | count) ~ ' cards: ' "
+                "~ (s.attributes.get('cards') | join(', ')), "
+                "'icon': 'mdi:tag-multiple-outline', 'icon_color': 'amber', "
+                "'multiline_secondary': true, 'sort': -(s.state | float(0))}] %}"
+                "{% endfor %}"
+                "{{ ns.cards | sort(attribute='sort') }}"
             ),
         ],
     }

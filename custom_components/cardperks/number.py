@@ -222,16 +222,20 @@ class SharedPerkValueNumber(CardPerksEntity, NumberEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         perk = self.perk
         cards = self.coordinator.data.cards
+        # With one member the split is moot: show it under that card, in its colour, so
+        # it reads like the card's own perk. With several it is the household's number.
+        titles = [cards[c].title for c in perk.card_ids if c in cards] if perk else []
+        only = perk.card_ids[0] if perk and len(perk.card_ids) == 1 else None
         return {
             "kind": self.translation_key,
-            "card": "All cards",
-            "card_id": "household",
-            "color": "grey",
+            "card": titles[0] if only else "All cards",
+            "card_id": only or "household",
+            "color": (self.coordinator.data.colors.get(only) if only else None) or "grey",
             "card_status": "active",
             "benefit": perk.name if perk else self.key,
             "shared_key": self.key,
             "per_card": perk.per_card if perk else None,
-            "cards": [cards[c].title for c in perk.card_ids if c in cards] if perk else [],
+            "cards": titles,
             "card_ids": list(perk.card_ids) if perk else [],
             "customised": perk.customised if perk else False,
             "catalog_default": perk.default if perk else None,
