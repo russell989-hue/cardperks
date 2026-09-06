@@ -6,6 +6,12 @@ what was available when, since issuer pages do not publish theirs.
 
 ## 2026-09-06
 
+- **Amex Business Platinum and Business Gold** read from the official pages in a browser and
+  `needs_verification` cleared. Business Platinum gains the $300 ChatGPT Business credit,
+  Leaders Club Sterling status and The Hotel Collection $100 credit; the welcome offer shown
+  was 300,000 points after $20,000. Business Gold gains the $300 ChatGPT Business and $150
+  Squarespace credits, the flexible credit is $240 a year (FedEx through 10/01/2026, Grubhub,
+  office supply stores), and the welcome offer shown was 200,000 after $15,000.
 - **Global Entry / TSA PreCheck** on every product: was a $120 statement credit per card per
   year; now a shared perk (`global_entry`) valued at $30 a year for the household. One fee
   every four years, claimable once, is what the issuers actually give.

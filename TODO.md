@@ -23,8 +23,7 @@ is based on: captured, forfeited, unknown, still open.
       Judge it from a screenshot, then: heading subtitles, a type chip on the "All benefits"
       list via Mushroom badges, and whether the At-a-glance tiles want to be bigger.
 - [ ] Gauges at two per row if titles keep clipping on narrower screens.
-- [ ] Amex Business Platinum and Business Gold: read the official pages in a browser and
-      clear `needs_verification`.
+- [x] Amex Business Platinum and Business Gold verified from the official pages (2026-09-06).
 - [ ] Statement wording for the credits added on 2026-09-06 is guessed; use
       `cardperks.add_statement_match` as real lines show up, then move the pattern into
       the shipped catalog.

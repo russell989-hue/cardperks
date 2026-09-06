@@ -384,7 +384,7 @@
       "reports_to_personal_credit": false,
       "last_verified": "2026-09-06",
       "source_url": "https://www.americanexpress.com/us/credit-cards/business/business-credit-cards/american-express-business-platinum-credit-card-amex/",
-      "needs_verification": true,
+      "needs_verification": false,
       "benefits": [
         {
           "id": "hotel_credit",
@@ -511,6 +511,21 @@
           "notes": "Up to $90 a quarter at Indeed.com. Statement wording unverified."
         },
         {
+          "id": "chatgpt_credit",
+          "name": "ChatGPT Business credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "statement_match": [
+            "ChatGPT"
+          ],
+          "notes": "Up to $300 per calendar year on US purchases of ChatGPT Business, subject to auto-renewal. Statement wording unverified."
+        },
+        {
           "id": "clear_plus",
           "name": "CLEAR Plus credit",
           "type": "statement_credit",
@@ -606,18 +621,42 @@
           "shared_key": "amex_hotel_status"
         },
         {
+          "id": "leaders_club",
+          "name": "Leaders Club Sterling status",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "The Leading Hotels of the World; enrollment required."
+        },
+        {
+          "id": "hotel_collection",
+          "name": "The Hotel Collection $100 credit",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": false,
+          "applies_to": "primary",
+          "notes": "$100 on-property credit per stay of two nights or more booked through Amex Travel; value it by how often you use it."
+        },
+        {
           "id": "sub",
           "name": "Sign-up bonus",
           "type": "earning",
           "cadence": "one_time",
-          "amount": 200000,
+          "amount": 300000,
           "unit": "points",
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary",
           "spend_required": 20000,
           "expires_days_after_open": 90,
-          "notes": "Offers vary; 200,000 points after $20,000 in three months has been typical."
+          "notes": "Offers vary; as high as 300,000 points after $20,000 in three months was shown on 2026-09-06."
         }
       ],
       "earning_rates": [],
@@ -635,8 +674,8 @@
       "default_point_value": 0.01,
       "reports_to_personal_credit": false,
       "last_verified": "2026-09-06",
-      "source_url": "https://www.americanexpress.com/us/credit-cards/business/business-credit-cards/american-express-business-gold-credit-card-amex/",
-      "needs_verification": true,
+      "source_url": "https://www.americanexpress.com/us/credit-cards/business/business-credit-cards/american-express-business-gold-card-amex/",
+      "needs_verification": false,
       "benefits": [
         {
           "id": "walmart_plus",
@@ -667,21 +706,51 @@
             "Business Credit",
             "Flexible"
           ],
-          "notes": "Up to $20 a month on eligible purchases (FedEx, Grubhub, office supply stores and others; partners change). Enrollment required. Statement wording unverified."
+          "notes": "Up to $240 a year, $20 a month, on eligible US purchases at FedEx (through 10/01/2026), Grubhub and office supply stores. Enrollment required. Statement wording unverified."
+        },
+        {
+          "id": "chatgpt_credit",
+          "name": "ChatGPT Business credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "statement_match": [
+            "ChatGPT"
+          ],
+          "notes": "Up to $300 per calendar year on US purchases of ChatGPT Business, subject to auto-renewal. Statement wording unverified."
+        },
+        {
+          "id": "squarespace_credit",
+          "name": "Squarespace credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 150,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "statement_match": [
+            "Squarespace"
+          ],
+          "notes": "Up to $150 per calendar year on US purchases with Squarespace. Enrollment required. Statement wording unverified."
         },
         {
           "id": "sub",
           "name": "Sign-up bonus",
           "type": "earning",
           "cadence": "one_time",
-          "amount": 100000,
+          "amount": 200000,
           "unit": "points",
           "reset": "calendar",
           "enrollment_required": false,
           "applies_to": "primary",
           "spend_required": 15000,
           "expires_days_after_open": 90,
-          "notes": "Offers vary."
+          "notes": "Offers vary; as high as 200,000 points after $15,000 in three months was shown on 2026-09-06."
         }
       ],
       "earning_rates": [],
