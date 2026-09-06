@@ -21,7 +21,7 @@ from .const import (
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .devices import async_cleanup_entities, async_ensure_devices
 from .helpers import async_load_catalog
-from .panel import async_register_panel, async_remove_panel
+from .panel import async_register_panel, async_register_static, async_remove_panel
 from .repairs import async_check_catalog_issues, async_check_statement_issues
 from .services import async_setup_services
 from .store import CardPerksStore
@@ -99,6 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) ->
 
     catalog, problems = await async_load_catalog(hass)
     async_check_catalog_issues(hass, catalog, problems)
+    await async_register_static(hass)
     async_register_panel(hass)
 
     store = CardPerksStore(hass)

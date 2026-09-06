@@ -23,10 +23,16 @@ echo ">> syncing custom_components/cardperks -> /config/custom_components/cardpe
 tar -C "$REPO/custom_components" --exclude='__pycache__' --exclude='*.pyc' -cf - cardperks \
   | "${SSH[@]}" 'sudo -n rm -rf /config/custom_components/cardperks.new && sudo -n mkdir -p /config/custom_components && sudo -n tar -C /config/custom_components -xf - && echo synced'
 
+echo ">> syncing themes/cardperks.yaml -> /config/themes/cardperks.yaml"
+tar -C "$REPO/themes" -cf - cardperks.yaml \
+  | "${SSH[@]}" 'sudo -n mkdir -p /config/themes && sudo -n tar -C /config/themes -xf - && echo theme synced'
+
 if [[ "${1:-}" == "--restart" ]]; then
   echo ">> restarting Home Assistant Core"
   "${SSH[@]}" 'bash -lc "ha core restart"'
 else
+  echo ">> reloading themes"
+  "${SSH[@]}" 'bash -lc "curl -s -X POST -H \"Authorization: Bearer \$SUPERVISOR_TOKEN\" http://supervisor/core/api/services/frontend/reload_themes >/dev/null && echo themes reloaded"'
   echo ">> reloading cardperks config entries"
   "${SSH[@]}" 'bash -lc "
     ids=\$(curl -s -H \"Authorization: Bearer \$SUPERVISOR_TOKEN\" http://supervisor/core/api/config/config_entries/entry | python3 -c \"import sys,json; print(\\\" \\\".join(e[\\\"entry_id\\\"] for e in json.load(sys.stdin) if e[\\\"domain\\\"]==\\\"cardperks\\\"))\")

@@ -9,10 +9,11 @@ carries catalog data only: no card, owner, balance or statement ever appears on 
 from __future__ import annotations
 
 from functools import partial
+from pathlib import Path
 
 from aiohttp import web
 from homeassistant.components import frontend
-from homeassistant.components.http import HomeAssistantView
+from homeassistant.components.http import HomeAssistantView, StaticPathConfig
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.http import KEY_HASS
 
@@ -22,6 +23,9 @@ from .helpers import DATA_CATALOG
 
 PANEL_URL_PATH = "cardperks-catalog"
 PAGE_URL = "/cardperks/catalog"
+STATIC_URL = "/cardperks/static"
+WWW_DIR = Path(__file__).parent / "www"
+DATA_STATIC = "static_registered"
 DATA_PANEL = "panel_registered"
 
 
@@ -44,6 +48,17 @@ class CatalogPageView(HomeAssistantView):
             )
         )
         return web.Response(text=body, content_type="text/html", charset="utf-8")
+
+
+async def async_register_static(hass: HomeAssistant) -> None:
+    """Serve the integration's www folder: the fonts the theme and the catalog page use."""
+    data = hass.data.setdefault(DOMAIN, {})
+    if data.get(DATA_STATIC):
+        return
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(STATIC_URL, str(WWW_DIR), cache_headers=True)]
+    )
+    data[DATA_STATIC] = True
 
 
 @callback

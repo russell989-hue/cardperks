@@ -1,0 +1,101 @@
+# CardPerks dashboard theme: the same palette and type as the catalog page.
+#
+# Install: copy to config/themes/cardperks.yaml (tools/deploy.sh does this), make sure
+# configuration.yaml has
+#     frontend:
+#       themes: !include_dir_merge_named themes
+#       extra_module_url:
+#         - /cardperks/static/fonts.js
+# then call frontend.reload_themes (a Core restart is needed once for the fonts line).
+#
+# Apply it per view (each generated CardPerks view carries `theme: CardPerks`), so the
+# rest of Home Assistant keeps whatever theme you already use. Picking it in your profile
+# applies it everywhere instead.
+#
+# Cool paper, ink text, a brass accent, one-pixel rules, 8 px corners, Newsreader for
+# headings, IBM Plex Sans for everything else. Card colours (identity) are untouched.
+
+CardPerks:
+  # ---- type
+  ha-font-family-body: '"IBM Plex Sans", "Segoe UI", system-ui, sans-serif'
+  ha-font-family-heading: '"Newsreader", Georgia, serif'
+  ha-font-family-longform: '"IBM Plex Sans", "Segoe UI", system-ui, sans-serif'
+  ha-font-family-code: '"IBM Plex Mono", Consolas, monospace'
+  ha-heading-card-title-font-size: "26px"
+  ha-heading-card-title-font-weight: "600"
+  ha-heading-card-title-line-height: "1.1"
+  ha-heading-card-subtitle-font-size: "13px"
+  ha-heading-card-subtitle-font-weight: "500"
+
+  # ---- surfaces
+  ha-card-border-radius: "8px"
+  ha-card-border-width: "1px"
+  ha-card-box-shadow: "none"
+  ha-card-border-color: "var(--divider-color)"
+
+  # ---- accent: brass, as on the catalog page and the logo's chip
+  primary-color: "#a9781f"
+  accent-color: "#a9781f"
+  light-primary-color: "#f4ecd8"
+  dark-primary-color: "#8a6118"
+  state-icon-active-color: "#a9781f"
+  slider-color: "#a9781f"
+  switch-checked-color: "#a9781f"
+
+  # ---- money: one scheme everywhere, matched to the catalog's credit green
+  cardperks-captured: "#1d6b4e"
+  cardperks-forfeited: "#b3403a"
+  cardperks-unknown: "#9aa3b2"
+
+  card-mod-theme: CardPerks
+  card-mod-card: |
+    ha-card { font-variant-numeric: tabular-nums; }
+    .card-header, h1, h2, h3 { font-family: var(--ha-font-family-heading); }
+
+  modes:
+    light:
+      primary-background-color: "#f5f6f8"
+      secondary-background-color: "#eef0f3"
+      card-background-color: "#ffffff"
+      ha-card-background: "#ffffff"
+      primary-text-color: "#1c2027"
+      secondary-text-color: "#4f5866"
+      disabled-text-color: "#7d8697"
+      text-primary-color: "#ffffff"
+      divider-color: "#dde1e7"
+      app-header-background-color: "#ffffff"
+      app-header-text-color: "#1c2027"
+      sidebar-background-color: "#ffffff"
+      sidebar-text-color: "#4f5866"
+      sidebar-selected-text-color: "#a9781f"
+      sidebar-selected-icon-color: "#a9781f"
+      lovelace-background: "#f5f6f8"
+      code-background-color: "#eef0f3"
+    dark:
+      primary-color: "#d3a33f"
+      accent-color: "#d3a33f"
+      light-primary-color: "#2e2818"
+      dark-primary-color: "#b8862b"
+      state-icon-active-color: "#d3a33f"
+      slider-color: "#d3a33f"
+      switch-checked-color: "#d3a33f"
+      cardperks-captured: "#6fcf9a"
+      cardperks-forfeited: "#e07a72"
+      cardperks-unknown: "#6b7482"
+      primary-background-color: "#14171c"
+      secondary-background-color: "#1b1f26"
+      card-background-color: "#1b1f26"
+      ha-card-background: "#1b1f26"
+      primary-text-color: "#e8eaee"
+      secondary-text-color: "#aab2bf"
+      disabled-text-color: "#7f8896"
+      text-primary-color: "#14171c"
+      divider-color: "#2b313b"
+      app-header-background-color: "#1b1f26"
+      app-header-text-color: "#e8eaee"
+      sidebar-background-color: "#1b1f26"
+      sidebar-text-color: "#aab2bf"
+      sidebar-selected-text-color: "#d3a33f"
+      sidebar-selected-icon-color: "#d3a33f"
+      lovelace-background: "#14171c"
+      code-background-color: "#262c36"

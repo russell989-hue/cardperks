@@ -444,7 +444,8 @@ def money_bars(*, card_id: str | None = None, with_name: bool = True) -> dict:
 
     One scheme for every card so the bars read the same everywhere: green captured,
     red forfeited, grey unknown (months with no statement), and a dim track for what
-    is still open to capture, like a progress bar. Card colours stay on the rings and
+    is still open to capture, like a progress bar. The CardPerks theme supplies the
+    three colours (`--cardperks-captured` and friends); without it HA's palette is used. Card colours stay on the rings and
     gauges. Built by a template over the capture-rate sensors, so cards come and go by
     themselves.
     """
@@ -452,8 +453,9 @@ def money_bars(*, card_id: str | None = None, with_name: bool = True) -> dict:
     bar_css = 'content: ""; display: block; height: 12px; border-radius: 6px; margin: 2px 0 10px;'
     bar = (
         "'ha-markdown::before { " + bar_css + " background: linear-gradient(to right, "
-        "var(--green-color) 0% ' ~ a ~ '%, var(--red-color) ' ~ a ~ '% ' ~ b ~ '%, "
-        "var(--grey-color) ' ~ b ~ '% ' ~ c ~ '%, "
+        "var(--cardperks-captured, var(--green-color)) 0% ' ~ a ~ '%, "
+        "var(--cardperks-forfeited, var(--red-color)) ' ~ a ~ '% ' ~ b ~ '%, "
+        "var(--cardperks-unknown, var(--grey-color)) ' ~ b ~ '% ' ~ c ~ '%, "
         "var(--divider-color) ' ~ c ~ '% 100%); }'"
     )
     empty = "'ha-markdown::before { " + bar_css + " background: var(--divider-color); }'"

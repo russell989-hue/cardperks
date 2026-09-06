@@ -21,6 +21,12 @@ async def test_catalog_page_is_served_and_in_the_sidebar(
     assert "overrides included" in body
     # Catalog only: nothing about the household leaks onto a page without a login.
     assert "1234" not in body and "Brian" not in body
+    assert "/cardperks/static/fonts.css" in body
+
+    css = await client.get("/cardperks/static/fonts.css")
+    assert css.status == 200 and "Newsreader" in await css.text()
+    font = await client.get("/cardperks/static/fonts/newsreader.woff2")
+    assert font.status == 200 and (await font.read())[:4] == b"wOF2"
 
     await hass.config_entries.async_unload(setup_integration.entry_id)
     await hass.async_block_till_done()

@@ -40,7 +40,15 @@ def _money(v: float | None) -> str:
     return f"${v:,.0f}" if float(v).is_integer() else f"${v:,.2f}"
 
 
-def render_catalog(catalog: Catalog, *, source_note: str = "") -> str:
+GOOGLE_FONTS = (
+    "https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600"
+    "&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+)
+
+
+def render_catalog(
+    catalog: Catalog, *, source_note: str = "", fonts_href: str = "/cardperks/static/fonts.css"
+) -> str:
     """The whole catalog as an HTML document body (title and styles included)."""
     by_issuer = catalog.by_issuer()
     issuer_names = catalog.issuers()
@@ -139,8 +147,7 @@ def render_catalog(catalog: Catalog, *, source_note: str = "") -> str:
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CardPerks Catalog</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{_esc(fonts_href)}">
 <style>
 :root {{
   --paper: #f5f6f8; --panel: #ffffff; --ink: #1c2027; --ink-2: #4f5866; --ink-3: #7d8697;

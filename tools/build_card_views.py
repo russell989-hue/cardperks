@@ -49,6 +49,8 @@ from lovelace import (
     wide_section,
 )
 
+THEME = "CardPerks"  # themes/cardperks.yaml; applied per view so the rest of HA keeps its own
+
 
 def slugify(name: str) -> str:
     """Stable, URL-safe path for a card."""
@@ -218,6 +220,7 @@ def build_view(card: dict) -> dict:
         "path": slugify(name),
         "icon": "mdi:credit-card",
         "subview": True,
+        "theme": THEME,
         "max_columns": 4,
         "sections": sections,
     }
