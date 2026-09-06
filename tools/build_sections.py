@@ -19,6 +19,7 @@ import sys
 from lovelace import (
     DAYS_UNTIL,
     DOLLARS,
+    ONLY_ACTIVE,
     _template_cards,
     attr,
     auto_cards,
@@ -194,6 +195,44 @@ def big_ticket() -> dict:
     top = big_ticket_list()
     bottom = where_big_dollars_went()
     return {"type": "grid", "cards": top["cards"] + bottom["cards"][1:]}
+
+
+def by_year() -> dict:
+    """One table per card: each cardmember year's fee, captured credits, net, and how
+    much of the year statements vouch for. Only what statements prove; nothing about
+    what was on offer in past years."""
+    template = (
+        "{% set ns = namespace(cards=[]) %}"
+        "{% for s in states.sensor if s.attributes.get('kind') == 'net_value_12m' "
+        f"and {ONLY_ACTIVE} and (s.attributes.get('years') or []) | count > 0 %}}"
+        "{% set ns.rows = [] %}"
+        "{% set ns.text = '**' ~ s.attributes.get('card') ~ '**\\n\\n"
+        "| Year | Fee | Captured | Net | Statements |\\n|---|---:|---:|---:|---|\\n' %}"
+        "{% for y in s.attributes.get('years') %}"
+        "{% set label = (y.start[:4] ~ '-' ~ y.end[:4]) if y.start[:4] != y.end[:4] else y.start[:4] %}"
+        "{% set fee = ('$' ~ (y.fee | round(0) | int)) if y.fee is not none else 'not seen' %}"
+        "{% set net = (('-' if y.net < 0 else '') ~ '$' ~ (y.net | abs | round(0) | int)) "
+        "if y.net is not none else '' %}"
+        "{% set ns.text = ns.text ~ '| ' ~ label ~ (' (so far)' if y.current else '') ~ ' | ' ~ fee "
+        "~ ' | $' ~ (y.captured | round(0) | int) ~ ' | ' ~ net ~ ' | ' ~ y.months_covered ~ '/' "
+        "~ y.months ~ ' months |\\n' %}"
+        "{% endfor %}"
+        "{% set ns.cards = ns.cards + [{'type': 'markdown', 'content': ns.text, "
+        "'sort': s.attributes.get('card')}] %}"
+        "{% endfor %}"
+        "{{ ns.cards | sort(attribute='sort') }}"
+    )
+    return wide_section(
+        [
+            heading("By year", "mdi:calendar-multiple"),
+            note(
+                "Each cardmember year: the fee a statement showed, the credits recorded, and the "
+                'net. "Statements" says how much of the year a statement covers; a thin year is '
+                "not a bad year. Nothing is claimed about what was on offer back then."
+            ),
+            _template_cards(template, columns=2),
+        ]
+    )
 
 
 def shared_perks() -> dict:

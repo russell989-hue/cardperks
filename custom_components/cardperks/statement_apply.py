@@ -148,6 +148,11 @@ def apply_statement(
     )
     coordinator.commit()
 
+    # Every fee line, by date: the per-year history reads these back.
+    if mine.fee_rows:
+        seen_fees = coordinator.doc.fees_seen.setdefault(card_id, {})
+        for row in mine.fee_rows:
+            seen_fees[row.date.isoformat()] = round(abs(row.amount), 2)
     fee = latest_fee(mine)
     seen = coordinator.doc.fee_seen.get(card_id)
     if fee is not None and seen is not None and fee.date.isoformat() < seen:

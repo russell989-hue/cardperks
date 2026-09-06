@@ -443,6 +443,9 @@ class StateDocument:
     # file imported later must not overwrite the fee a newer one set.
     fee_seen: dict[str, str] = field(default_factory=dict)
     shared_values: dict[str, float] = field(default_factory=dict)  # shared_key -> household $
+    # card id -> {ISO date: amount}: every annual-fee line any statement has shown, so a
+    # cardmember year can say what the card cost that year, not only what it costs now.
+    fees_seen: dict[str, dict[str, float]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -459,6 +462,7 @@ class StateDocument:
             "imported_refs": sorted(self.imported_refs),
             "fee_seen": self.fee_seen,
             "shared_values": self.shared_values,
+            "fees_seen": self.fees_seen,
         }
 
     @classmethod
@@ -487,6 +491,10 @@ class StateDocument:
             imported_refs=set(d.get("imported_refs", [])),
             fee_seen=dict(d.get("fee_seen", {})),
             shared_values={k: float(v) for k, v in d.get("shared_values", {}).items()},
+            fees_seen={
+                k: {dk: float(dv) for dk, dv in v.items()}
+                for k, v in d.get("fees_seen", {}).items()
+            },
         )
 
 
@@ -551,6 +559,41 @@ class Totals:
 
 
 @dataclass(frozen=True, slots=True)
+class YearRecord:
+    """One cardmember year of a card: what it cost and what came back.
+
+    Reports what statements prove and nothing else. `fee` is None when no statement
+    showed a fee line in the year; `captured` is the credits recorded in periods that
+    started in the year; `months_covered` out of `months` says how much of the year a
+    statement vouches for, so a thin year is not mistaken for a bad one.
+    """
+
+    start: date
+    end: date
+    fee: float | None
+    captured: float
+    months_covered: int
+    months: int
+    current: bool
+
+    @property
+    def net(self) -> float | None:
+        return None if self.fee is None else round(self.captured - self.fee, 2)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
+            "fee": self.fee,
+            "captured": self.captured,
+            "net": self.net,
+            "months_covered": self.months_covered,
+            "months": self.months,
+            "current": self.current,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class CardSummary:
     held_card_id: str
     fee_due: date | None
@@ -568,6 +611,7 @@ class CardSummary:
     expected_statement_month: str | None = None  # newest month a statement could cover
     statement_months_behind: int = 0
     statement_due: bool = False
+    years: tuple[YearRecord, ...] = ()  # newest first
 
 
 @dataclass(frozen=True, slots=True)

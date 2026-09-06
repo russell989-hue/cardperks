@@ -267,6 +267,7 @@ class CardNetValue12mSensor(CardEntity, SensorEntity):
             "used_value_12m": s.used_value_12m if s else None,
             "annual_fee": s.annual_fee if s else None,
             "sub_tracker": tracker.to_dict() if tracker else None,
+            "years": [y.as_dict() for y in s.years] if s else [],
         }
 
 

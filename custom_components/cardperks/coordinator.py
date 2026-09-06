@@ -16,6 +16,7 @@ from .const import (
     CARD_COLORS,
     DOMAIN,
     FEE_WARNING_DAYS,
+    HISTORY_RETENTION_DAYS,
     STATEMENT_GRACE_MONTHS,
     BenefitStatus,
     BenefitType,
@@ -39,6 +40,7 @@ from .models import (
     SubTracker,
     Totals,
     UsageEvent,
+    YearRecord,
     instance_key,
 )
 from .periods import add_months, compute_period, months_spanned, next_fee_date
@@ -664,6 +666,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
 
         expiring.sort(key=lambda e: e.period_end)
         freshness = self._statement_freshness(card, covered, today)
+        years = self.card_years(card, today, covered)
         return CardSummary(
             held_card_id=card.id,
             fee_due=fee_due,
@@ -675,8 +678,57 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             expiring=tuple(expiring),
             totals=totals,
             benefit_totals=per_benefit,
+            years=years,
             **freshness,
         )
+
+    def card_years(self, card: HeldCard, today: date, covered: set[str]) -> tuple[YearRecord, ...]:
+        """The card's cardmember years, newest first, from what statements prove.
+
+        Anchored on the anniversary (fee month or open date). A year is listed when
+        something is known about it: a fee line, a recorded credit, or a covered month.
+        The current year is always listed. Nothing is claimed about what was available.
+        """
+        nxt = next_fee_date(today, card.open_date, card.fee_month)
+        if nxt is None:
+            return ()
+        fees = self.doc.fees_seen.get(card.id, {})
+        oldest = today - timedelta(days=HISTORY_RETENTION_DAYS)
+        out: list[YearRecord] = []
+        start = add_months(nxt, -12)
+        while start >= oldest:
+            end = add_months(start, 12) - timedelta(days=1)
+            s_iso, e_iso = start.isoformat(), end.isoformat()
+            captured = sum(
+                h.amount_used
+                for h in self.doc.history
+                if h.held_card_id == card.id and s_iso <= h.period_start <= e_iso
+            )
+            captured += sum(
+                i.amount_used
+                for i in self.doc.instances.values()
+                if i.held_card_id == card.id and s_iso <= i.period_start <= e_iso
+            )
+            fee_total = [amt for d, amt in fees.items() if s_iso <= d <= e_iso]
+            months = [
+                m for m in months_spanned(start, min(end, today)) if m <= today.strftime("%Y-%m")
+            ]
+            covered_here = sum(1 for m in months if m in covered)
+            current = start <= today <= end
+            if current or fee_total or captured or covered_here:
+                out.append(
+                    YearRecord(
+                        start=start,
+                        end=end,
+                        fee=round(sum(fee_total), 2) if fee_total else None,
+                        captured=round(captured, 2),
+                        months_covered=covered_here,
+                        months=len(months),
+                        current=current,
+                    )
+                )
+            start = add_months(start, -12)
+        return tuple(out)
 
     @staticmethod
     def _statement_freshness(card: HeldCard, covered: set[str], today: date) -> dict:

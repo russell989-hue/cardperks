@@ -23,6 +23,7 @@ from build_sections import (
     BIG_TICKET_MIN,
     big_ticket_list,
     by_card,
+    by_year,
     checkoff,
     coverage,
     expiring,
@@ -276,6 +277,7 @@ def money() -> dict:
             span(net_value(), 1),
             span(fees(), 1),
             span(where_big_dollars_went(), 2),
+            span(by_year(), 2),
         ],
     }
 
