@@ -100,11 +100,9 @@ def test_match_credits(catalog):
     assert [(m.benefit_id, abs(m.row.amount)) for m in result.matched] == [
         ("travel_credit", 112.94),
         ("dining_credit", 150.0),
+        ("inflight_rebate", 1.57),
     ]
-    assert [r.description for r in result.unmatched] == [
-        "SOME OTHER CREDIT",
-        "UA INFLIGHT/INCLUB CREDIT",
-    ]
+    assert [r.description for r in result.unmatched] == ["SOME OTHER CREDIT"]
 
 
 UUID = "12345678-1234-5678-1234-567812345678"
@@ -138,6 +136,7 @@ async def test_import_statement_flow(hass, setup_integration: MockConfigEntry, t
     ph = result["description_placeholders"]
     assert "Travel credit: 112.94" in ph["applied"]
     assert "Dining credit: 150.00" in ph["applied"]
+    assert "Inflight rebate: 1.57" in ph["applied"]
     assert "SOME OTHER CREDIT" in ph["unmatched"] and ph["duplicates"] == "0"
     assert "annual fee 450" in ph["fee"]
     await hass.async_block_till_done()
@@ -158,7 +157,7 @@ async def test_import_statement_flow(hass, setup_integration: MockConfigEntry, t
     assert len(hist) == 1 and hist[0].amount_used == 150.0 and hist[0].final_status == "used"
     assert hist[0].closed_by == "statement"
     net = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_net_value_12m"))
-    assert float(net.state) == round(112.94 + 150.0 - 450.0, 2)
+    assert float(net.state) == round(112.94 + 150.0 + 1.57 - 450.0, 2)
 
     # Re-import is a no-op.
     result = await hass.config_entries.subentries.async_init(
@@ -172,7 +171,7 @@ async def test_import_statement_flow(hass, setup_integration: MockConfigEntry, t
         result["flow_id"], {"card": CARD_ID, "apply_fee": False}
     )
     ph = result["description_placeholders"]
-    assert ph["duplicates"] == "2" and ph["applied"] == "- none"
+    assert ph["duplicates"] == "3" and ph["applied"] == "- none"
     travel = hass.states.get(
         reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_travel_credit_status")
     )
@@ -383,7 +382,7 @@ async def test_import_records_coverage(hass, setup_integration: MockConfigEntry,
     }
     assert len(doc.imports) == 1
     rec = doc.imports[0]
-    assert rec.issuer == "chase" and rec.rows == 8 and rec.matched == 2
+    assert rec.issuer == "chase" and rec.rows == 8 and rec.matched == 3
     assert rec.filename == "Chase1234_Activity_20260905.csv"
 
     reg = er.async_get(hass)
@@ -406,3 +405,45 @@ async def test_import_records_coverage(hass, setup_integration: MockConfigEntry,
     )
     await hass.async_block_till_done()
     assert len(entry.runtime_data.doc.imports) == 1
+
+
+async def test_rebate_counts_as_captured_and_never_forfeits(
+    hass, setup_integration: MockConfigEntry
+):
+    """An uncapped rebate has no pool: no dollar box, nothing expiring, nothing lost.
+
+    Whatever it returned over the year is both its captured and its annual value, so the
+    card's capture rate is not inflated by money that could never have been forfeited.
+    """
+    entry = setup_integration
+    reg = er.async_get(hass)
+    assert reg.async_get_entity_id("number", DOMAIN, f"{CARD_ID}_inflight_rebate_used") is None
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_inflight_rebate_remaining") is None
+    assert reg.async_get_entity_id("button", DOMAIN, f"{CARD_ID}_inflight_rebate_mark_used") is None
+    status_id = reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_inflight_rebate_status")
+    assert hass.states.get(status_id).state == "unused"
+
+    coordinator = entry.runtime_data
+    before = coordinator.data.card_summaries[CARD_ID]
+    assert before.benefit_totals["inflight_rebate"].annual_value == 0.0
+
+    assert coordinator.record_statement_usage(
+        CARD_ID, "inflight_rebate", date(2026, 8, 19), 3.74, "UA INFLIGHT/INCLUB CREDIT"
+    )
+    assert coordinator.record_statement_usage(
+        CARD_ID, "inflight_rebate", date(2026, 9, 3), 1.61, "UA INFLIGHT/INCLUB CREDIT"
+    )
+    coordinator.commit()
+    await hass.async_block_till_done()
+
+    st = hass.states.get(status_id)
+    assert st.state == "used" and st.attributes["amount_used"] == 5.35
+    assert st.attributes["amount"] is None
+
+    after = coordinator.data.card_summaries[CARD_ID]
+    rebate = after.benefit_totals["inflight_rebate"]
+    assert rebate.captured == 5.35 and rebate.annual_value == 5.35
+    assert rebate.forfeited == 0.0 and rebate.open_remaining == 0.0
+    assert after.totals.captured == round(before.totals.captured + 5.35, 2)
+    assert after.totals.annual_value == round(before.totals.annual_value + 5.35, 2)
+    assert after.unused_value == before.unused_value

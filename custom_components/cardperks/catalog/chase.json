@@ -412,6 +412,22 @@
           ]
         },
         {
+          "id": "inflight_rebate",
+          "name": "25% back on United inflight and club purchases",
+          "type": "rebate",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "notes": "Statement credit for food, drinks and Wi-Fi on United-operated flights and premium drinks in United Club. Uncapped, so nothing to forfeit; the credit posts under the primary account.",
+          "statement_match": [
+            "UA INFLIGHT",
+            "INFLIGHT.*CREDIT",
+            "INCLUB CREDIT"
+          ]
+        },
+        {
           "id": "free_checked_bag",
           "name": "First checked bag free",
           "type": "perk",
@@ -576,6 +592,22 @@
           "statement_match": [
             "GLOBAL ENTRY",
             "TSA PRE"
+          ]
+        },
+        {
+          "id": "inflight_rebate",
+          "name": "25% back on United inflight and club purchases",
+          "type": "rebate",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "notes": "Statement credit for food, drinks and Wi-Fi on United-operated flights and premium drinks in United Club. Uncapped, so nothing to forfeit; the credit posts under the primary account.",
+          "statement_match": [
+            "UA INFLIGHT",
+            "INFLIGHT.*CREDIT",
+            "INCLUB CREDIT"
           ]
         },
         {

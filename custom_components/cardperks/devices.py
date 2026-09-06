@@ -111,6 +111,8 @@ def async_cleanup_entities(
         if product is None:
             continue
         for benefit in product.benefits_for(card):
+            if benefit.is_uncapped:
+                continue  # status sensor only; nothing to expire, check off or draw down
             expected.update(
                 f"{card.id}_{benefit.id}_{suffix}"
                 for suffix in ("expires", "remaining", "mark_used")

@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Deploy custom_components/cardperks to the Home Assistant box over SSH (no scp on HAOS).
 # Usage: tools/deploy.sh [--restart]
-#   default: copy files and reload the CardPerks config entry via the Core API
-#   --restart: copy files and restart Home Assistant Core (needed on first install and when
-#              manifest.json or the platform list changes)
+#   default: copy files and reload the CardPerks config entry via the Core API. A reload
+#            re-runs setup with the Python modules already in memory, so it is only enough
+#            for changes to catalog JSON, strings, or other data files.
+#   --restart: copy files and restart Home Assistant Core. Required for any change to a
+#              .py file (Core never re-imports a custom integration's modules), and on
+#              first install.
 set -euo pipefail
 
 HOST="${CARDPERKS_HA_HOST:-brianrussell@homeassistant.local}"

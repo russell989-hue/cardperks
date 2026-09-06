@@ -96,26 +96,61 @@ def auto_cards(
     }
 
 
+def _jinja_where(inc: dict) -> str:
+    """One include rule as a Jinja condition over a state object `s`."""
+    parts = ["s.attributes.card_id is defined"]
+    for key, val in inc.get("attributes", {}).items():
+        parts.append(f"s.attributes.{key} == {val!r}")
+    if "state" in inc:
+        parts.append(f"(s.state | float(0)) {inc['state']}")
+    return " and ".join(parts)
+
+
 def auto_rows(
     includes: list[dict],
     title: str | None = None,
     *,
-    sort: dict | None = None,
+    suffix: str = "",
     show_empty: bool = False,
 ) -> dict:
-    """auto-entities feeding entity rows, each icon coloured by its card."""
+    """auto-entities feeding entity rows, each icon coloured by its card.
+
+    Home Assistant names every entity "<card> <benefit> ...", card first. These lists
+    read benefit first, so the rows are built by a template that labels each one
+    "<benefit> <suffix>: <card>" from the entity's own attributes, and colours its icon
+    from the same place. Rows sort by that label.
+
+    Each include rule may carry `domain`, `attributes` (equality) and `state` (a
+    comparison such as "> 0"); rules are OR-ed together.
+    """
     card: dict = {"type": "entities", "state_color": True}
     if title:
         card["title"] = title
+    domains = sorted({inc.get("domain", "number") for inc in includes})
+    where = " or ".join(f"({_jinja_where(inc)})" for inc in includes) or "true"
+    label = (
+        "s.attributes.benefit ~ '" + (f" {suffix}" if suffix else "") + ": ' ~ s.attributes.card"
+    )
+    style = (
+        "':host { --paper-item-icon-color: var(--' ~ c ~ '-color); "
+        "--state-icon-color: var(--' ~ c ~ '-color); }'"
+    )
+    loops = "".join(
+        f"{{% for s in states.{d} if s.state not in ['unavailable', 'unknown'] and ({where}) %}}"
+        "{% set c = s.attributes.color or 'grey' %}"
+        "{% set ns.rows = ns.rows + [{'entity': s.entity_id, 'name': " + label + ", "
+        "'card_mod': {'style': " + style + "}}] %}"
+        "{% endfor %}"
+        for d in domains
+    )
+    template = (
+        "{% set ns = namespace(rows=[]) %}" + loops + "{{ ns.rows | sort(attribute='name') }}"
+    )
     return {
         "type": "custom:auto-entities",
         "card": card,
         "show_empty": show_empty,
-        "filter": {
-            "include": [{**inc, "options": {"card_mod": {"style": ROW_STYLE}}} for inc in includes],
-            "exclude": [{"state": "unavailable"}, {"state": "unknown"}],
-        },
-        "sort": sort or {"method": "friendly_name"},
+        "filter": {"template": template},
     }
 
 

@@ -50,7 +50,7 @@ async def async_setup_entry(
             continue
         entities: list[NumberEntity] = []
         for benefit in product.benefits_for(card):
-            if benefit.is_dollar:
+            if benefit.is_dollar and not benefit.is_uncapped:
                 entities.append(BenefitUsedNumber(coordinator, card, benefit))
             if benefit.type in VALUED_TYPES:
                 entities.append(PerkValueNumber(coordinator, card, benefit))
@@ -167,6 +167,7 @@ class PerkValueNumber(BenefitEntity, NumberEntity):
             "benefit": self.benefit.name,
             "benefit_id": self.benefit_id,
             "catalog_default": self.benefit.default_value,
+            "kind": "perk_value",  # stable hook for dashboard filters
             "customised": override is not None,
             "notes": self.benefit.notes,
         }

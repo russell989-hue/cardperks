@@ -53,8 +53,9 @@ async def async_setup_entry(
                 CardCoverageSensor(coordinator, card),
             ]
             for b in product.benefits_for(card):
-                entities.append(BenefitExpiresSensor(coordinator, card, b))
-                entities.append(BenefitRemainingSensor(coordinator, card, b))
+                if not b.is_uncapped:
+                    entities.append(BenefitExpiresSensor(coordinator, card, b))
+                    entities.append(BenefitRemainingSensor(coordinator, card, b))
                 entities.append(BenefitStatusSensor(coordinator, card, b))
             async_add_entities(entities, config_subentry_id=sub.subentry_id)
 

@@ -44,7 +44,7 @@ A daily job at 00:05 local time closes expired periods into history and opens th
 On the CardPerks integration page:
 
 - **Import cards from CSV** takes a `.csv` file or pasted rows with at least `owner` and `product` columns (plus optional `issuer`, `role`, `parent_owner`, `open_date`, `fee_month`, `last4`, `nickname`, `annual_fee`, `notes`). Existing cards are skipped.
-- **Import statement** takes a raw Chase Activity export, American Express CSV download, or Capital One transaction download, exactly as downloaded. It reads the annual fee line to set the fee month and actual fee, and records labelled credit lines (`TRAVEL CREDIT $300/YEAR`, `Platinum Resy Credit`, and so on) as benefit usage in the period they belong to. Re-importing the same file changes nothing. Credit lines that match no benefit are listed so you can add a `statement_match` pattern to the catalog.
+- **Import statement** takes a raw Chase Activity export, American Express CSV download, or Capital One transaction download, exactly as downloaded. It reads the annual fee line to set the fee month and actual fee, and records labelled credit lines (`TRAVEL CREDIT $300/YEAR`, `Platinum Resy Credit`, and so on) as benefit usage in the period they belong to. Re-importing the same file changes nothing. Credit lines that match no benefit are listed so you can add a `statement_match` pattern to the catalog. Uncapped rebates, such as 25% back on United inflight purchases, are recorded the same way; they count as captured and can never be forfeited, since there is no pool to lose.
 
 Both run entirely on your Home Assistant box.
 

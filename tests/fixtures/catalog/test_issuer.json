@@ -86,6 +86,19 @@
           "default_value": 200,
           "conditional": true,
           "condition": "Elite status required"
+        },
+        {
+          "id": "inflight_rebate",
+          "name": "Inflight rebate",
+          "type": "rebate",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "statement_match": [
+            "UA INFLIGHT"
+          ]
         }
       ],
       "earning_rates": [

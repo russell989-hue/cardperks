@@ -30,6 +30,7 @@ async def async_setup_entry(
             [
                 BenefitMarkUsedButton(coordinator, card, benefit)
                 for benefit in product.benefits_for(card)
+                if not benefit.is_uncapped
             ],
             config_subentry_id=sub.subentry_id,
         )

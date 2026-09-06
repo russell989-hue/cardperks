@@ -118,8 +118,14 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
         if b.id in seen:
             raise vol.Invalid(f"product {raw['id']}: duplicate benefit id {b.id}")
         seen.add(b.id)
-        if b.amount is None and b.type not in (BenefitType.PERK, BenefitType.INSURANCE):
-            raise vol.Invalid(f"benefit {b.id}: amount may be null only for perk/insurance")
+        if b.amount is None and b.type not in (
+            BenefitType.PERK,
+            BenefitType.INSURANCE,
+            BenefitType.REBATE,
+        ):
+            raise vol.Invalid(f"benefit {b.id}: amount may be null only for perk/insurance/rebate")
+        if b.type is BenefitType.REBATE and b.amount is not None:
+            raise vol.Invalid(f"benefit {b.id}: a rebate has no fixed amount; use statement_credit")
     return Product(
         id=raw["id"],
         issuer=issuer,

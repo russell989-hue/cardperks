@@ -102,6 +102,7 @@ class BenefitStatus(StrEnum):
 class BenefitType(StrEnum):
     STATEMENT_CREDIT = "statement_credit"
     PERK = "perk"
+    REBATE = "rebate"  # a share of spend returned as a credit, with no cap
     INSURANCE = "insurance"
     EARNING = "earning"
 

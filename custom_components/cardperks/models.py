@@ -52,9 +52,19 @@ class Benefit:
     @property
     def is_dollar(self) -> bool:
         """Whether this benefit is measured in dollars rather than points or miles."""
-        if self.type in (BenefitType.PERK, BenefitType.INSURANCE):
+        if self.type in (BenefitType.PERK, BenefitType.INSURANCE, BenefitType.REBATE):
             return True
         return self.amount is not None and self.unit == "USD"
+
+    @property
+    def is_uncapped(self) -> bool:
+        """A rebate returns a share of whatever you spend.
+
+        There is no pool to draw down, nothing to check off and nothing to forfeit.
+        Statements are its only source of truth, and a year of it is worth whatever it
+        returned.
+        """
+        return self.type is BenefitType.REBATE
 
     @property
     def periods_per_year(self) -> int:

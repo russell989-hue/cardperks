@@ -484,6 +484,14 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             elif h.final_status != str(BenefitStatus.NA):
                 bump(h.benefit_id, forfeited=missed)
 
+        # A rebate has no pool to capture from, so its annual value is what it returned;
+        # that keeps the capture rate honest instead of inflating it with free money.
+        if product is not None:
+            for benefit in product.benefits_for(card):
+                if benefit.is_uncapped and benefit.id in per_benefit:
+                    t = per_benefit[benefit.id]
+                    per_benefit[benefit.id] = replace(t, annual_value=t.captured)
+
         totals = Totals()
         for t in per_benefit.values():
             totals = totals.plus(t)

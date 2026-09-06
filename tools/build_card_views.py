@@ -132,6 +132,7 @@ def build_view(card: dict) -> dict:
                         for s in ("unused", "partial")
                     ],
                     "Not yet fully used",
+                    suffix="used",
                 ),
             ],
         },
@@ -164,7 +165,9 @@ def build_view(card: dict) -> dict:
                         "{{ states(entity) | replace('_', ' ') | replace('n a', 'not applicable') }}"
                         "{% if state_attr(entity, 'amount') %} · "
                         "${{ " + attr("amount_used") + " | round(0) | int }} of "
-                        "${{ " + attr("amount") + " | round(0) | int }}{% endif %}"
+                        "${{ " + attr("amount") + " | round(0) | int }}"
+                        "{% elif state_attr(entity, 'amount_used') %} · "
+                        "${{ " + attr("amount_used") + " | round(2) }} back{% endif %}"
                     ),
                     icon="mdi:gift-outline",
                     sort={"method": "friendly_name"},

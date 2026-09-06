@@ -26,10 +26,11 @@ def test_opens_all_benefits_for_primary(catalog):
     doc = StateDocument()
     result = rollover(doc, [_card()], catalog, date(2026, 9, 5), NOW)
     # sub opened in 2024 with a 90-day window is long expired, so it is never opened
-    assert result.opened == 4 and result.changed
+    assert result.opened == 5 and result.changed
     keys = set(doc.instances)
     assert keys == {
-        f"c1:{b}" for b in ("monthly_credit", "dining_credit", "travel_credit", "lounge")
+        f"c1:{b}"
+        for b in ("monthly_credit", "dining_credit", "travel_credit", "lounge", "inflight_rebate")
     }
     inst = doc.instances["c1:travel_credit"]
     assert (inst.period_start, inst.period_end) == ("2026-03-15", "2027-03-14")
@@ -149,5 +150,5 @@ def test_unanchored_card_gets_calendar_benefits_only(catalog):
     doc = StateDocument()
     rollover(doc, [_card(open_date=None, fee_month=None)], catalog, date(2026, 9, 5), NOW)
     assert set(doc.instances) == {
-        instance_key("c1", b) for b in ("monthly_credit", "dining_credit", "sub")
+        instance_key("c1", b) for b in ("monthly_credit", "dining_credit", "sub", "inflight_rebate")
     }

@@ -53,6 +53,7 @@ def checkoff() -> dict:
                     for s in ("unused", "partial")
                 ],
                 "Credits with money left",
+                suffix="used",
             ),
         ],
     }
@@ -158,8 +159,9 @@ def perk_values() -> dict:
             heading("What perks are worth to you", "mdi:tag-text-outline"),
             note("Lounge access and status carry no issuer amount, so the value is your call."),
             auto_rows(
-                [{**with_status(base_filter()), "entity_id": "number.*_value"}],
+                [{**with_status(base_filter(), kind="perk_value"), "domain": "number"}],
                 "Perk values",
+                suffix="value",
             ),
         ],
     }
