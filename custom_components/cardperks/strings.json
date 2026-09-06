@@ -188,6 +188,7 @@
     },
     "sensor": {
       "benefit_expires": { "name": "{benefit} expires" },
+      "benefit_remaining": { "name": "{benefit} remaining" },
       "fee_due": { "name": "Annual fee due" },
       "unused_value": { "name": "Unused value" },
       "net_value_12m": { "name": "Net value (12 months)" },

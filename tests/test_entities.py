@@ -22,9 +22,9 @@ def _eid(hass, platform: str, unique_id: str) -> str:
 async def test_entities_created(hass, setup_integration: MockConfigEntry):
     registry = er.async_get(hass)
     ours = [e for e in registry.entities.values() if e.platform == DOMAIN]
-    # primary: 5 benefits x (select+sensor+button) + fee_due + unused + net + binary = 19
-    # AU: 1 benefit x 3 + 4 card = 7 ; owners: 2 x 4 = 8
-    assert len(ours) == 19 + 7 + 8
+    # primary: 5 benefits x (select + expires + remaining + button) + 4 card-level = 24
+    # AU: 1 benefit x 4 + 4 card-level = 8 ; owners: 2 x 4 = 8
+    assert len(ours) == 24 + 8 + 8
 
     travel = hass.states.get(_eid(hass, "select", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"
@@ -37,6 +37,10 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     fee = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_fee_due"))
     assert fee.state == "2027-07-01"
     assert hass.states.get(_eid(hass, "binary_sensor", f"{CARD_ID}_fee_within_45d")).state == "off"
+
+    rem = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_remaining"))
+    assert float(rem.state) == 150.0 and rem.attributes["percent_used"] == 0.0
+    assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_sub_remaining")).state == "unknown"
 
     unused = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value"))
     assert float(unused.state) == 10 + 150 + 300 + 100  # sub has no dollar amount
@@ -95,6 +99,8 @@ async def test_select_and_button_and_services(
     )
     st = hass.states.get(dining)
     assert st.state == "partial" and st.attributes["amount_used"] == 40
+    rem = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_remaining"))
+    assert float(rem.state) == 110.0 and rem.attributes["percent_used"] == 26.7
     assert st.attributes["uses"][0]["note"] == "Resy"
     await hass.services.async_call(DOMAIN, "mark_used", {"entity_id": dining}, blocking=True)
     assert hass.states.get(dining).state == "used"
@@ -184,6 +190,10 @@ async def test_device_services(hass, setup_integration: MockConfigEntry):
         {"device_id": device.id, "category": "gas"},
         blocking=True,
     )
+    rem = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_dining_credit_remaining"))
+    assert float(rem.state) == 150.0 and rem.attributes["percent_used"] == 0.0
+    assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_sub_remaining")).state == "unknown"
+
     unused = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value"))
     assert unused.attributes["rotating_activations"]["2026-Q3"]["category"] == "gas"
 

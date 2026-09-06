@@ -9,7 +9,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import SUBENTRY_CARD, SUBENTRY_OWNER
+from .const import SUBENTRY_CARD, SUBENTRY_OWNER, BenefitStatus
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .entity import BenefitEntity, CardEntity, OwnerEntity
 from .helpers import card_from_subentry, owner_from_subentry
@@ -44,10 +44,9 @@ async def async_setup_entry(
                 CardUnusedValueSensor(coordinator, card),
                 CardNetValue12mSensor(coordinator, card),
             ]
-            entities.extend(
-                BenefitExpiresSensor(coordinator, card, b)
-                for b in product.benefits_for_role(card.role)
-            )
+            for b in product.benefits_for_role(card.role):
+                entities.append(BenefitExpiresSensor(coordinator, card, b))
+                entities.append(BenefitRemainingSensor(coordinator, card, b))
             async_add_entities(entities, config_subentry_id=sub.subentry_id)
 
 
@@ -64,6 +63,47 @@ def _items(items: tuple[ExpiringItem, ...]) -> list[dict[str, Any]]:
 
 
 # ------------------------------------------------------------------ benefit
+
+
+class BenefitRemainingSensor(BenefitEntity, SensorEntity):
+    """Dollars left on this benefit for the current period."""
+
+    _attr_translation_key = "benefit_remaining"
+    _attr_device_class = SensorDeviceClass.MONETARY
+    _attr_native_unit_of_measurement = "USD"
+    _attr_suggested_display_precision = 2
+    _attr_icon = "mdi:cash-clock"
+
+    def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard, benefit: Benefit) -> None:
+        super().__init__(coordinator, card, benefit)
+        self._attr_unique_id = f"{card.id}_{benefit.id}_remaining"
+
+    @property
+    def native_value(self) -> float | None:
+        inst = self.instance
+        if inst is None or inst.amount is None:
+            return None
+        if inst.status is BenefitStatus.NA:
+            return 0.0
+        return round(max(inst.amount - inst.amount_used, 0.0), 2)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        inst = self.instance
+        if inst is None:
+            return {}
+        total = inst.amount
+        pct = round(inst.amount_used / total * 100, 1) if total else None
+        return {
+            "status": str(inst.status),
+            "amount": total,
+            "amount_used": inst.amount_used,
+            "percent_used": pct,
+            "period_start": inst.period_start,
+            "period_end": inst.period_end,
+            "cadence": str(self.benefit.cadence),
+            "uses": [u.to_dict() for u in inst.uses],
+        }
 
 
 class BenefitExpiresSensor(BenefitEntity, SensorEntity):
