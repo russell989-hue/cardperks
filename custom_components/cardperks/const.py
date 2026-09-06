@@ -12,6 +12,7 @@ STORAGE_MINOR_VERSION = 1
 
 SUBENTRY_OWNER = "owner"
 SUBENTRY_CARD = "held_card"
+SUBENTRY_IMPORT = "import"
 
 OVERRIDE_DIR = DOMAIN  # /config/cardperks/catalog/
 

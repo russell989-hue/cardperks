@@ -22,10 +22,12 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
     TextSelector,
+    TextSelectorConfig,
 )
 from homeassistant.util import slugify
 
 from .const import (
+    ATTR_CSV,
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
     CONF_FEE_MONTH,
@@ -41,13 +43,15 @@ from .const import (
     CONF_PARENT_CARD_ID,
     CONF_PRODUCT_ID,
     CONF_ROLE,
+    DATA_IMPORTING,
     DOMAIN,
     SUBENTRY_CARD,
+    SUBENTRY_IMPORT,
     SUBENTRY_OWNER,
     Role,
 )
 from .helpers import async_get_catalog
-from .importer import parse_date
+from .importer import async_import_cards, parse_date
 from .models import Catalog
 
 MONTH_NAMES = [
@@ -78,7 +82,11 @@ class CardPerksConfigFlow(ConfigFlow, domain=DOMAIN):
     def async_get_supported_subentry_types(
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
-        return {SUBENTRY_OWNER: OwnerSubentryFlow, SUBENTRY_CARD: HeldCardSubentryFlow}
+        return {
+            SUBENTRY_OWNER: OwnerSubentryFlow,
+            SUBENTRY_CARD: HeldCardSubentryFlow,
+            SUBENTRY_IMPORT: ImportSubentryFlow,
+        }
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if self._async_current_entries():
@@ -424,3 +432,36 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             ),
             errors=errors,
         )
+
+
+class ImportSubentryFlow(ConfigSubentryFlow):
+    """Bulk import from pasted CSV. Creates owner/card subentries, never one of its own."""
+
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        if user_input is not None and (user_input.get(ATTR_CSV) or "").strip():
+            entry = self._get_entry()
+            catalog = await async_get_catalog(self.hass)
+            self.hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
+            try:
+                result = await async_import_cards(self.hass, entry, catalog, user_input[ATTR_CSV])
+            finally:
+                self.hass.data[DOMAIN][DATA_IMPORTING] = False
+            if result.created_owners or result.created_cards:
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
+
+            def _fmt(items: list[str]) -> str:
+                return "\n".join(f"- {i}" for i in items) if items else "- none"
+
+            return self.async_abort(
+                reason="import_complete",
+                description_placeholders={
+                    "owners": _fmt(result.created_owners),
+                    "cards": _fmt(result.created_cards),
+                    "skipped": _fmt(result.skipped),
+                    "errors": _fmt(result.errors),
+                },
+            )
+        schema = vol.Schema(
+            {vol.Required(ATTR_CSV): TextSelector(TextSelectorConfig(multiline=True))}
+        )
+        return self.async_show_form(step_id="user", data_schema=schema)

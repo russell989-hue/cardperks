@@ -181,3 +181,21 @@ async def test_remove_card_subentry_cleans_up_entities(hass, setup_integration: 
     await hass.async_block_till_done()
     after = [e for e in registry.entities.values() if e.config_subentry_id == AU_CARD_ID]
     assert after == []
+
+
+async def test_import_subentry_flow(hass, setup_integration: MockConfigEntry):
+    entry = setup_integration
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "import"), context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] is FlowResultType.FORM and result["step_id"] == "user"
+    csv = (
+        "owner,product,fee_month,last4\nSam,Premium Card,November,7777\nBrian,Premium Card,,1234\n"
+    )
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {"csv": csv})
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "import_complete"
+    ph = result["description_placeholders"]
+    assert "Sam" in ph["owners"] and "Premium Card (Sam ·7777)" in ph["cards"]
+    assert "already have" in ph["skipped"] and ph["errors"] == "- none"
+    await hass.async_block_till_done()
+    assert hass.states.get("select.premium_card_sam_7777_travel_credit").state == "unused"

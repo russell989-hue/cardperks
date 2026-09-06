@@ -49,6 +49,25 @@
         "reconfigure_successful": "Owner updated."
       }
     },
+    "import": {
+      "title": "Import cards",
+      "entry_type": "Import",
+      "initiate_flow": {
+        "user": "Import cards from CSV"
+      },
+      "step": {
+        "user": {
+          "title": "Import cards from CSV",
+          "description": "Paste rows from a spreadsheet, header line included. Columns: `owner`, `product` (name or catalog id), and optionally `issuer`, `role` (primary or au), `parent_owner` or `parent_last4` for authorized users, `open_date`, `fee_month`, `last4`, `nickname`, `annual_fee`, `notes`. Primary cards need an open date or fee month. Existing cards are skipped, never duplicated.\n\nExample:\n```\nowner,issuer,product,role,parent_owner,fee_month,last4,annual_fee\nBrian,Chase,Sapphire Reserve,primary,,February,1234,795\nNick,Chase,United Club,au,Brian,,,\n```",
+          "data": {
+            "csv": "CSV rows"
+          }
+        }
+      },
+      "abort": {
+        "import_complete": "Import finished.\n\n**Owners created**\n{owners}\n\n**Cards created**\n{cards}\n\n**Skipped**\n{skipped}\n\n**Errors**\n{errors}"
+      }
+    },
     "held_card": {
       "title": "Card",
       "entry_type": "Card",
