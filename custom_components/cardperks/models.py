@@ -496,7 +496,8 @@ class Totals:
 
     A period that closed unused is money gone, not money pending, so forfeited is
     tracked separately from what is still capturable. Periods with no usage evidence
-    (imported gaps) are counted as unknown rather than assumed lost.
+    are counted as unknown rather than assumed lost: gaps backfilled by the rollover,
+    and statement-credit periods no imported statement vouches for.
     """
 
     annual_value: float = 0.0

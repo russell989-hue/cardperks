@@ -182,8 +182,6 @@ installed but unused: apexcharts-card, mini-graph-card, button-card, layout-card
 - A benefit whose catalog name already ends in parentheses gets a second pair from
   the cadence tag: "Hotel credit (FHR / The Hotel Collection) (every 6 months)".
 - Gauge titles can clip at three per row on narrower screens.
-- Forfeited does not yet consult coverage: a month with no statement counts as
-  forfeited rather than unknown once its period closes (see backlog).
 - The shipped catalog is drafted from general knowledge and flagged
   `needs_verification`; Repairs lists it. Verified so far is noted in the backlog.
 - Statement import is one card per pass; a multi-card Chase export is uploaded once

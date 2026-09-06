@@ -15,19 +15,15 @@ chosen card's last four (and its former numbers after a replacement); each uploa
 records the months it covers and a receipt; uncapped rebates are recorded as their
 own benefit type. Remaining gaps, in order:
 
-1. **Forfeited should consult coverage.** When a period closes with no usage and no
-   statement covered its months, count it as `unknown`, not forfeited. Today the
-   coverage sensor shows the gap but the forfeited figure still charges for it. This
-   is the single most misleading number left on the dashboard.
-2. **"No statement since" reminder.** A repair or notification when a card's last
+1. **"No statement since" reminder.** A repair or notification when a card's last
    imported statement is older than its cadence, so gaps do not accumulate quietly.
-3. **One file, many cards.** Apply a multi-card export to every card it covers in one
+2. **One file, many cards.** Apply a multi-card export to every card it covers in one
    pass, and let the first upload of a household's Chase export stand up every card in
    it.
-4. **Repeat imports without ceremony.** A service that takes a file path, and/or a
+3. **Repeat imports without ceremony.** A service that takes a file path, and/or a
    watched folder such as `/config/cardperks/statements/`. Import is idempotent, so
    re-running is safe by construction.
-5. **Close the matching gap in-product.** Unmatched credit lines are listed, but fixing
+4. **Close the matching gap in-product.** Unmatched credit lines are listed, but fixing
    one means editing catalog JSON. Offer to write the pattern into the user override
    file straight from the import result.
 
@@ -62,7 +58,8 @@ that same history. What is missing is scale and honesty about gaps.
 - **Cardmember-year totals, not just trailing twelve months.** Fee charged, credits
   captured before the next fee, net; a per-year table.
 - **Say what is unknown.** Periods with no evidence stay `unknown` rather than
-  forfeited (item 1 above is the same rule for the live year).
+  forfeited (the live year already works this way: a closed statement-credit period
+  is forfeited only when statements cover every month of it).
 - **Catalog history is the hard part.** The Sapphire Reserve's 2022 credits were not
   the 2026 ones and the fee was $550. Either benefits gain `valid_from` / `valid_to`,
   or historical mode reports captured dollars and fees paid only and stays silent

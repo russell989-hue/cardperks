@@ -9,6 +9,8 @@ A Home Assistant integration that makes sure every credit-card benefit in your h
 Everything is measured in dollars. A $25 monthly credit is $300 a year, and what matters
 is how much of that you actually captured, not whether this month is ticked off. Periods
 that close unused are **forfeited**, tracked separately from what is still capturable.
+Once you import statements, a statement credit only counts as forfeited when a statement
+covered every month of its period; a month nobody has a statement for is **unknown**.
 
 Per benefit on each card:
 

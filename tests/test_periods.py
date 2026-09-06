@@ -9,6 +9,7 @@ from custom_components.cardperks.periods import (
     Period,
     add_months,
     compute_period,
+    months_spanned,
     next_fee_date,
     period_after,
 )
@@ -216,3 +217,16 @@ def test_period_after_chains_without_drift():
 )
 def test_next_fee_date(today, open_date, fee_month, expected):
     assert next_fee_date(today, open_date, fee_month) == expected
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        (date(2026, 8, 1), date(2026, 8, 31), ["2026-08"]),
+        (date(2026, 7, 1), date(2026, 9, 30), ["2026-07", "2026-08", "2026-09"]),
+        (date(2025, 11, 15), date(2026, 2, 14), ["2025-11", "2025-12", "2026-01", "2026-02"]),
+        (date(2026, 3, 10), None, ["2026-03"]),
+    ],
+)
+def test_months_spanned(start, end, expected):
+    assert months_spanned(start, end) == expected

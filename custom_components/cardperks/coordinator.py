@@ -38,7 +38,7 @@ from .models import (
     UsageEvent,
     instance_key,
 )
-from .periods import add_months, compute_period, next_fee_date
+from .periods import add_months, compute_period, months_spanned, next_fee_date
 from .rollover import RolloverResult, rollover
 from .store import CardPerksStore
 
@@ -469,6 +469,23 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                     )
             bump(inst.benefit_id, captured=inst.amount_used)
 
+        # Statements are the evidence for statement credits. Once a card has had any
+        # imported, a closed credit period is only "forfeited" when a statement covered
+        # every month of it; a month nobody has a statement for is unknown, not lost.
+        # Perks and insurance never show on a statement, so they keep the manual rule,
+        # as does a card that is tracked by hand and has no statements at all.
+        covered = self.coverage_months(card.id)
+
+        def vouched_for(h: HistoryRecord) -> bool:
+            if not covered:
+                return True
+            benefit = product.benefit(h.benefit_id) if product else None
+            if benefit is None or benefit.type is not BenefitType.STATEMENT_CREDIT:
+                return True
+            start = date.fromisoformat(h.period_start)
+            end = date.fromisoformat(h.period_end) if h.period_end else None
+            return all(m in covered for m in months_spanned(start, end))
+
         for h in self.doc.history:
             if h.held_card_id != card.id:
                 continue
@@ -479,9 +496,11 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             missed = max((h.amount or 0.0) - h.amount_used, 0.0)
             if not missed:
                 continue
-            if h.final_status == "unknown":
+            if h.final_status == str(BenefitStatus.NA):
+                continue
+            if h.final_status == "unknown" or not vouched_for(h):
                 bump(h.benefit_id, unknown=missed)
-            elif h.final_status != str(BenefitStatus.NA):
+            else:
                 bump(h.benefit_id, forfeited=missed)
 
         # A rebate has no pool to capture from, so its annual value is what it returned;

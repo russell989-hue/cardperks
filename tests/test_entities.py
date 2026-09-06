@@ -435,6 +435,98 @@ async def test_annual_dollars_captured_and_forfeited(hass, setup_integration: Mo
     assert hass.states.get(_eid(hass, "sensor", f"owner_{OWNER_ID}_forfeited_12m")).state == "10.0"
 
 
+async def test_forfeited_consults_statement_coverage(hass, setup_integration: MockConfigEntry):
+    """Once statements are the evidence, a month nobody imported is unknown, not lost.
+
+    Before any statement exists the card is tracked by hand and an unused close is
+    forfeited. After the first import, a closed statement-credit period is only
+    forfeited when a statement covered every month of it. Perks never appear on a
+    statement, so they keep the manual rule either way.
+    """
+    entry = setup_integration
+    coord = entry.runtime_data
+
+    def closed(benefit_id: str, start: str, end: str, amount: float, used: float = 0.0):
+        return HistoryRecord(
+            held_card_id=CARD_ID,
+            benefit_id=benefit_id,
+            period_start=start,
+            period_end=end,
+            final_status="partial" if used else "unused",
+            amount=amount,
+            amount_used=used,
+            closed_at="2026-09-01T00:05:00+00:00",
+            closed_by="rollover",
+        )
+
+    coord.doc.history.extend(
+        [
+            closed("monthly_credit", "2026-08-01", "2026-08-31", 10.0),  # covered below
+            closed("monthly_credit", "2026-06-01", "2026-06-30", 10.0),  # never imported
+            # Semiannual, Jan-Jun: statements for some months, so $150 - $40 cannot be judged.
+            closed("dining_credit", "2026-01-01", "2026-06-30", 150.0, used=40.0),
+            # A perk is a lounge visit, not a statement line: still forfeited when unused.
+            closed("lounge", "2025-07-01", "2026-06-30", 100.0),
+        ]
+    )
+    coord.commit()
+    await hass.async_block_till_done()
+
+    # No statement yet: every unused close is forfeited, as before.
+    forfeited = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_forfeited_12m"))
+    assert float(forfeited.state) == 10 + 10 + 110 + 100
+    assert forfeited.attributes["unknown_12m"] == 0.0
+
+    # One statement vouches for Jan, Feb and Aug.
+    coord.record_import(
+        CARD_ID,
+        file_hash="abc123def456",
+        filename="statement.csv",
+        issuer="chase",
+        months={"2026-01", "2026-02", "2026-08"},
+        first_date="2026-01-03",
+        last_date="2026-08-30",
+        rows=3,
+        credit_rows=0,
+        matched=0,
+        applied=0.0,
+    )
+    coord.commit()
+    await hass.async_block_till_done()
+
+    forfeited = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_forfeited_12m"))
+    # August was covered and unused: forfeited. June was never imported: unknown.
+    # Dining ran Jan-Jun with only two months covered: the $110 left is unknown.
+    # The lounge perk is unaffected by statements.
+    assert float(forfeited.state) == 10 + 100
+    assert forfeited.attributes["unknown_12m"] == 10 + 110
+    per = coord.data.card_summaries[CARD_ID].benefit_totals
+    assert per["monthly_credit"].forfeited == 10.0 and per["monthly_credit"].unknown == 10.0
+    assert per["dining_credit"].forfeited == 0.0 and per["dining_credit"].unknown == 110.0
+    assert per["dining_credit"].captured == 40.0
+    assert per["lounge"].forfeited == 100.0 and per["lounge"].unknown == 0.0
+
+    # Importing the missing month settles it: June really was unused.
+    coord.record_import(
+        CARD_ID,
+        file_hash="fedcba654321",
+        filename="june.csv",
+        issuer="chase",
+        months={"2026-06"},
+        first_date="2026-06-02",
+        last_date="2026-06-29",
+        rows=1,
+        credit_rows=0,
+        matched=0,
+        applied=0.0,
+    )
+    coord.commit()
+    await hass.async_block_till_done()
+    forfeited = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_forfeited_12m"))
+    assert float(forfeited.state) == 10 + 10 + 100
+    assert forfeited.attributes["unknown_12m"] == 110.0
+
+
 async def test_not_applicable_leaves_the_totals(hass, setup_integration: MockConfigEntry):
     """A benefit you cannot use should not be counted as annual value or as forfeited."""
     entry = setup_integration

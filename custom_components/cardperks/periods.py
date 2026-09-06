@@ -109,3 +109,20 @@ def period_after(
 ) -> Period | None:
     """The period immediately following one that ended on prev_end."""
     return compute_period(prev_end + timedelta(days=1), cadence, reset, open_date, fee_month)
+
+
+def months_spanned(start: date, end: date | None) -> list[str]:
+    """Every calendar month a period touches, as YYYY-MM, in order.
+
+    Statement coverage is recorded by month, so this is how a period is checked
+    against it. A period with no end is taken to occupy its starting month only.
+    """
+    last = end or start
+    out: list[str] = []
+    year, month = start.year, start.month
+    while (year, month) <= (last.year, last.month):
+        out.append(f"{year:04d}-{month:02d}")
+        month += 1
+        if month == 13:
+            year, month = year + 1, 1
+    return out
