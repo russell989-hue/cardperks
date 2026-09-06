@@ -108,12 +108,20 @@ def _jinja_where(inc: dict) -> str:
     return " and ".join(parts)
 
 
+def _rows_query(includes: list[dict]) -> tuple[list[str], str]:
+    """Domains to scan and the OR-ed Jinja condition for a set of include rules."""
+    domains = sorted({inc.get("domain", "number") for inc in includes})
+    where = " or ".join(f"({_jinja_where(inc)})" for inc in includes) or "true"
+    return domains, where
+
+
 def auto_rows(
     includes: list[dict],
     title: str | None = None,
     *,
     suffix: str = "",
     show_empty: bool = False,
+    rows: tuple[int | None, int | None] | None = None,
 ) -> dict:
     """auto-entities feeding entity rows, each icon coloured by its card.
 
@@ -123,13 +131,13 @@ def auto_rows(
     from the same place. Rows sort by that label.
 
     Each include rule may carry `domain`, `attributes` (equality) and `state` (a
-    comparison such as "> 0"); rules are OR-ed together.
+    comparison such as "> 0"); rules are OR-ed together. `rows` takes a (start, stop)
+    slice of the sorted list, so one list can be shown in parts.
     """
     card: dict = {"type": "entities", "state_color": True}
     if title:
         card["title"] = title
-    domains = sorted({inc.get("domain", "number") for inc in includes})
-    where = " or ".join(f"({_jinja_where(inc)})" for inc in includes) or "true"
+    domains, where = _rows_query(includes)
     label = (
         "s.attributes.benefit ~ '" + (f" {suffix}" if suffix else "") + ": ' ~ s.attributes.card"
     )
@@ -145,8 +153,16 @@ def auto_rows(
         "{% endfor %}"
         for d in domains
     )
+    window = ""
+    if rows is not None:
+        start, stop = rows
+        window = f"[{'' if start is None else start}:{'' if stop is None else stop}]"
     template = (
-        "{% set ns = namespace(rows=[]) %}" + loops + "{{ ns.rows | sort(attribute='name') }}"
+        "{% set ns = namespace(rows=[]) %}"
+        + loops
+        + "{{ (ns.rows | sort(attribute='name'))"
+        + window
+        + " }}"
     )
     return {
         "type": "custom:auto-entities",
@@ -154,6 +170,39 @@ def auto_rows(
         "show_empty": show_empty,
         "filter": {"template": template},
     }
+
+
+def peek_rows(
+    includes: list[dict],
+    title: str,
+    *,
+    suffix: str = "",
+    peek: int = 3,
+    noun: str = "credits",
+) -> list[dict]:
+    """One row list shown in two parts: the first `peek` rows, then the rest folded
+    behind an expander whose title counts what is hidden ("42 more credits")."""
+    domains, where = _rows_query(includes)
+    count = (
+        "{% set ns = namespace(n=0) %}"
+        + "".join(
+            f"{{% for s in states.{d} if s.state not in ['unavailable', 'unknown'] "
+            f"and ({where}) %}}{{% set ns.n = ns.n + 1 %}}{{% endfor %}}"
+            for d in domains
+        )
+        + f"{{{{ [ns.n - {peek}, 0] | max }}}} more {noun}"
+    )
+    more = {
+        "type": "custom:mushroom-template-card",
+        "primary": count,
+        "icon": "mdi:unfold-more-horizontal",
+        "icon_color": "grey",
+        "tap_action": {"action": "none"},
+    }
+    return [
+        auto_rows(includes, title, suffix=suffix, rows=(0, peek), show_empty=True),
+        expander(more, [auto_rows(includes, suffix=suffix, rows=(peek, None))]),
+    ]
 
 
 def gauge_grid(
@@ -256,9 +305,12 @@ def donut_by_card(size: int = 240) -> dict:
         "{{ ns.out | join(', ') if ns.out else 'var(--divider-color) 0% 100%' }}"
     )
     style = (
+        "ha-card {\n"
+        "  display: flex !important; align-items: center; justify-content: center;\n"
+        "}\n"
         "ha-markdown {\n"
         f"  width: {size}px !important; height: {size}px !important; border-radius: 50%;\n"
-        "  margin: 12px auto !important; padding: 0 !important; box-sizing: border-box;\n"
+        "  margin: auto !important; padding: 0 !important; box-sizing: border-box;\n"
         "  display: flex !important; align-items: center; justify-content: center;\n"
         "  text-align: center; font-size: 1.15em; line-height: 1.5;\n"
         "  background:\n"
