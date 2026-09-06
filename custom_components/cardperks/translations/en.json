@@ -218,30 +218,66 @@
           "n_a": "Not applicable"
         }
       },
-      "benefit_expires": { "name": "{benefit} expires" },
-      "benefit_remaining": { "name": "{benefit} remaining" },
-      "annual_value": { "name": "Annual credit value" },
-      "captured_12m": { "name": "Captured, 12 months" },
-      "forfeited_12m": { "name": "Forfeited, 12 months" },
-      "capture_rate": { "name": "Capture rate" },
-      "coverage_12m": { "name": "Statement coverage" },
-      "fee_due": { "name": "Annual fee due" },
-      "unused_value": { "name": "Unused value" },
-      "net_value_12m": { "name": "Net value (12 months)" },
-      "unused_credits": { "name": "Unused credits" },
-      "expiring_7d": { "name": "Expiring within 7 days" },
-      "expiring_30d": { "name": "Expiring within 30 days" },
-      "five_24": { "name": "5/24 count" }
+      "benefit_expires": {
+        "name": "{benefit} expires"
+      },
+      "benefit_remaining": {
+        "name": "{benefit} remaining"
+      },
+      "annual_value": {
+        "name": "Annual credit value"
+      },
+      "captured_12m": {
+        "name": "Captured, 12 months"
+      },
+      "forfeited_12m": {
+        "name": "Forfeited, 12 months"
+      },
+      "capture_rate": {
+        "name": "Capture rate"
+      },
+      "coverage_12m": {
+        "name": "Statement coverage"
+      },
+      "fee_due": {
+        "name": "Annual fee due"
+      },
+      "unused_value": {
+        "name": "Unused value"
+      },
+      "net_value_12m": {
+        "name": "Net value (12 months)"
+      },
+      "unused_credits": {
+        "name": "Unused credits"
+      },
+      "expiring_7d": {
+        "name": "Expiring within 7 days"
+      },
+      "expiring_30d": {
+        "name": "Expiring within 30 days"
+      },
+      "five_24": {
+        "name": "5/24 count"
+      }
     },
     "button": {
-      "benefit_mark_used": { "name": "Mark {benefit} used" }
+      "benefit_mark_used": {
+        "name": "Mark {benefit} used"
+      }
     },
     "number": {
-      "benefit_used": { "name": "{benefit} used" },
-      "perk_value": { "name": "{benefit} value" }
+      "benefit_used": {
+        "name": "{benefit} used"
+      },
+      "perk_value": {
+        "name": "{benefit} value"
+      }
     },
     "binary_sensor": {
-      "fee_within_45d": { "name": "Fee due within 45 days" }
+      "fee_within_45d": {
+        "name": "Fee due within 45 days"
+      }
     }
   },
   "services": {
@@ -249,9 +285,18 @@
       "name": "Mark benefit used",
       "description": "Record a use of a benefit for the current period. Without an amount, marks the whole benefit used.",
       "fields": {
-        "amount": { "name": "Amount", "description": "Dollar amount used this time." },
-        "date": { "name": "Date", "description": "When it was used. Defaults to today." },
-        "note": { "name": "Note", "description": "Free-text note." }
+        "amount": {
+          "name": "Amount",
+          "description": "Dollar amount used this time."
+        },
+        "date": {
+          "name": "Date",
+          "description": "When it was used. Defaults to today."
+        },
+        "note": {
+          "name": "Note",
+          "description": "Free-text note."
+        }
       }
     },
     "reset_benefit": {
@@ -262,47 +307,96 @@
       "name": "Add sign-up bonus spend",
       "description": "Add spend toward a card's sign-up bonus requirement.",
       "fields": {
-        "device_id": { "name": "Card", "description": "The card device." },
-        "amount": { "name": "Amount", "description": "Spend to add." },
-        "date": { "name": "Date", "description": "When the spend happened." },
-        "note": { "name": "Note", "description": "Free-text note." }
+        "device_id": {
+          "name": "Card",
+          "description": "The card device."
+        },
+        "amount": {
+          "name": "Amount",
+          "description": "Spend to add."
+        },
+        "date": {
+          "name": "Date",
+          "description": "When the spend happened."
+        },
+        "note": {
+          "name": "Note",
+          "description": "Free-text note."
+        }
       }
     },
     "set_perk_value": {
       "name": "Set perk value",
       "description": "Assign the annual dollar value you place on a perk (lounge access, status, insurance).",
       "fields": {
-        "device_id": { "name": "Card", "description": "The card device." },
-        "benefit_id": { "name": "Benefit ID", "description": "Catalog benefit id, e.g. priority_pass." },
-        "value": { "name": "Value", "description": "Annual value in dollars." }
+        "device_id": {
+          "name": "Card",
+          "description": "The card device."
+        },
+        "benefit_id": {
+          "name": "Benefit ID",
+          "description": "Catalog benefit id, e.g. priority_pass."
+        },
+        "value": {
+          "name": "Value",
+          "description": "Annual value in dollars."
+        }
       }
     },
     "import_cards": {
       "name": "Import cards",
       "description": "Create owners and cards in bulk from CSV text. Header row required with at least owner and product; optional columns: issuer, role (primary/au), parent_last4 or parent_owner, open_date, fee_month, last4, previous_last4, nickname, color, annual_fee, notes. Rows that already exist are skipped.",
       "fields": {
-        "csv": { "name": "CSV", "description": "Paste rows from a spreadsheet, including the header line." }
+        "csv": {
+          "name": "CSV",
+          "description": "Paste rows from a spreadsheet, including the header line."
+        }
       }
     },
     "activate_rotating_category": {
       "name": "Activate rotating category",
       "description": "Record which rotating bonus category was activated for a quarter.",
       "fields": {
-        "device_id": { "name": "Card", "description": "The card device." },
-        "category": { "name": "Category", "description": "e.g. gas, grocery." },
-        "quarter": { "name": "Quarter", "description": "YYYY-Qn. Defaults to the current quarter." }
+        "device_id": {
+          "name": "Card",
+          "description": "The card device."
+        },
+        "category": {
+          "name": "Category",
+          "description": "e.g. gas, grocery."
+        },
+        "quarter": {
+          "name": "Quarter",
+          "description": "YYYY-Qn. Defaults to the current quarter."
+        }
       }
     }
   },
   "exceptions": {
-    "not_set_up": { "message": "Set up the CardPerks integration first." },
-    "unknown_status": { "message": "{status} is not one of active, frozen or cancelled." },
-    "unknown_device": { "message": "That device does not exist." },
-    "not_a_card_device": { "message": "That device is not a CardPerks card." },
-    "unknown_card": { "message": "That card is not configured." },
-    "unknown_benefit": { "message": "Benefit {benefit_id} is not in the catalog for this card." },
-    "no_current_period": { "message": "Benefit {benefit_id} has no open period." },
-    "not_a_perk": { "message": "Benefit {benefit_id} is not a perk; its value comes from the catalog." }
+    "not_set_up": {
+      "message": "Set up the CardPerks integration first."
+    },
+    "unknown_status": {
+      "message": "{status} is not one of active, frozen or cancelled."
+    },
+    "unknown_device": {
+      "message": "That device does not exist."
+    },
+    "not_a_card_device": {
+      "message": "That device is not a CardPerks card."
+    },
+    "unknown_card": {
+      "message": "That card is not configured."
+    },
+    "unknown_benefit": {
+      "message": "Benefit {benefit_id} is not in the catalog for this card."
+    },
+    "no_current_period": {
+      "message": "Benefit {benefit_id} has no open period."
+    },
+    "not_a_perk": {
+      "message": "Benefit {benefit_id} is not a perk; its value comes from the catalog."
+    }
   },
   "issues": {
     "stale_catalog": {

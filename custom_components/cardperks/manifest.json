@@ -1,4 +1,6 @@
 {
+  "domain": "cardperks",
+  "name": "CardPerks",
   "codeowners": [
     "@russell989-hue"
   ],
@@ -7,11 +9,9 @@
     "file_upload"
   ],
   "documentation": "https://github.com/russell989-hue/cardperks",
-  "domain": "cardperks",
   "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/russell989-hue/cardperks/issues",
-  "name": "CardPerks",
   "requirements": [],
   "single_config_entry": true,
   "version": "0.1.0"
