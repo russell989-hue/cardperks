@@ -148,7 +148,7 @@ def render_catalog(
                     f'<td class="num">{amount}</td>'
                     f"<td>{_esc(cadence)}</td>"
                     f'<td class="num">{_money(per_year) if per_year else ""}</td>'
-                    f'<td class="num"><input class="my" type="number" min="0" step="1" '
+                    f'<td class="num"><input class="my" type="text" inputmode="decimal" '
                     f'data-p="{_esc(p.id)}" data-b="{_esc(b.id)}" '
                     f'data-default="{_my_default(p.id, b, per_year, my_values)}" '
                     f'value="{_my_default(p.id, b, per_year, my_values)}" '
@@ -314,6 +314,7 @@ body.only-held .program {{ display: block; }}
 .muted {{ color: var(--ink-3); font-size: 12px; }}
 input.my {{ width: 76px; padding: 4px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); color: var(--ink); font: 13.5px "IBM Plex Sans", sans-serif; text-align: right; font-variant-numeric: tabular-nums; }}
 input.my:focus {{ outline: 2px solid var(--brass); outline-offset: 1px; }}
+input.my::-webkit-outer-spin-button, input.my::-webkit-inner-spin-button {{ -webkit-appearance: none; margin: 0; }}
 th .reset {{ font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; font-size: 11px; }}
 .p-figures .mine dd {{ color: var(--brass); }}
 .p-figures .mine dd.negative {{ color: var(--flag); }}
@@ -359,6 +360,7 @@ th .reset {{ font-weight: 400; text-transform: none; letter-spacing: 0; margin-l
   document.querySelectorAll("input.my").forEach((i) => {{
     try {{ const saved = localStorage.getItem(keyOf(i)); if (saved !== null) i.value = saved; }} catch (e) {{}}
     i.addEventListener("input", () => {{
+      i.value = i.value.replace(/[^0-9.]/g, "");
       try {{ localStorage.setItem(keyOf(i), i.value); }} catch (e) {{}}
       total(i.closest("section"));
     }});
