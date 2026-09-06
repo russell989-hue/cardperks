@@ -2,6 +2,33 @@
 
 Ideas and deferred work. Phase numbers refer to the roadmap in the scope document.
 
+## Guiding principle: statement upload is the default path
+
+Nobody can track this by hand. A single Amex Platinum has fifteen credits on four
+different cadences; a household of ten cards is hundreds of periods a year. Manual
+check-off is the fallback for things statements cannot show, not the main flow.
+
+Everything should be built so the normal loop is **download a CSV, upload it, done**.
+Concrete gaps between that and today:
+
+- **Statement upload should create the card.** Import statement currently requires the
+  card to exist first. It should detect issuer and last four, offer to create the card
+  (asking only for the owner and confirming the product), then set fee month, actual fee,
+  and backfill usage in one pass. Card CSV import becomes the bulk-setup shortcut, not
+  the prerequisite.
+- **One file, many cards.** Chase exports carry a `Card No.` column and often several
+  cards at once. Split by last four and apply to each matching card instead of asking
+  for a single target.
+- **Repeat imports without ceremony.** A service that takes a file path so a user can
+  automate it, and/or a watched folder such as `/config/cardperks/statements/`. Import is
+  already idempotent, so re-running is safe by construction.
+- **Close the matching gap in-product.** Unmatched credit lines are listed today but
+  fixing one means hand-editing catalog JSON. Offer to write the pattern into a user
+  override file straight from the import result.
+- **Say what a statement could not tell you.** After an import, report which benefits
+  have no usage evidence, so manual check-off is a short, honest list rather than
+  everything.
+
 ## Next up
 
 ### Loyalty status tracker (airlines, hotels, rental cars)
