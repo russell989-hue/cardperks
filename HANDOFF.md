@@ -22,13 +22,25 @@ month. Manual dollar boxes exist as the fallback, not the main flow.
 | --- | --- |
 | `custom_components/cardperks/` | the integration |
 | `custom_components/cardperks/catalog/*.json` | shipped card products, one file per issuer (Chase, Amex, Capital One) |
-| `tests/` | 89 pytest tests, fixture catalog under `tests/fixtures/catalog/` |
+| `tests/` | 90 pytest tests (one is the privacy guard), fixture catalog under `tests/fixtures/catalog/` |
 | `tools/` | deploy script, dashboard generators, and the live push tools |
+| `tools/secrets.env` | untracked: the HA box address and SSH key for deploys |
+| `.github/workflows/validate.yml` | hassfest on every push |
 | `BACKLOG.md` | what is deferred and why |
 | `README.md` | user-facing install and usage |
 
-There is no git remote. The repo is `C:\Users\BrianRussell\dev\cardperks`, branch
-`main`, 50-odd commits, each message explaining the why.
+The repo is `C:\Users\BrianRussell\dev\cardperks`, branch `main`, with a private
+remote at https://github.com/russell989-hue/cardperks (GitHub CLI signed in as
+`russell989-hue`; push with plain `git push`). Every commit message explains the why.
+
+CI runs hassfest on every push (`.github/workflows/validate.yml`); the HACS
+validation job is deliberately left out until the integration is ready to publish.
+
+**Privacy rule for the repo:** no real last-four digits, dates or LAN addresses in
+tracked files or in history. Examples and tests use made-up numbers; the deploy
+target lives in the untracked `tools/secrets.env` (see `secrets.env.example`); statement
+exports, `.storage` and `data/` are ignored. The history was rewritten once with
+git-filter-repo to enforce this, so do not merge anything from an old clone.
 
 ## The model, in one screen
 
@@ -149,6 +161,8 @@ installed but unused: apexcharts-card, mini-graph-card, button-card, layout-card
 - The in-app browser cannot reach his LAN. Verify with the strict template check and
   the dump tool, then ask him for a screenshot.
 - "Don't make any edits yet" means exactly that.
+- Nothing personal in the repo, even though it is private: no card numbers, no
+  dates, no addresses. Put such values in `tools/secrets.env` or keep them out.
 
 ## Known rough edges
 
