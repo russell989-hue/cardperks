@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import DOMAIN, FEE_WARNING_DAYS, BenefitStatus, BenefitType, Role
+from .const import CARD_COLORS, DOMAIN, FEE_WARNING_DAYS, BenefitStatus, BenefitType, Role
 from .helpers import cards_from_entry, now_iso, owners_from_entry, today_local
 from .models import (
     Benefit,
@@ -307,6 +307,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             oid: self._owner_summary(oid, card_summaries, today) for oid in self.owners
         }
         return CardPerksData(
+            colors=self._colors(),
             today=today,
             owners=dict(self.owners),
             cards=dict(self.cards),
@@ -318,6 +319,18 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             rotating_activations=dict(self.doc.rotating_activations),
             perk_values=dict(self.doc.perk_values),
         )
+
+    def _colors(self) -> dict[str, str]:
+        """A distinct colour per card so one card reads the same across every dashboard.
+
+        Cards are ordered by id, which is creation-ordered, so adding a card appends
+        rather than reshuffling what is already on screen. An explicit choice wins.
+        """
+        out: dict[str, str] = {}
+        for i, card_id in enumerate(sorted(self.cards)):
+            chosen = self.cards[card_id].color
+            out[card_id] = chosen or CARD_COLORS[i % len(CARD_COLORS)]
+        return out
 
     def _card_summary(self, card: HeldCard, today: date) -> CardSummary:
         product = self.catalog.get(card.product_id)

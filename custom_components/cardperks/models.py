@@ -469,6 +469,7 @@ class CardPerksData:
     catalog: Catalog
     instances: Mapping[str, BenefitInstance]
     card_summaries: Mapping[str, CardSummary]
+    colors: Mapping[str, str]
     owner_summaries: Mapping[str, OwnerSummary]
     sub_trackers: Mapping[str, SubTracker]
     rotating_activations: Mapping[str, Mapping[str, Mapping[str, str]]]

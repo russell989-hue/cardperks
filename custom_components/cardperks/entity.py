@@ -43,7 +43,7 @@ class CardEntity(CardPerksEntity):
         return {
             "card": card.title if card else None,
             "card_id": self.held_card_id,
-            "color": card.color if card else None,
+            "color": self.coordinator.data.colors.get(self.held_card_id),
         }
 
     @property
