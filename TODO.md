@@ -17,14 +17,11 @@ is based on: captured, forfeited, unknown, still open.
 - [x] **Drop-folder blueprint.** `blueprints/automation/cardperks/statement_drop_folder.yaml`
       wires Folder Watcher to `cardperks.import_statement`; deploy ships it and creates
       `config/cardperks/statements/`. Files under `config/cardperks/` need no allowlist entry.
-- [ ] **Navigation tiles from a template.** The Cards tiles in the hand-built first section
-      are static; an auto-entities template over the `unused_value` sensors with
-      `tap_action: navigate` to `/dashboard-cardperks/{{ card | slugify }}` would add a new
-      card's tile by itself.
-- [ ] **Dashboard restyle, round two.** The theme covers fonts, palette, rules and radius.
-      Still missing from the dashboard: the catalog page's eyebrow labels, type chips and
-      per-product figure rows. Heading cards could gain subtitles; the "All benefits" list
-      a type chip via Mushroom badges. Waiting on a screenshot to judge the first round.
+- [x] **Navigation tiles from a template.** The Cards section on the Overview is an
+      auto-entities template over the `unused_value` sensors; a new card gets a tile by itself.
+- [ ] **Dashboard, round three.** The Overview, Money and Upkeep split is in (2026-09-06).
+      Judge it from a screenshot, then: heading subtitles, a type chip on the "All benefits"
+      list via Mushroom badges, and whether the At-a-glance tiles want to be bigger.
 - [ ] Gauges at two per row if titles keep clipping on narrower screens.
 - [ ] Amex Business Platinum and Business Gold: read the official pages in a browser and
       clear `needs_verification`.

@@ -104,6 +104,8 @@ sources = [
     )
 ]
 sources += [(v["path"], v) for v in load("/tmp/dash/views.json")]
+if os.path.exists("/tmp/dash/views_main.json"):
+    sources += [(v["path"], v) for v in load("/tmp/dash/views_main.json")]
 for name, obj in sources:
     for path, t in templates(obj):
         total += 1

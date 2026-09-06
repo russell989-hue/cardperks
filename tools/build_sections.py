@@ -133,7 +133,7 @@ BIG_TICKET_MIN = 50  # dollars still on the table
 BIG_TICKET_DAYS = 90  # how far ahead to look
 
 
-def big_ticket() -> dict:
+def big_ticket_list() -> dict:
     """The credits worth chasing: at least $50 still unused, closing within 90 days,
     soonest first. The 30-day list catches everything; this one is the short list of
     dining, hotel and travel credits you would actually be sorry to lose."""
@@ -165,14 +165,32 @@ def big_ticket() -> dict:
                 icon="mdi:star-circle-outline",
                 sort={"method": "attribute", "attribute": "days_left", "numeric": True},
             ),
+        ],
+    }
+
+
+def where_big_dollars_went() -> dict:
+    """For credits worth $50 or more a period: the trailing year's dollars as a ring
+    (captured, forfeited, unknown, still open) and the ones that were forfeited."""
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Where the big dollars went", "mdi:chart-donut"),
             note(
-                f"And over the trailing twelve months, for credits worth ${BIG_TICKET_MIN} or more "
-                "a period: what was captured, what slipped away, and what is still open."
+                f"Trailing twelve months, credits worth ${BIG_TICKET_MIN} or more a period: "
+                "what was captured, what slipped away, what is unknown, what is still open."
             ),
             money_donut(min_amount=BIG_TICKET_MIN),
             missed_list(min_amount=BIG_TICKET_MIN),
         ],
     }
+
+
+def big_ticket() -> dict:
+    """Both halves in one section, for a dashboard that keeps a single page."""
+    top = big_ticket_list()
+    bottom = where_big_dollars_went()
+    return {"type": "grid", "cards": top["cards"] + bottom["cards"][1:]}
 
 
 def coverage() -> dict:

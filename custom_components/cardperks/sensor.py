@@ -441,6 +441,7 @@ class OwnerExpiringSensor(OwnerEntity, SensorEntity):
             return {}
         items = s.expiring_7d if self.days == 7 else s.expiring_30d
         return {
+            **self.owner_attributes,
             "items": _items(items),
             "total_remaining": round(sum(i.remaining for i in items), 2),
         }
@@ -464,6 +465,7 @@ class OwnerFive24Sensor(OwnerEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         s = self.summary
         return {
+            **self.owner_attributes,
             "accounts": list(s.five_24_items) if s else [],
             "under_5_24": (s.five_24 < 5) if s else None,
         }
