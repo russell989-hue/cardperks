@@ -331,6 +331,57 @@ class SubTracker:
 
 
 @dataclass(slots=True)
+class ImportRecord:
+    """One statement upload. Kept so coverage can be explained and re-run."""
+
+    id: str
+    file_hash: str
+    filename: str | None
+    issuer: str
+    held_card_id: str
+    imported_at: str
+    first_date: str | None
+    last_date: str | None
+    rows: int
+    credit_rows: int
+    matched: int
+    applied: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "file_hash": self.file_hash,
+            "filename": self.filename,
+            "issuer": self.issuer,
+            "held_card_id": self.held_card_id,
+            "imported_at": self.imported_at,
+            "first_date": self.first_date,
+            "last_date": self.last_date,
+            "rows": self.rows,
+            "credit_rows": self.credit_rows,
+            "matched": self.matched,
+            "applied": self.applied,
+        }
+
+    @classmethod
+    def from_dict(cls, d: Mapping[str, Any]) -> ImportRecord:
+        return cls(
+            id=d["id"],
+            file_hash=d.get("file_hash", ""),
+            filename=d.get("filename"),
+            issuer=d.get("issuer", ""),
+            held_card_id=d["held_card_id"],
+            imported_at=d.get("imported_at", ""),
+            first_date=d.get("first_date"),
+            last_date=d.get("last_date"),
+            rows=int(d.get("rows", 0)),
+            credit_rows=int(d.get("credit_rows", 0)),
+            matched=int(d.get("matched", 0)),
+            applied=float(d.get("applied", 0.0)),
+        )
+
+
+@dataclass(slots=True)
 class StateDocument:
     """Mutable, persisted state. Serialised to the HA Store."""
 
@@ -340,6 +391,9 @@ class StateDocument:
     rotating_activations: dict[str, dict[str, dict[str, str]]] = field(default_factory=dict)
     perk_values: dict[str, dict[str, float]] = field(default_factory=dict)
     card_colors: dict[str, str] = field(default_factory=dict)
+    # card id -> {"YYYY-MM": import id}: months a statement actually vouches for.
+    coverage: dict[str, dict[str, str]] = field(default_factory=dict)
+    imports: list[ImportRecord] = field(default_factory=list)
     last_rollover: str | None = None
     imported_refs: set[str] = field(default_factory=set)  # dedupe keys for statement imports
 
@@ -351,6 +405,8 @@ class StateDocument:
             "rotating_activations": self.rotating_activations,
             "perk_values": self.perk_values,
             "card_colors": self.card_colors,
+            "coverage": self.coverage,
+            "imports": [i.to_dict() for i in self.imports],
             "last_rollover": self.last_rollover,
             "imported_refs": sorted(self.imported_refs),
         }
@@ -374,6 +430,8 @@ class StateDocument:
                 for k, v in d.get("perk_values", {}).items()
             },
             card_colors=dict(d.get("card_colors", {})),
+            coverage={k: dict(v) for k, v in d.get("coverage", {}).items()},
+            imports=[ImportRecord.from_dict(i) for i in d.get("imports", [])],
             last_rollover=d.get("last_rollover"),
             imported_refs=set(d.get("imported_refs", [])),
         )

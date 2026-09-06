@@ -103,6 +103,7 @@ def async_cleanup_entities(
                 "captured_12m",
                 "forfeited_12m",
                 "capture_rate",
+                "coverage_12m",
                 "color",
             )
         )

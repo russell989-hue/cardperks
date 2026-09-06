@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from types import MappingProxyType
 from typing import Any
@@ -640,6 +641,8 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
         super().__init__()
         self._parsed: ParsedStatement | None = None
         self._catalog: Catalog | None = None
+        self._file_hash = ""
+        self._filename: str | None = None
 
     async def _catalog_or_load(self) -> Catalog:
         if self._catalog is None:
@@ -678,6 +681,8 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
             except ValueError:
                 errors["base"] = "unrecognised_statement"
             if not errors:
+                self._file_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+                self._filename = name
                 return await self.async_step_card()
         elif user_input is not None:
             errors["base"] = "nothing_to_import"
@@ -930,8 +935,21 @@ class ImportStatementSubentryFlow(ConfigSubentryFlow):
                 applied[m.benefit_id] = round(applied.get(m.benefit_id, 0.0) + abs(m.row.amount), 2)
             else:
                 dupes += 1
-        if applied:
-            coordinator.commit()
+        rng = parsed.date_range
+        coordinator.record_import(
+            card_id,
+            file_hash=self._file_hash,
+            filename=self._filename,
+            issuer=parsed.issuer,
+            months=parsed.months(),
+            first_date=rng[0].isoformat() if rng else None,
+            last_date=rng[1].isoformat() if rng else None,
+            rows=len(parsed.rows),
+            credit_rows=len(parsed.credit_rows),
+            matched=len(result.matched),
+            applied=sum(applied.values()),
+        )
+        coordinator.commit()
 
         fee_note = "not applied"
         fee = latest_fee(parsed)

@@ -24,14 +24,6 @@ import re
 import sys
 import unicodedata
 
-# Mirrors CARD_COLORS in the integration's const.py.
-PALETTE = (
-    "red", "pink", "purple", "deep-purple", "indigo",
-    "blue", "light-blue", "cyan", "teal", "green",
-    "light-green", "lime", "yellow", "amber", "orange",
-    "deep-orange", "brown", "grey", "blue-grey",
-)  # fmt: skip
-
 CARD_TILES = (
     ("unused_value", "Unused right now"),
     ("fee_due", "Annual fee due"),
@@ -219,44 +211,22 @@ def build_view(name: str, ids: dict, color: str | None, perks: list[dict]) -> di
 
 
 def colour_section(entity: str) -> dict:
-    """A palette you can see, not a list of colour names.
+    """Compact: a dropdown plus a swatch of the current colour.
 
-    Home Assistant's select shows text only, so each colour is a tile tinted with the
-    colour it sets. Tapping one calls select.select_option.
+    A grid of nineteen swatches was clearer but ate a screen for something set once,
+    so the select stays a dropdown and the dot shows what is currently chosen.
     """
-    swatches = {
-        "type": "grid",
-        "columns": 5,
-        "square": True,
-        "cards": [
-            {
-                "type": "tile",
-                "entity": entity,
-                "name": colour.replace("-", " "),
-                "color": colour,
-                "vertical": True,
-                "hide_state": True,
-                "tap_action": {
-                    "action": "perform-action",
-                    "perform_action": "select.select_option",
-                    "target": {"entity_id": entity},
-                    "data": {"option": colour},
-                },
-            }
-            for colour in PALETTE
-        ],
-    }
     current = (
         "{% set c = states('" + entity + "') %}"
-        'Currently <span style="color: var(--{{ c }}-color)">&#9679;</span> **{{ c }}**.'
+        '<span style="color: var(--{{ c }}-color); font-size: 1.4em">&#9679;</span> '
+        "&nbsp;**{{ c | replace('-', ' ') }}** &mdash; identifies this card on every dashboard."
     )
     return {
         "type": "grid",
         "cards": [
             heading("Card colour", "mdi:palette"),
             {"type": "markdown", "content": current},
-            note("This colour identifies the card on every dashboard. Tap to change it."),
-            swatches,
+            {"type": "entities", "entities": [{"entity": entity, "name": "Colour"}]},
         ],
     }
 

@@ -30,7 +30,8 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     # Card-level: fee due, unused, net, annual value, captured, forfeited, capture rate,
     # fee-within-45d = 8. Owners: 4 rollups + 3 dollar totals = 7 each.
     # ...plus one colour select per card.
-    assert len(ours) == (25 + 8 + 1) + (6 + 8 + 1) + (7 * 2)
+    # ...plus a colour select and a statement-coverage sensor per card.
+    assert len(ours) == (25 + 9 + 1) + (6 + 9 + 1) + (7 * 2)
 
     travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"

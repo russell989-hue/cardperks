@@ -26,9 +26,11 @@ Concrete gaps between that and today:
 - **Close the matching gap in-product.** Unmatched credit lines are listed today but
   fixing one means hand-editing catalog JSON. Offer to write the pattern into a user
   override file straight from the import result.
-- **Say what a statement could not tell you.** After an import, report which benefits
-  have no usage evidence, so manual check-off is a short, honest list rather than
-  everything.
+- ~~**Say what a statement could not tell you.**~~ Done: each upload records the months
+  it covers plus a receipt (file hash, issuer, row counts, what was applied), and a
+  per-card coverage sensor lists covered and missing months. Still to do: feed coverage
+  into the forfeited figure so an uncovered month counts as unknown rather than lost,
+  and surface "no statement since" as a repair or reminder.
 
 ## Next up
 

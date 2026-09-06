@@ -50,6 +50,7 @@ async def async_setup_entry(
                 CardTotalSensor(coordinator, card, "captured_12m"),
                 CardTotalSensor(coordinator, card, "forfeited_12m"),
                 CardCaptureRateSensor(coordinator, card),
+                CardCoverageSensor(coordinator, card),
             ]
             for b in product.benefits_for(card):
                 entities.append(BenefitExpiresSensor(coordinator, card, b))
@@ -295,6 +296,54 @@ class CardTotalSensor(CardEntity, SensorEntity):
         out = dict(s.totals.as_dict())
         out["annual_fee"] = s.annual_fee
         return {**out, **self.card_attributes}
+
+
+class CardCoverageSensor(CardEntity, SensorEntity):
+    """How many of the last twelve months a statement actually vouches for.
+
+    Without this you cannot tell a benefit you genuinely let expire from one you simply
+    never imported a statement for, and the forfeited figure would be a guess.
+    """
+
+    _attr_translation_key = "coverage_12m"
+    _attr_native_unit_of_measurement = "months"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:file-document-check-outline"
+
+    def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard) -> None:
+        super().__init__(coordinator, card)
+        self._attr_unique_id = f"{card.id}_coverage_12m"
+
+    def _window(self) -> list[str]:
+        today = self.coordinator.data.today
+        months = []
+        year, month = today.year, today.month
+        for _ in range(12):
+            months.append(f"{year:04d}-{month:02d}")
+            month -= 1
+            if month == 0:
+                year, month = year - 1, 12
+        return list(reversed(months))
+
+    @property
+    def native_value(self) -> int:
+        covered = self.coordinator.coverage_months(self.held_card_id)
+        return sum(1 for m in self._window() if m in covered)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        covered = self.coordinator.coverage_months(self.held_card_id)
+        window = self._window()
+        mine = [i for i in self.coordinator.doc.imports if i.held_card_id == self.held_card_id]
+        mine.sort(key=lambda i: i.imported_at)
+        return {
+            **self.card_attributes,
+            "covered": [m for m in window if m in covered],
+            "missing": [m for m in window if m not in covered],
+            "statements_imported": len(mine),
+            "last_import": mine[-1].imported_at if mine else None,
+            "last_file": mine[-1].filename if mine else None,
+        }
 
 
 class CardCaptureRateSensor(CardEntity, SensorEntity):

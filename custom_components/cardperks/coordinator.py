@@ -21,6 +21,7 @@ from .models import (
     ExpiringItem,
     HeldCard,
     HistoryRecord,
+    ImportRecord,
     OwnerSummary,
     StateDocument,
     SubTracker,
@@ -190,6 +191,48 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 inst.status = BenefitStatus.USED
                 inst.updated_at = now_iso()
         self._commit()
+
+    def record_import(
+        self,
+        held_card_id: str,
+        *,
+        file_hash: str,
+        filename: str | None,
+        issuer: str,
+        months: set[str],
+        first_date: str | None,
+        last_date: str | None,
+        rows: int,
+        credit_rows: int,
+        matched: int,
+        applied: float,
+    ) -> str:
+        """Log a statement upload and mark the months it vouches for. Does not commit."""
+        import_id = f"{file_hash[:12]}-{held_card_id[:8]}"
+        self.doc.imports = [i for i in self.doc.imports if i.id != import_id]
+        self.doc.imports.append(
+            ImportRecord(
+                id=import_id,
+                file_hash=file_hash,
+                filename=filename,
+                issuer=issuer,
+                held_card_id=held_card_id,
+                imported_at=now_iso(),
+                first_date=first_date,
+                last_date=last_date,
+                rows=rows,
+                credit_rows=credit_rows,
+                matched=matched,
+                applied=round(applied, 2),
+            )
+        )
+        covered = self.doc.coverage.setdefault(held_card_id, {})
+        for month in months:
+            covered[month] = import_id
+        return import_id
+
+    def coverage_months(self, held_card_id: str) -> set[str]:
+        return set(self.doc.coverage.get(held_card_id, {}))
 
     def set_card_color(self, held_card_id: str, color: str) -> None:
         """Colour used for this card on every dashboard."""

@@ -66,6 +66,14 @@ class ParsedStatement:
         known = {last4} if isinstance(last4, str) else set(last4 or ())
         return {x for x in self.last4s if x not in known}
 
+    def months(self) -> set[str]:
+        """Months this file has rows for, as YYYY-MM.
+
+        A statement is evidence for the months it covers: a benefit with no credit line
+        in a covered month really was unused, whereas an uncovered month is unknown.
+        """
+        return {f"{r.date.year:04d}-{r.date.month:02d}" for r in self.rows}
+
     @property
     def date_range(self) -> tuple[date, date] | None:
         if not self.rows:

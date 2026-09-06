@@ -217,6 +217,7 @@
       "captured_12m": { "name": "Captured, 12 months" },
       "forfeited_12m": { "name": "Forfeited, 12 months" },
       "capture_rate": { "name": "Capture rate" },
+      "coverage_12m": { "name": "Statement coverage" },
       "fee_due": { "name": "Annual fee due" },
       "unused_value": { "name": "Unused value" },
       "net_value_12m": { "name": "Net value (12 months)" },

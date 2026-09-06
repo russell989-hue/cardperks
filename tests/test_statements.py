@@ -348,3 +348,61 @@ async def test_statement_adopts_a_replaced_cards_old_number(
     assert "Travel credit: 350.00" in ph["applied"]
     await hass.async_block_till_done()
     assert entry.subentries[CARD_ID].data[CONF_PREVIOUS_LAST4] == ["9999"]
+
+
+async def test_import_records_coverage(hass, setup_integration: MockConfigEntry, tmp_path):
+    """A statement vouches for the months it covers; everything else stays unknown."""
+    entry = setup_integration
+    path = tmp_path / "Chase1234_Activity_20260905.csv"
+    path.write_text(CHASE, encoding="utf-8")
+
+    @contextmanager
+    def fake_upload(hass_, file_id):
+        yield path
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "statement"), context={"source": config_entries.SOURCE_USER}
+    )
+    with patch("custom_components.cardperks.config_flow.process_uploaded_file", fake_upload):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"file": UUID}
+        )
+    await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"card": CARD_ID, "apply_fee": False}
+    )
+    await hass.async_block_till_done()
+
+    doc = entry.runtime_data.doc
+    # The file spans Feb to Aug 2026, so those months are vouched for and no others.
+    assert set(doc.coverage[CARD_ID]) == {
+        "2026-02",
+        "2026-03",
+        "2026-05",
+        "2026-07",
+        "2026-08",
+    }
+    assert len(doc.imports) == 1
+    rec = doc.imports[0]
+    assert rec.issuer == "chase" and rec.rows == 8 and rec.matched == 2
+    assert rec.filename == "Chase1234_Activity_20260905.csv"
+
+    reg = er.async_get(hass)
+    cov = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_coverage_12m"))
+    assert cov.state == "5"
+    assert "2026-09" in cov.attributes["missing"]  # this month has no statement yet
+    assert "2026-08" in cov.attributes["covered"]
+    assert cov.attributes["statements_imported"] == 1
+
+    # Re-importing the same file replaces its record instead of stacking a duplicate.
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "statement"), context={"source": config_entries.SOURCE_USER}
+    )
+    with patch("custom_components.cardperks.config_flow.process_uploaded_file", fake_upload):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"file": UUID}
+        )
+    await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"card": CARD_ID, "apply_fee": False}
+    )
+    await hass.async_block_till_done()
+    assert len(entry.runtime_data.doc.imports) == 1
