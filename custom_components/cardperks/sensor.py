@@ -229,6 +229,7 @@ class CardUnusedValueSensor(CardEntity, SensorEntity):
         s = self.summary
         data = self.coordinator.data
         return {
+            **self.card_attributes,
             "expiring": _items(s.expiring) if s else [],
             "rotating_activations": dict(data.rotating_activations.get(self.held_card_id, {})),
         }
@@ -254,6 +255,7 @@ class CardNetValue12mSensor(CardEntity, SensorEntity):
         s = self.summary
         tracker = self.coordinator.data.sub_trackers.get(self.held_card_id)
         return {
+            **self.card_attributes,
             "used_value_12m": s.used_value_12m if s else None,
             "annual_fee": s.annual_fee if s else None,
             "sub_tracker": tracker.to_dict() if tracker else None,

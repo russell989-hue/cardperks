@@ -48,6 +48,7 @@ class CardFeeWithinWarningBinarySensor(CardEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         s = self.summary
         return {
+            **self.card_attributes,
             "fee_due": s.fee_due.isoformat() if s and s.fee_due else None,
             "annual_fee": s.annual_fee if s else None,
             "warning_days": FEE_WARNING_DAYS,

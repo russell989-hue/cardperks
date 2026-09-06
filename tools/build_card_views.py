@@ -71,7 +71,8 @@ def auto_entities(
     }
 
 
-def build_view(name: str, ids: dict[str, str]) -> dict:
+def build_view(name: str, ids: dict[str, str], color: str | None = None) -> dict:
+    tint = color or "grey"
     summary = {
         "type": "grid",
         "cards": [
@@ -80,10 +81,15 @@ def build_view(name: str, ids: dict[str, str]) -> dict:
                 "type": "tile",
                 "entity": ids["unused_value"],
                 "name": "Unused this period",
-                "color": "green",
+                "color": tint,
             },
-            {"type": "tile", "entity": ids["net_value"], "name": "Net value, 12 months"},
-            {"type": "tile", "entity": ids["fee_due"], "name": "Annual fee due"},
+            {
+                "type": "tile",
+                "entity": ids["net_value"],
+                "name": "Net value, 12 months",
+                "color": tint,
+            },
+            {"type": "tile", "entity": ids["fee_due"], "name": "Annual fee due", "color": tint},
             {
                 "type": "conditional",
                 "conditions": [{"condition": "state", "entity": ids["fee_soon"], "state": "on"}],
@@ -96,6 +102,13 @@ def build_view(name: str, ids: dict[str, str]) -> dict:
             },
         ],
     }
+    if ids.get("color"):
+        summary["cards"].append(
+            {
+                "type": "entities",
+                "entities": [{"entity": ids["color"], "name": "Colour on dashboards"}],
+            }
+        )
     return {
         "type": "sections",
         "title": name,
@@ -105,6 +118,22 @@ def build_view(name: str, ids: dict[str, str]) -> dict:
         "max_columns": 3,
         "sections": [
             summary,
+            {
+                "type": "grid",
+                "cards": [
+                    heading("Annual dollars", "mdi:cash-100"),
+                    *[
+                        {"type": "tile", "entity": ids[k], "name": label, "color": tint}
+                        for k, label in (
+                            ("annual_value", "A year's worth"),
+                            ("captured", "Captured, 12 months"),
+                            ("forfeited", "Forfeited, 12 months"),
+                            ("capture_rate", "Capture rate"),
+                        )
+                        if ids.get(k)
+                    ],
+                ],
+            },
             {
                 "type": "grid",
                 "cards": [
@@ -199,8 +228,19 @@ def main() -> int:
         return 2
     with open(sys.argv[1], encoding="utf-8") as fh:
         cards = json.load(fh)
-    complete = {n: i for n, i in cards.items() if len(i) == 4}
-    views = [build_view(n, i) for n, i in sorted(complete.items())]
+    # cards.json is keyed by card id with a nested shape; accept either form.
+    by_name: dict[str, dict] = {}
+    colors: dict[str, str] = {}
+    for key, val in cards.items():
+        if "card" in val and "title" in val:  # rich map from the box
+            ids = dict(val["card"])
+            ids["color"] = val.get("color_entity") or ids.get("color")
+            by_name[val["title"]] = ids
+            colors[val["title"]] = val.get("color")
+        else:
+            by_name[key] = val
+    complete = {n: i for n, i in by_name.items() if i.get("fee_due") and i.get("unused_value")}
+    views = [build_view(n, i, colors.get(n)) for n, i in sorted(complete.items())]
     with open(sys.argv[2], "w", encoding="utf-8") as fh:
         json.dump(views, fh, indent=2)
     if len(sys.argv) > 3:
