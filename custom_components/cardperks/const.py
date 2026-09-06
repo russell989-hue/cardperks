@@ -99,6 +99,8 @@ DATA_IMPORTING = "importing"
 STALE_CATALOG_DAYS = 183
 FEE_WARNING_DAYS = 45
 STATUS_WARNING_DAYS = 45  # elite status about to lapse
+REVIEW_DAYS_BEFORE_FEE = 30  # calendar reminder to review a card before its fee posts
+BIG_TICKET_MIN = 50  # dollars still unused that make a credit worth chasing
 # A statement for last month may not exist yet; one more month of slack before nagging.
 STATEMENT_GRACE_MONTHS = 1
 HISTORY_RETENTION_DAYS = 5 * 365

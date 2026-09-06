@@ -332,6 +332,11 @@
       "statement_due": {
         "name": "Statement upload overdue"
       }
+    },
+    "calendar": {
+      "calendar": {
+        "name": "Calendar"
+      }
     }
   },
   "services": {
@@ -507,6 +512,9 @@
     },
     "unknown_shared": {
       "message": "No active card carries a shared perk called {key}."
+    },
+    "not_a_reminder": {
+      "message": "Only reminders you added can be deleted; fee dates and statuses come from the cards. ({uid})"
     }
   },
   "issues": {

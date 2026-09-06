@@ -34,7 +34,8 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     # The uncapped inflight rebate gets a status sensor only.
     # ...plus Priority Pass, shared: 5 entities on each card and one household number.
     # ...plus a status sensor per card for the status the lounge perk grants.
-    assert len(ours) == (25 + 5 + 1 + 10 + 1 + 1) + (6 + 5 + 10 + 1 + 1) + (7 * 2) + 1
+    # ...plus the household calendar.
+    assert len(ours) == (25 + 5 + 1 + 10 + 1 + 1) + (6 + 5 + 10 + 1 + 1) + (7 * 2) + 1 + 1
 
     travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"

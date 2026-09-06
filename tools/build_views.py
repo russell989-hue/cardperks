@@ -233,6 +233,29 @@ def statements() -> dict:
 # ------------------------------------------------------------------ views
 
 
+def coming_up() -> dict:
+    """The CardPerks calendar: fee dates, reviews 30 days before, statuses lapsing, and
+    the household's own reminders, which are added right here."""
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Coming up", "mdi:calendar-star"),
+            note(
+                "Every card's fee date, a reminder to review it 30 days before, elite statuses "
+                "lapsing, and your own notes. Add a note with the plus in the corner of the "
+                "calendar; it is kept by CardPerks, not by another calendar."
+            ),
+            full_width(
+                {
+                    "type": "calendar",
+                    "entities": ["calendar.household_calendar"],
+                    "initial_view": "listWeek",
+                }
+            ),
+        ],
+    }
+
+
 def overview() -> dict:
     return {
         "type": "sections",
@@ -260,6 +283,7 @@ def overview() -> dict:
             span(big_ticket_list(), 1),
             span(expiring(), 1),
             span(outstanding(), 2),
+            span(coming_up(), 2),
         ],
     }
 

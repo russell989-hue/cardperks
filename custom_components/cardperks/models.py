@@ -517,6 +517,8 @@ class StateDocument:
     # card id -> {ISO date: amount}: every annual-fee line any statement has shown, so a
     # cardmember year can say what the card cost that year, not only what it costs now.
     fees_seen: dict[str, dict[str, float]] = field(default_factory=dict)
+    # the household's own calendar reminders: {uid, date, summary, description}
+    reminders: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -534,6 +536,7 @@ class StateDocument:
             "fee_seen": self.fee_seen,
             "shared_values": self.shared_values,
             "fees_seen": self.fees_seen,
+            "reminders": self.reminders,
         }
 
     @classmethod
@@ -562,6 +565,7 @@ class StateDocument:
             imported_refs=set(d.get("imported_refs", [])),
             fee_seen=dict(d.get("fee_seen", {})),
             shared_values={k: float(v) for k, v in d.get("shared_values", {}).items()},
+            reminders=[dict(r) for r in d.get("reminders", [])],
             fees_seen={
                 k: {dk: float(dv) for dk, dv in v.items()}
                 for k, v in d.get("fees_seen", {}).items()

@@ -6,6 +6,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import date, timedelta
+from uuid import uuid4
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -170,6 +171,28 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             _LOGGER.debug("Rollover: %s", result)
             self._commit()
         return result
+
+    # ------------------------------------------------------------------ calendar reminders
+
+    def add_reminder(self, day: date, summary: str, description: str | None) -> str:
+        """A note on the CardPerks calendar, kept until it is deleted there."""
+        uid = f"reminder-{uuid4().hex[:12]}"
+        self.doc.reminders.append(
+            {"uid": uid, "date": day.isoformat(), "summary": summary, "description": description}
+        )
+        self._commit()
+        return uid
+
+    def remove_reminder(self, uid: str) -> None:
+        before = len(self.doc.reminders)
+        self.doc.reminders = [r for r in self.doc.reminders if r["uid"] != uid]
+        if len(self.doc.reminders) == before:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="not_a_reminder",
+                translation_placeholders={"uid": uid},
+            )
+        self._commit()
 
     # ------------------------------------------------------------------ loyalty status
 

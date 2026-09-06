@@ -49,7 +49,7 @@ def async_ensure_devices(
         )
 
     # Shared perks are valued for the household, so they need somewhere to live.
-    if coordinator.shared_members(today_local()):
+    if True:  # the calendar lives here, so the household device always exists
         registry.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={household_identifier()},
@@ -139,6 +139,7 @@ def async_cleanup_entities(
                 expected.add(f"{card.id}_{benefit.id}_value")
     expected.update(f"shared_{key}_value" for key in coordinator.shared_members(today_local()))
     expected.update(f"status_{sid}" for sid in coordinator.statuses(today_local()))
+    expected.add("cardperks_calendar")
 
     registry = er.async_get(hass)
     stale = [

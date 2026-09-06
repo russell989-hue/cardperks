@@ -1,0 +1,97 @@
+blueprint:
+  name: CardPerks daily digest
+  description: >-
+    One notification a day, only when there is something to act on: big credits closing
+    soon with money still on them, statements that have fallen behind, and anything on the
+    CardPerks calendar today (a fee posting, a card to review, a status lapsing, your own
+    reminders). Quiet on days with nothing.
+  domain: automation
+  source_url: https://github.com/russell989-hue/cardperks/blob/main/blueprints/automation/cardperks/daily_digest.yaml
+  input:
+    notify_service:
+      name: Notification service
+      description: The notify action to call, for example notify.mobile_app_brians_phone.
+      selector:
+        text:
+    at:
+      name: Time of day
+      default: "09:00:00"
+      selector:
+        time:
+    days_ahead:
+      name: Days ahead for closing credits
+      description: Mention a big credit once it has this many days or fewer left.
+      default: 7
+      selector:
+        number:
+          min: 1
+          max: 60
+    min_amount:
+      name: Big credit threshold
+      description: Dollars still unused that make a credit worth a nudge.
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 1000
+          unit_of_measurement: "$"
+    calendar:
+      name: CardPerks calendar
+      default: calendar.household_calendar
+      selector:
+        entity:
+          domain: calendar
+
+mode: single
+
+triggers:
+  - trigger: time
+    at: !input at
+
+variables:
+  notify_service: !input notify_service
+  days_ahead: !input days_ahead
+  min_amount: !input min_amount
+  calendar: !input calendar
+  closing: >-
+    {% set ns = namespace(rows=[]) %}
+    {% for s in states.sensor if s.attributes.get('kind') == 'benefit_expires'
+       and s.attributes.get('card_status') == 'active'
+       and s.attributes.get('status') in ['unused', 'partial']
+       and (s.attributes.get('remaining') or 0) >= min_amount
+       and s.attributes.get('days_left') is not none
+       and s.attributes.get('days_left') <= days_ahead %}
+      {% set ns.rows = ns.rows + ['$' ~ (s.attributes.remaining | round(0) | int) ~ ' ' ~ s.attributes.benefit ~ ' on ' ~ s.attributes.card ~ ', ' ~ s.attributes.days_left ~ ' days left'] %}
+    {% endfor %}
+    {{ ns.rows }}
+  overdue: >-
+    {% set ns = namespace(rows=[]) %}
+    {% for s in states.binary_sensor if s.attributes.get('kind') == 'statement_due' and s.state == 'on' %}
+      {% set ns.rows = ns.rows + [s.attributes.card ~ ' (newest statement ' ~ s.attributes.last_statement_month ~ ')'] %}
+    {% endfor %}
+    {{ ns.rows }}
+
+actions:
+  - action: calendar.get_events
+    target:
+      entity_id: "{{ calendar }}"
+    data:
+      start_date_time: "{{ today_at('00:00') }}"
+      end_date_time: "{{ today_at('00:00') + timedelta(days=1) }}"
+    response_variable: cal
+  - variables:
+      today_events: "{{ (cal[calendar]['events'] | map(attribute='summary') | list) if calendar in cal else [] }}"
+      message: >-
+        {% set parts = [] %}
+        {% if closing %}{% set parts = parts + ['Use it or lose it: ' ~ closing | join('; ')] %}{% endif %}
+        {% if today_events %}{% set parts = parts + ['Today: ' ~ today_events | join('; ')] %}{% endif %}
+        {% if overdue %}{% set parts = parts + ['Statements overdue: ' ~ overdue | join('; ')] %}{% endif %}
+        {{ parts | join('\n') }}
+  - if:
+      - condition: template
+        value_template: "{{ message | trim != '' }}"
+    then:
+      - action: "{{ notify_service }}"
+        data:
+          title: CardPerks
+          message: "{{ message }}"
