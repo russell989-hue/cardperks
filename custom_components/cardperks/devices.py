@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN, SUBENTRY_CARD, SUBENTRY_OWNER, Role
+from .const import DOMAIN, SUBENTRY_CARD, SUBENTRY_OWNER, BenefitType, Role
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .helpers import card_from_subentry, owner_from_subentry
 
@@ -96,6 +96,8 @@ def async_cleanup_entities(
                 f"{card.id}_{benefit.id}_{suffix}"
                 for suffix in ("status", "expires", "remaining", "mark_used")
             )
+            if benefit.type in (BenefitType.PERK, BenefitType.INSURANCE):
+                expected.add(f"{card.id}_{benefit.id}_value")
 
     registry = er.async_get(hass)
     stale = [

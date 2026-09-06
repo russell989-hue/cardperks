@@ -203,6 +203,9 @@
     "button": {
       "benefit_mark_used": { "name": "Mark {benefit} used" }
     },
+    "number": {
+      "perk_value": { "name": "{benefit} value to me" }
+    },
     "binary_sensor": {
       "fee_within_45d": { "name": "Fee due within 45 days" }
     }

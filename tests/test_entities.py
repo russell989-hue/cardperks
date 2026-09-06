@@ -23,9 +23,9 @@ def _eid(hass, platform: str, unique_id: str) -> str:
 async def test_entities_created(hass, setup_integration: MockConfigEntry):
     registry = er.async_get(hass)
     ours = [e for e in registry.entities.values() if e.platform == DOMAIN]
-    # primary: 5 benefits x (select + expires + remaining + button) + 4 card-level = 24
-    # AU: 1 benefit x 4 + 4 card-level = 8 ; owners: 2 x 4 = 8
-    assert len(ours) == 24 + 8 + 8
+    # primary: 5 benefits x 4 + 1 perk value number + 4 card-level = 25
+    # AU: 1 benefit x 4 + 1 number + 4 card-level = 9 ; owners: 2 x 4 = 8
+    assert len(ours) == 25 + 9 + 8
 
     travel = hass.states.get(_eid(hass, "select", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"
@@ -305,3 +305,34 @@ async def test_conditional_benefit_is_off_until_enabled(hass, mock_entry: MockCo
     assert any(
         h.benefit_id == "status_bonus" and h.closed_by == "not_applicable" for h in doc.history
     )
+
+
+async def test_perk_value_number(hass, setup_integration: MockConfigEntry):
+    """Perk values are typable, persist, and feed the money rollups."""
+    num = _eid(hass, "number", f"{CARD_ID}_lounge_value")
+    st = hass.states.get(num)
+    assert float(st.state) == 100.0
+    assert st.attributes["catalog_default"] == 100 and st.attributes["customised"] is False
+    baseline = float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state)
+
+    await hass.services.async_call(
+        "number", "set_value", {"entity_id": num, "value": 250}, blocking=True
+    )
+    st = hass.states.get(num)
+    assert float(st.state) == 250.0 and st.attributes["customised"] is True
+    assert (
+        float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_lounge_remaining")).state) == 250.0
+    )
+    assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value")).state) == (
+        baseline + 150.0
+    )
+
+    # Statement credits keep their issuer amount and get no number entity.
+    assert (
+        er.async_get(hass).async_get_entity_id("number", DOMAIN, f"{CARD_ID}_dining_credit_value")
+        is None
+    )
+
+    await hass.config_entries.async_reload(setup_integration.entry_id)
+    await hass.async_block_till_done()
+    assert float(hass.states.get(num).state) == 250.0

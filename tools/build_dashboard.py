@@ -196,6 +196,29 @@ def build_view() -> dict:
         ],
     }
 
+    perk_values = {
+        "type": "grid",
+        "cards": [
+            heading("What perks are worth to you", "mdi:tag-text-outline"),
+            {
+                "type": "markdown",
+                "text_only": True,
+                "content": (
+                    "Lounge access, elite status and insurance have no issuer dollar amount. "
+                    "Type what each is worth to you and every total below updates. "
+                    "Catalog defaults are guesses."
+                ),
+            },
+            auto_entities(
+                "Perk values",
+                domain="number",
+                sort_method="friendly_name",
+                numeric=False,
+                reverse=False,
+            ),
+        ],
+    }
+
     signup = {
         "type": "grid",
         "cards": [
@@ -226,7 +249,16 @@ def build_view() -> dict:
         "path": "cardperks",
         "icon": "mdi:credit-card-multiple",
         "max_columns": 3,
-        "sections": [overview, expiring, dollars, checkoff, by_card, fees, signup],
+        "sections": [
+            overview,
+            expiring,
+            dollars,
+            checkoff,
+            by_card,
+            fees,
+            perk_values,
+            signup,
+        ],
     }
 
 
