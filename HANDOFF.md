@@ -77,6 +77,15 @@ git-filter-repo to enforce this, so do not merge anything from an old clone.
   active cards that carry it; the per-card `_value` number does not exist for it. The
   coordinator folds the split into `effective_perk_values`, which rollover, summaries and
   the snapshot all use.
+- **Calendar** (`calendar.household_calendar`, on the Household device): fee dates, a review
+  reminder 30 days before each, big credits closing with money still on them, statuses
+  entered by hand lapsing, and the household's own reminders (`doc.reminders`, added from
+  the calendar UI). `blueprints/automation/cardperks/daily_digest.yaml` turns it into one
+  notification a day; on Brian's box `automation.cardperks_daily_digest` sends to his phone
+  at 09:00.
+- **Elite status**: `grants_status` on a catalog benefit makes a status sensor per cardholder
+  while the card is held; the `status` subentry is for status earned outright, picking a
+  program and tier from `programs/*.json` when the program is in the catalog.
 - **Card status** picklist: active, frozen (kept but excluded from totals), cancelled
   (also hidden from the overview).
 - **Entities per benefit**: `_used` number (the dollar box), `_remaining`, `_status`,

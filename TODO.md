@@ -63,7 +63,8 @@ makes the Club All Access authorized-user passes real, and that link is a note t
       flag; listed on the Upkeep tab soonest to lapse first.
 - [ ] `requires_status` on a conditional benefit, so qualification is evaluated from the
       statuses held instead of hand-toggled (United Club All Access passes need Premier Gold
-      or better). Renewal reminders as a repair, reusing the 45-day fee pattern.
+      or better). Renewal reminders for entered statuses are on the calendar; a repair could
+      follow the 45-day fee pattern.
 - [ ] Progress toward the next tier where thresholds are public, and whether tracking
       qualifying activity (segments, nights, dollars) is worth the data entry.
 
@@ -94,7 +95,8 @@ makes the Club All Access authorized-user passes real, and that link is a note t
 - [ ] Open the home-assistant/brands PR; assets are ready in `brands/cardperks/`.
 - [ ] README with screenshots and a privacy statement; a `dashboards/` folder with the
       generated JSON so other installs can import the layout.
-- [ ] Notification blueprints (expiring credits, fee due, statement overdue).
+- [x] Notification blueprint: the daily digest (big credits closing unused, statements
+      overdue, today's fee, review, status and reminder events) (2026-09-06).
 - [ ] Re-run the privacy audit on the whole history before flipping the repo public.
 - [ ] Tag a release; test a clean install as a custom HACS repository.
 - [ ] Branch protection on `main` if CI should gate merges.
