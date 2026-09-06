@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Rebuild the CardPerks overview sections that are generated rather than hand-edited.
+"""Rebuild the generated CardPerks overview sections.
 
-Reads the live entity map (tools/cp_full.py output on the HA box) so nothing is
-hardcoded, and writes one JSON file per section. push with tools/append_section.py,
-which replaces a section by its heading and leaves everything else alone.
+These are written as templates that walk entities by attribute rather than naming
+them, so a card added or removed later needs no regeneration. Every card's colour is
+read from its own entities, which is how the colour reaches lists that Lovelace has
+no per-row colour option for.
 
-  python3 build_sections.py cards.json outdir/
+Push each with tools/append_section.py, which replaces a section by its heading and
+leaves the rest of a hand-edited view alone.
+
+  python3 build_sections.py outdir/
 """
 
 from __future__ import annotations
@@ -14,157 +18,163 @@ import json
 import pathlib
 import sys
 
-# Card colours come from the integration, so a card reads the same on every card.
-DOT = '<span style="color: var(--{color}-color)">&#9679;</span>'
+DOT = "<span style=\"color: var(--{{ r.color or 'grey' }}-color)\">&#9679;</span>"
+
+# Entities that know both a card title and its colour. Home Assistant's template
+# sandbox forbids dict.update, so lists keyed by card name look the colour up here.
+COLOUR_LOOKUP = """
+{%- set tinted = states.sensor
+      | selectattr('attributes.card_id', 'defined')
+      | selectattr('attributes.color', 'defined') | list -%}
+"""
+
+# Every per-benefit "remaining" sensor with a balance, plus a clean benefit name.
+BENEFIT_ROWS = """
+{%- set ns = namespace(rows=[]) -%}
+{%- for s in states.sensor -%}
+  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_remaining') -%}
+    {%- set v = s.state | float(-1) -%}
+    {%- if v > 0 -%}
+      {%- set label = s.name | replace(s.attributes.card ~ ' ', '') | replace(' remaining', '') -%}
+      {%- set ns.rows = ns.rows + [{'amt': v, 'card': s.attributes.card,
+          'color': s.attributes.color, 'name': label}] -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+"""
 
 
 def heading(text: str, icon: str) -> dict:
     return {"type": "heading", "heading": text, "heading_style": "title", "icon": icon}
 
 
-def fees_section(cards: dict) -> dict:
-    """Card, fee amount, due date and days out. The amount is the point of the table."""
-    rows = []
-    for c in sorted(cards.values(), key=lambda c: c["title"] or ""):
-        fee_due = c["card"].get("fee_due")
-        if not fee_due:
-            continue
-        dot = DOT.format(color=c["color"] or "grey")
-        rows.append(
-            f"{{% set s = states['{fee_due}'] %}}"
-            f"{{% if s.state not in ['unknown', 'unavailable'] %}}"
-            f"| {dot} {c['title']} "
-            f"| ${{{{ (s.attributes.annual_fee or 0) | round(0) | int }}}} "
-            f"| {{{{ s.state }}}} "
-            f"| {{{{ ((s.state | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }}}} |"
-            f"{{% endif %}}"
-        )
-    content = (
-        "| Card | Fee | Due | Days |\n|---|--:|---|--:|\n"
-        + "\n".join(rows)
-        + "\n\n_Total: ${{ "
-        + " + ".join(
-            f"(state_attr('{c['card']['fee_due']}', 'annual_fee') or 0)"
-            for c in cards.values()
-            if c["card"].get("fee_due")
-        )
-        + " | round(0) | int }} a year_"
+def markdown(content: str) -> dict:
+    return {"type": "markdown", "content": content}
+
+
+def dollars_left() -> dict:
+    body = (
+        BENEFIT_ROWS
+        + "| Benefit | Card | Left |\n|---|---|--:|\n"
+        + "{% for r in ns.rows | sort(attribute='amt', reverse=true) -%}\n"
+        + f"| {{{{ r.name }}}} | {DOT} {{{{ r.card }}}} "
+        + "| ${{ r.amt | round(0) | int }} |\n"
+        + "{% endfor %}\n"
+        + "_{{ ns.rows | count }} credits, "
+        + "${{ ns.rows | sum(attribute='amt') | round(0) | int }} on the table._"
     )
     return {
         "type": "grid",
-        "cards": [
-            heading("Annual fees", "mdi:calendar-cash"),
-            {"type": "markdown", "content": content},
-        ],
+        "cards": [heading("Dollars left by benefit", "mdi:cash-clock"), markdown(body)],
     }
 
 
-def perk_values_section(cards: dict) -> dict:
-    """Editable dollar boxes grouped by card.
+def by_card() -> dict:
+    body = """
+{%- set ns = namespace(rows=[]) -%}
+{%- for s in states.sensor -%}
+  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_capture_rate') -%}
+    {%- set a = s.attributes -%}
+    {%- set ns.rows = ns.rows + [{'card': a.card, 'color': a.color,
+        'worth': a.get('annual_value', 0), 'cap': a.get('captured_12m', 0),
+        'forf': a.get('forfeited_12m', 0), 'rate': s.state | float(0)}] -%}
+  {%- endif -%}
+{%- endfor -%}
 
-    A markdown table cannot hold an input, so the card is the group and the perk name
-    is the row: it reads as a table but each value stays typable.
-    """
-    out: list[dict] = [
-        heading("What perks are worth to you", "mdi:tag-text-outline"),
-        {
-            "type": "markdown",
-            "text_only": True,
-            "content": (
-                "Lounge access, elite status and insurance carry no issuer amount. "
-                "Type what each is worth to you and every total updates."
+| Card | A year's worth | Captured | Forfeited | Rate |
+|---|--:|--:|--:|--:|
+{% for r in ns.rows | sort(attribute='card') -%}
+| DOT {{ r.card }} | ${{ r.worth | round(0) | int }} | ${{ r.cap | round(0) | int }} \
+| ${{ r.forf | round(0) | int }} | {{ r.rate | round(0) | int }}% |
+{% endfor %}
+""".replace("DOT", DOT)
+    return {
+        "type": "grid",
+        "cards": [
+            heading("By card", "mdi:credit-card-multiple"),
+            markdown(
+                "Trailing twelve months. Forfeited is money a period closed without "
+                "you using it.\n" + body
             ),
-        },
-    ]
-    for c in sorted(cards.values(), key=lambda c: c["title"] or ""):
-        if not c["perks"]:
-            continue
-        dot = DOT.format(color=c["color"] or "grey")
-        # A coloured dot beside the group title ties this block to the card everywhere else.
-        out.append({"type": "markdown", "text_only": True, "content": f"{dot} **{c['title']}**"})
-        out.append(
-            {
-                "type": "entities",
-                "entities": [{"entity": p["entity"], "name": p["benefit"]} for p in c["perks"]],
-            }
-        )
-    return {"type": "grid", "cards": out}
-
-
-def annual_dollars_section(cards: dict) -> dict:
-    """The whole point: a year's worth, what was captured, what was lost."""
-    rows = []
-    for c in sorted(cards.values(), key=lambda c: c["title"] or ""):
-        rate = c["card"].get("capture_rate")
-        if not rate:
-            continue
-        dot = DOT.format(color=c["color"] or "grey")
-        rows.append(
-            f"{{% set s = states['{rate}'] %}}"
-            f"{{% if s.state not in ['unknown', 'unavailable'] %}}"
-            f"| {dot} {c['title']} "
-            f"| ${{{{ (s.attributes.annual_value or 0) | round(0) | int }}}} "
-            f"| ${{{{ (s.attributes.captured_12m or 0) | round(0) | int }}}} "
-            f"| ${{{{ (s.attributes.forfeited_12m or 0) | round(0) | int }}}} "
-            f"| {{{{ s.state | round(0) | int }}}}% |"
-            f"{{% endif %}}"
-        )
-    content = (
-        "Trailing twelve months. Forfeited is money a period closed without you using, "
-        "which is gone rather than pending.\n\n"
-        "| Card | A year's worth | Captured | Forfeited | Rate |\n|---|--:|--:|--:|--:|\n"
-        + "\n".join(rows)
-    )
-    return {
-        "type": "grid",
-        "cards": [
-            heading("Annual dollars", "mdi:cash-100"),
-            {"type": "markdown", "content": content},
         ],
     }
 
 
-def checkoff_section() -> dict:
-    """Type what you captured. Filtered to benefits with money still on them."""
+def expiring() -> dict:
+    body = (
+        COLOUR_LOOKUP
+        + """
+{%- set ns = namespace(rows=[]) -%}
+{%- for s in states.sensor -%}
+  {%- if s.attributes.owner_id is defined and s.entity_id.endswith('_30_days') -%}
+    {%- for i in s.attributes.get('items', []) -%}
+      {%- set ns.rows = ns.rows + [i] -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- if ns.rows | count == 0 -%}
+Nothing expires in the next 30 days.
+{%- else -%}
+| Benefit | Card | Left | Days |
+|---|---|--:|--:|
+{% for i in ns.rows | sort(attribute='expires') -%}
+{%- set m = tinted | selectattr('attributes.card', 'eq', i.card) | list -%}
+{%- set r = {'color': (m | first).attributes.color if m else 'grey'} -%}
+| {{ i.benefit }} | DOT {{ i.card }} | ${{ i.remaining | round(0) | int }} \
+| {{ ((i.expires | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }} |
+{% endfor -%}
+{%- endif -%}
+""".replace("DOT", DOT)
+    )
+    return {
+        "type": "grid",
+        "cards": [heading("Expiring within 30 days", "mdi:timer-sand"), markdown(body)],
+    }
+
+
+def coverage() -> dict:
+    body = """
+{%- set ns = namespace(rows=[]) -%}
+{%- for s in states.sensor -%}
+  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_coverage_12m') -%}
+    {%- set a = s.attributes -%}
+    {%- set ns.rows = ns.rows + [{'card': a.card, 'color': a.color,
+        'n': s.state | int(0), 'missing': a.get('missing', []),
+        'files': a.get('statements_imported', 0)}] -%}
+  {%- endif -%}
+{%- endfor -%}
+A month with no statement is unknown, not proof a credit went unused.
+
+| Card | Covered | Files | Gaps |
+|---|--:|--:|---|
+{% for r in ns.rows | sort(attribute='card') -%}
+| DOT {{ r.card }} | {{ r.n }}/12 | {{ r.files }} \
+| {% if r.missing | count == 0 %}none{% elif r.missing | count > 4 %}\
+{{ r.missing[:3] | join(', ') }} +{{ (r.missing | count) - 3 }} more\
+{% else %}{{ r.missing | join(', ') }}{% endif %} |
+{% endfor %}
+""".replace("DOT", DOT)
     return {
         "type": "grid",
         "cards": [
-            heading("Check off", "mdi:cash-check"),
-            {
-                "type": "custom:auto-entities",
-                "card": {"type": "entities", "title": "Credits with money left"},
-                "show_empty": False,
-                "filter": {
-                    "include": [
-                        {
-                            "integration": "cardperks",
-                            "domain": "number",
-                            "attributes": {"status": s},
-                        }
-                        for s in ("unused", "partial")
-                    ],
-                    "exclude": [{"state": "unavailable"}, {"state": "unknown"}],
-                },
-                "sort": {"method": "friendly_name"},
-            },
+            heading("Statement coverage", "mdi:file-document-check-outline"),
+            markdown(body),
         ],
     }
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 2:
         print(__doc__)
         return 2
-    cards = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
-    outdir = pathlib.Path(sys.argv[2])
+    outdir = pathlib.Path(sys.argv[1])
     outdir.mkdir(parents=True, exist_ok=True)
-    sections = {
-        "fees": fees_section(cards),
-        "perk_values": perk_values_section(cards),
-        "annual_dollars": annual_dollars_section(cards),
-        "checkoff": checkoff_section(),
-    }
-    for name, section in sections.items():
+    for name, section in {
+        "dollars_left": dollars_left(),
+        "by_card": by_card(),
+        "expiring": expiring(),
+        "coverage": coverage(),
+    }.items():
         path = outdir / f"{name}.json"
         path.write_text(json.dumps(section, indent=2), encoding="utf-8")
         print(f"wrote {path}")
