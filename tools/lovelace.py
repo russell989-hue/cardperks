@@ -525,3 +525,86 @@ def money_bars(*, card_id: str | None = None, with_name: bool = True) -> dict:
         "{{ ns.cards | sort(attribute='sort') }}"
     )
     return _template_cards(template)
+
+
+def money_donut(*, min_amount: float, size: int = 220, title: str = "big-ticket credits") -> dict:
+    """One ring of where the trailing year's dollars went for credits worth at least
+    `min_amount` a period: captured, forfeited, unknown, still open, in the same scheme
+    as the money bars. The centre prints what was missed. Reads the per-benefit totals
+    every dollar box carries, so it needs nothing beyond the entities."""
+    gather = (
+        "{% set ns = namespace(cap=0.0, forf=0.0, unk=0.0, open=0.0, n=0) %}"
+        "{% for s in states.number if s.attributes.get('kind') == 'benefit_used' "
+        f"and {ONLY_ACTIVE} and (s.attributes.get('this_period') or 0) >= {min_amount} %}}"
+        "{% set ns.cap = ns.cap + (s.attributes.get('captured_12m') or 0) %}"
+        "{% set ns.forf = ns.forf + (s.attributes.get('forfeited_12m') or 0) %}"
+        "{% set ns.unk = ns.unk + (s.attributes.get('unknown_12m') or 0) %}"
+        "{% set ns.open = ns.open + (s.attributes.get('open_remaining') or 0) %}"
+        "{% set ns.n = ns.n + 1 %}"
+        "{% endfor %}"
+        "{% set tot = ns.cap + ns.forf + ns.unk + ns.open %}"
+    )
+    slices = (
+        gather + "{% if tot > 0 %}"
+        "{% set a = (ns.cap / tot * 100) | round(2) %}"
+        "{% set b = ((ns.cap + ns.forf) / tot * 100) | round(2) %}"
+        "{% set c = ((ns.cap + ns.forf + ns.unk) / tot * 100) | round(2) %}"
+        "var(--cardperks-captured, var(--green-color)) 0% {{ a }}%, "
+        "var(--cardperks-forfeited, var(--red-color)) {{ a }}% {{ b }}%, "
+        "var(--cardperks-unknown, var(--grey-color)) {{ b }}% {{ c }}%, "
+        "var(--divider-color) {{ c }}% 100%"
+        "{% else %}var(--divider-color) 0% 100%{% endif %}"
+    )
+    style = "\n".join(
+        [
+            "ha-card {",
+            "  display: flex !important; align-items: center; justify-content: center;",
+            "}",
+            "ha-markdown {",
+            f"  width: {size}px !important; height: {size}px !important; border-radius: 50%;",
+            "  margin: auto !important; padding: 0 !important; box-sizing: border-box;",
+            "  display: flex !important; align-items: center; justify-content: center;",
+            "  text-align: center; font-size: 1.05em; line-height: 1.5;",
+            "  background:",
+            "    radial-gradient(circle closest-side, "
+            "var(--ha-card-background, var(--card-background-color)) 70%, transparent 71%),",
+            "    conic-gradient(" + slices + ");",
+            "}",
+        ]
+    )
+    label = (
+        gather + "**${{ ns.forf | round(0) | int }}** missed<br>"
+        "of ${{ tot | round(0) | int }} in {{ ns.n }} " + title + "<br>"
+        "<span style='color: var(--secondary-text-color)'>"
+        "${{ ns.cap | round(0) | int }} captured · ${{ ns.unk | round(0) | int }} unknown · "
+        "${{ ns.open | round(0) | int }} open</span>"
+    )
+    return {"type": "markdown", "content": label, "card_mod": {"style": style}}
+
+
+def missed_list(*, min_amount: float) -> dict:
+    """The big credits that were forfeited over the trailing year, largest loss first."""
+    return auto_cards(
+        [
+            {
+                "attributes": {
+                    "kind": "benefit_used",
+                    "card_status": "active",
+                    "this_period": f">= {min_amount}",
+                    "forfeited_12m": "> 0",
+                },
+                "domain": "number",
+            }
+        ],
+        primary="${{ (state_attr(entity, 'forfeited_12m') or 0) | round(0) | int }} missed · "
+        "{{ state_attr(entity, 'benefit') }}",
+        secondary="{{ state_attr(entity, 'card') }} · "
+        "${{ (state_attr(entity, 'captured_12m') or 0) | round(0) | int }} captured this year",
+        icon="mdi:close-circle-outline",
+        sort={
+            "method": "attribute",
+            "attribute": "forfeited_12m",
+            "numeric": True,
+            "reverse": True,
+        },
+    )

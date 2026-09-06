@@ -25,7 +25,9 @@ from lovelace import (
     donut_by_card,
     gauge_grid,
     heading,
+    missed_list,
     money_bars,
+    money_donut,
     note,
     peek_rows,
     wide_section,
@@ -123,6 +125,52 @@ def expiring() -> dict:
                 icon="mdi:timer-sand",
                 sort={"method": "state", "numeric": False, "reverse": False},
             ),
+        ],
+    }
+
+
+BIG_TICKET_MIN = 50  # dollars still on the table
+BIG_TICKET_DAYS = 90  # how far ahead to look
+
+
+def big_ticket() -> dict:
+    """The credits worth chasing: at least $50 still unused, closing within 90 days,
+    soonest first. The 30-day list catches everything; this one is the short list of
+    dining, hotel and travel credits you would actually be sorry to lose."""
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Big ticket items", "mdi:star-circle-outline"),
+            note(
+                f"Credits with ${BIG_TICKET_MIN} or more still to use and fewer than "
+                f"{BIG_TICKET_DAYS} days to use it, soonest first."
+            ),
+            auto_cards(
+                [
+                    with_status(
+                        base_filter(kind="benefit_expires"),
+                        status=st,
+                        remaining=f">= {BIG_TICKET_MIN}",
+                        days_left=f"< {BIG_TICKET_DAYS}",
+                    )
+                    for st in ("unused", "partial")
+                ],
+                primary="${{ "
+                + attr("remaining")
+                + " | round(0) | int }} · {{ state_attr(entity, 'benefit') }}",
+                secondary=(
+                    "{{ state_attr(entity, 'card') }} · closes {{ states(entity) }} · "
+                    "{{ state_attr(entity, 'days_left') }} days"
+                ),
+                icon="mdi:star-circle-outline",
+                sort={"method": "attribute", "attribute": "days_left", "numeric": True},
+            ),
+            note(
+                f"And over the trailing twelve months, for credits worth ${BIG_TICKET_MIN} or more "
+                "a period: what was captured, what slipped away, and what is still open."
+            ),
+            money_donut(min_amount=BIG_TICKET_MIN),
+            missed_list(min_amount=BIG_TICKET_MIN),
         ],
     }
 
@@ -248,6 +296,7 @@ def main() -> int:
         "by_card": by_card(),
         "fees": fees(),
         "expiring": expiring(),
+        "big_ticket": big_ticket(),
         "coverage": coverage(),
         "perk_values": perk_values(),
         "outstanding": outstanding(),
