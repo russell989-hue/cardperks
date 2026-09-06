@@ -191,6 +191,9 @@ installed but unused: apexcharts-card, mini-graph-card, button-card, layout-card
 - The in-app browser cannot reach his LAN. Verify with the strict template check and
   the dump tool, then ask him for a screenshot.
 - "Don't make any edits yet" means exactly that.
+- The catalog page (`/cardperks/catalog`) is served without a login and marks which
+  products the household holds. Brian decided (2026-09-06) that LAN access is an acceptable
+  boundary for that fact. Do not add auth or strip the owned-cards marking.
 - Nothing personal in the repo, even though it is private: no card numbers, no
   dates, no addresses. Put such values in `tools/secrets.env` or keep them out.
 
