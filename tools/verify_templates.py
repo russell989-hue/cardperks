@@ -68,7 +68,9 @@ def templates(obj, path=""):
 
 def _any_fee_due() -> str:
     """One card-level sensor to stand in for `entity` while rendering templates."""
-    mid_ = 9999
+    global mid
+    mid += 1
+    mid_ = mid  # ids must only ever go up on one connection
     ws.send(
         json.dumps(
             {
