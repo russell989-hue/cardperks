@@ -105,6 +105,7 @@ class BenefitRemainingSensor(BenefitEntity, SensorEntity):
         pct = round(inst.amount_used / total * 100, 1) if total else None
         return {
             **self.card_attributes,
+            "benefit": self.benefit.name,
             "status": str(inst.status),
             "amount": total,
             "amount_used": inst.amount_used,
@@ -139,6 +140,8 @@ class BenefitStatusSensor(BenefitEntity, SensorEntity):
         if inst is None:
             return {}
         return {
+            **self.card_attributes,
+            "benefit": self.benefit.name,
             "benefit_id": self.benefit_id,
             "amount": inst.amount,
             "amount_used": inst.amount_used,
@@ -172,9 +175,12 @@ class BenefitExpiresSensor(BenefitEntity, SensorEntity):
         if inst.period_end:
             days = (date.fromisoformat(inst.period_end) - self.coordinator.data.today).days
         return {
+            **self.card_attributes,
+            "benefit": self.benefit.name,
             "status": str(inst.status),
             "amount": inst.amount,
             "amount_used": inst.amount_used,
+            "remaining": round(max((inst.amount or 0.0) - inst.amount_used, 0.0), 2),
             "period_start": inst.period_start,
             "days_left": days,
         }
