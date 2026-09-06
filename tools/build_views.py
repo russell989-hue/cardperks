@@ -290,10 +290,12 @@ def upkeep() -> dict:
         "max_columns": 4,
         "show_icon_and_title": True,
         "sections": [
-            statements(),
+            # The two input lists share the first row, full width; the two reference
+            # lists share the second. Brian arranged it this way; keep it.
             span(checkoff(), 2),
-            span(shared_perks(), 1),
             span(perk_values(), 2),
+            statements(),
+            span(shared_perks(), 1),
         ],
     }
 
