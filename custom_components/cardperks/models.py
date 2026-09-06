@@ -521,6 +521,7 @@ class StateDocument:
     reminders: list[dict[str, Any]] = field(default_factory=list)
     # every dollar logged against a benefit: {at, on, card_id, benefit_id, amount, source, note}
     ledger: list[dict[str, Any]] = field(default_factory=list)
+    ledger_window: str = "trailing_12_months"  # the picker on the card pages
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -540,6 +541,7 @@ class StateDocument:
             "fees_seen": self.fees_seen,
             "reminders": self.reminders,
             "ledger": self.ledger,
+            "ledger_window": self.ledger_window,
         }
 
     @classmethod
@@ -570,6 +572,7 @@ class StateDocument:
             shared_values={k: float(v) for k, v in d.get("shared_values", {}).items()},
             reminders=[dict(r) for r in d.get("reminders", [])],
             ledger=[dict(r) for r in d.get("ledger", [])],
+            ledger_window=d.get("ledger_window", "trailing_12_months"),
             fees_seen={
                 k: {dk: float(dv) for dk, dv in v.items()}
                 for k, v in d.get("fees_seen", {}).items()

@@ -369,6 +369,10 @@ class CardLedgerSensor(CardEntity, SensorEntity):
                 ),
                 2,
             ),
+            "totals": self.coordinator.ledger_totals(
+                self.held_card_id, self.coordinator.data.today
+            ),
+            "window": self.coordinator.doc.ledger_window,
         }
 
 

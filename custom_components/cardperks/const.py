@@ -145,6 +145,15 @@ class AppliesTo(StrEnum):
     AU_OWN_ALLOTMENT = "au_own_allotment"
 
 
+class LedgerWindow(StrEnum):
+    """How far back a ledger view looks."""
+
+    YTD = "year_to_date"
+    PRIOR_YEAR = "prior_year"
+    T12 = "trailing_12_months"
+    ALL = "all"
+
+
 class CardStatus(StrEnum):
     """Whether a card is being tracked.
 

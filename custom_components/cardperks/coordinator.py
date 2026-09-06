@@ -23,6 +23,7 @@ from .const import (
     BenefitStatus,
     BenefitType,
     CardStatus,
+    LedgerWindow,
     Role,
 )
 from .helpers import (
@@ -234,6 +235,32 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 "note": note,
             }
         )
+
+    @staticmethod
+    def window_bounds(window: str, today: date) -> tuple[str, str]:
+        """ISO start (inclusive) and end (exclusive) dates for a ledger window."""
+        if window == LedgerWindow.YTD:
+            return date(today.year, 1, 1).isoformat(), (today + timedelta(days=1)).isoformat()
+        if window == LedgerWindow.PRIOR_YEAR:
+            return date(today.year - 1, 1, 1).isoformat(), date(today.year, 1, 1).isoformat()
+        if window == LedgerWindow.T12:
+            return (today - timedelta(days=365)).isoformat(), (
+                today + timedelta(days=1)
+            ).isoformat()
+        return "0000-00-00", "9999-12-31"
+
+    def ledger_totals(self, card_id: str, today: date) -> dict[str, float]:
+        """Dollars logged against the card in each window."""
+        rows = [r for r in self.doc.ledger if r["card_id"] == card_id]
+        out: dict[str, float] = {}
+        for w in LedgerWindow:
+            lo, hi = self.window_bounds(w, today)
+            out[str(w)] = round(sum(r["amount"] for r in rows if lo <= r["on"] < hi), 2)
+        return out
+
+    def set_ledger_window(self, window: str) -> None:
+        self.doc.ledger_window = str(LedgerWindow(window))
+        self._commit()
 
     def ledger_for(self, card_id: str, limit: int = 200) -> list[dict]:
         """This card's ledger, newest first, with benefit names filled in."""

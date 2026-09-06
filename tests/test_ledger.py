@@ -54,3 +54,38 @@ def test_ledger_is_seeded_from_statement_keys_once():
         ("2026-07-22", "travel_credit", 112.94, "statement"),
     ]
     assert seed_ledger(doc) == 0  # never twice
+
+
+async def test_ledger_windows(hass, setup_integration: MockConfigEntry):
+    """Totals per window, and the shared picker that the card pages follow."""
+    entry = setup_integration
+    coord = entry.runtime_data
+    coord.mark_used(CARD_ID, "monthly_credit", 4, date(2026, 9, 3))  # YTD, T12
+    assert coord.record_statement_usage(
+        CARD_ID, "travel_credit", date(2025, 12, 20), 100.0, "TRAVEL CREDIT $300/YEAR"
+    )  # prior year, and within T12
+    assert coord.record_statement_usage(
+        CARD_ID, "travel_credit", date(2025, 3, 1), 50.0, "TRAVEL CREDIT $300/YEAR"
+    )  # prior year only
+    coord.commit()
+    await hass.async_block_till_done()
+
+    reg = er.async_get(hass)
+    st = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_ledger"))
+    assert st.attributes["totals"] == {
+        "year_to_date": 4.0,
+        "prior_year": 150.0,
+        "trailing_12_months": 104.0,
+        "all": 154.0,
+    }
+    assert st.attributes["window"] == "trailing_12_months"
+
+    picker = reg.async_get_entity_id("select", DOMAIN, "ledger_window")
+    await hass.services.async_call(
+        "select", "select_option", {"entity_id": picker, "option": "prior_year"}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(picker).state == "prior_year"
+    assert hass.states.get(picker).attributes["from"] == "2025-01-01"
+    st = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_ledger"))
+    assert st.attributes["window"] == "prior_year"

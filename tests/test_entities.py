@@ -35,7 +35,10 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     # ...plus Priority Pass, shared: 5 entities on each card and one household number.
     # ...plus a status sensor per card for the status the lounge perk grants.
     # ...plus the household calendar, and a ledger sensor per card.
-    assert len(ours) == (25 + 5 + 1 + 10 + 1 + 1 + 1) + (6 + 5 + 10 + 1 + 1 + 1) + (7 * 2) + 1 + 1
+    # ...and the ledger window picker.
+    assert (
+        len(ours) == (25 + 5 + 1 + 10 + 1 + 1 + 1) + (6 + 5 + 10 + 1 + 1 + 1) + (7 * 2) + 1 + 1 + 1
+    )
 
     travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"

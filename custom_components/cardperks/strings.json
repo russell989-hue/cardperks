@@ -251,6 +251,15 @@
           "frozen": "Frozen",
           "cancelled": "Cancelled"
         }
+      },
+      "ledger_window": {
+        "name": "Ledger window",
+        "state": {
+          "year_to_date": "Year to date",
+          "prior_year": "Prior year",
+          "trailing_12_months": "Trailing 12 months",
+          "all": "All"
+        }
       }
     },
     "sensor": {

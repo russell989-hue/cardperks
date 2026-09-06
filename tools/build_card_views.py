@@ -192,8 +192,17 @@ def build_view(card: dict) -> dict:
         "{% set s = states.sensor | selectattr('attributes.kind', 'defined') "
         "| selectattr('attributes.kind', 'eq', 'ledger') "
         f"| selectattr('attributes.card_id', 'eq', '{card_id}') | list | first %}}"
-        "{% set rows = (s.attributes.get('entries') if s else []) or [] %}"
-        "{% if not rows %}Nothing logged yet.{% else %}"
+        "{% set w = states.select | selectattr('attributes.kind', 'defined') "
+        "| selectattr('attributes.kind', 'eq', 'ledger_window') | list | first %}"
+        "{% set lo = w.attributes.get('from') if w else '0000' %}"
+        "{% set hi = w.attributes.get('to') if w else '9999' %}"
+        "{% set rows = ((s.attributes.get('entries') if s else []) or []) "
+        "| selectattr('on', 'ge', lo) | selectattr('on', 'lt', hi) | list %}"
+        "{% set total = rows | map(attribute='amount') | sum %}"
+        "{% if not rows %}Nothing logged in this window.{% else %}"
+        "**${{ total | round(2) }}** over {{ rows | count }} entries
+
+"
         "| When | Benefit | Amount | How |\n|---|---|---:|---|\n"
         "{% for r in rows[:60] %}| {{ r.on }} | {{ r.benefit }} | "
         "{{ ('-' if r.amount < 0 else '') ~ '$' ~ (r.amount | abs | round(2)) }} | "
@@ -209,8 +218,15 @@ def build_view(card: dict) -> dict:
                     [
                         note(
                             "Every dollar logged against this card's benefits, newest first: "
-                            "from a statement, or typed by hand. A negative line is a correction."
+                            "from a statement, or typed by hand. A negative line is a correction. "
+                            "The window applies to every card's ledger."
                         ),
+                        {
+                            "type": "entities",
+                            "entities": [
+                                {"entity": "select.household_ledger_window", "name": "Window"}
+                            ],
+                        },
                         {"type": "markdown", "content": ledger_table},
                     ],
                 )

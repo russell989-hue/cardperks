@@ -141,6 +141,7 @@ def async_cleanup_entities(
     expected.update(f"shared_{key}_value" for key in coordinator.shared_members(today_local()))
     expected.update(f"status_{sid}" for sid in coordinator.statuses(today_local()))
     expected.add("cardperks_calendar")
+    expected.add("ledger_window")
 
     registry = er.async_get(hass)
     stale = [
