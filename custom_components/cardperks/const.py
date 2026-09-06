@@ -126,6 +126,18 @@ class AppliesTo(StrEnum):
     AU_OWN_ALLOTMENT = "au_own_allotment"
 
 
+class CardStatus(StrEnum):
+    """Whether a card is being tracked.
+
+    Frozen keeps the card and its history but stops opening periods and drops it from
+    every total; cancelled does the same and hides it from dashboards.
+    """
+
+    ACTIVE = "active"
+    FROZEN = "frozen"
+    CANCELLED = "cancelled"
+
+
 class Role(StrEnum):
     PRIMARY = "primary"
     AUTHORIZED_USER = "authorized_user"

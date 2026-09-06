@@ -445,24 +445,63 @@ async def test_not_applicable_leaves_the_totals(hass, setup_integration: MockCon
     assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status")).state == "n_a"
 
 
-async def test_card_colour_is_distinct_and_selectable(hass, setup_integration: MockConfigEntry):
-    """Every card gets its own colour, changeable from a dashboard, and it persists."""
+async def test_card_colour_from_form_flows_to_entities(hass, setup_integration: MockConfigEntry):
+    """Colour is set once in the card form; every entity of the card reports it live."""
     entry = setup_integration
-    primary = _eid(hass, "select", f"{CARD_ID}_color")
-    au = _eid(hass, "select", f"{AU_CARD_ID}_color")
-    first, second = hass.states.get(primary).state, hass.states.get(au).state
-    assert first != second
-    assert hass.states.get(primary).attributes["chosen"] is False
+    fee = _eid(hass, "sensor", f"{CARD_ID}_fee_due")
+    au_fee = _eid(hass, "sensor", f"{AU_CARD_ID}_fee_due")
+    first = hass.states.get(fee).attributes["color"]
+    second = hass.states.get(au_fee).attributes["color"]
+    assert first and second and first != second  # distinct palette slots by default
+
+    sub = entry.subentries[CARD_ID]
+    hass.config_entries.async_update_subentry(entry, sub, data={**sub.data, "color": "amber"})
+    await hass.async_block_till_done()
+    assert hass.states.get(fee).attributes["color"] == "amber"
+    assert (
+        hass.states.get(_eid(hass, "number", f"{CARD_ID}_dining_credit_used")).attributes["color"]
+        == "amber"
+    )
+    # no colour dropdown entity any more
+    assert er.async_get(hass).async_get_entity_id("select", DOMAIN, f"{CARD_ID}_color") is None
+
+
+async def test_card_status_freezes_and_cancels(hass, setup_integration: MockConfigEntry):
+    """Frozen and cancelled cards stop tracking and drop out of every total."""
+    entry = setup_integration
+    status = _eid(hass, "select", f"{CARD_ID}_status")
+    assert hass.states.get(status).state == "active"
+    owner_unused = _eid(hass, "sensor", f"owner_{OWNER_ID}_unused_credits")
+    owner_annual = _eid(hass, "sensor", f"owner_{OWNER_ID}_annual_value")
+    assert float(hass.states.get(owner_unused).state) > 0
 
     await hass.services.async_call(
-        "select", "select_option", {"entity_id": primary, "option": "amber"}, blocking=True
+        "select", "select_option", {"entity_id": status, "option": "frozen"}, blocking=True
     )
-    assert hass.states.get(primary).state == "amber"
-    assert hass.states.get(primary).attributes["chosen"] is True
-    # the colour rides along on the card's other entities so dashboards can use it
-    fee = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_fee_due"))
-    assert fee.attributes["color"] == "amber"
+    assert hass.states.get(status).state == "frozen"
+    assert (
+        hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_fee_due")).attributes["card_status"]
+        == "frozen"
+    )
+    # open periods were closed into history and the card no longer counts
+    doc = entry.runtime_data.doc
+    assert not any(k.startswith(f"{CARD_ID}:") for k in doc.instances)
+    assert any(h.held_card_id == CARD_ID and h.closed_by == "frozen" for h in doc.history)
+    assert float(hass.states.get(owner_unused).state) == 0.0
+    assert float(hass.states.get(owner_annual).state) == 0.0
+    assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_annual_value")).state) == 0.0
 
+    # thawing reopens the current periods
+    await hass.services.async_call(
+        "select", "select_option", {"entity_id": status, "option": "active"}, blocking=True
+    )
+    assert any(k.startswith(f"{CARD_ID}:") for k in entry.runtime_data.doc.instances)
+    assert float(hass.states.get(owner_unused).state) > 0
+
+    # persists across a reload
+    await hass.services.async_call(
+        "select", "select_option", {"entity_id": status, "option": "cancelled"}, blocking=True
+    )
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
-    assert hass.states.get(primary).state == "amber"
+    assert hass.states.get(status).state == "cancelled"

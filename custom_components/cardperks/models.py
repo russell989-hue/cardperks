@@ -13,6 +13,7 @@ from .const import (
     BenefitStatus,
     BenefitType,
     Cadence,
+    CardStatus,
     ResetRule,
     Role,
 )
@@ -179,7 +180,8 @@ class HeldCard:
     enabled_conditional: tuple[str, ...] = ()  # conditional benefit ids this card qualifies for
     previous_last4: tuple[str, ...] = ()  # numbers this account had before replacement
     not_applicable: tuple[str, ...] = ()  # benefit ids that do not apply to this holder
-    color: str | None = None  # Lovelace tile colour, so one card reads the same everywhere
+    color: str | None = None  # seed only; the live value lives in the state document
+    status: CardStatus = CardStatus.ACTIVE  # merged in from the state document
 
     @property
     def all_last4(self) -> frozenset[str]:
@@ -191,6 +193,8 @@ class HeldCard:
         return frozenset(x for x in (self.last4, *self.previous_last4) if x)
 
     def is_active(self, today: date) -> bool:
+        if self.status is not CardStatus.ACTIVE:
+            return False
         return self.close_date is None or self.close_date >= today
 
 
@@ -391,6 +395,7 @@ class StateDocument:
     rotating_activations: dict[str, dict[str, dict[str, str]]] = field(default_factory=dict)
     perk_values: dict[str, dict[str, float]] = field(default_factory=dict)
     card_colors: dict[str, str] = field(default_factory=dict)
+    card_status: dict[str, str] = field(default_factory=dict)  # card id -> CardStatus
     # card id -> {"YYYY-MM": import id}: months a statement actually vouches for.
     coverage: dict[str, dict[str, str]] = field(default_factory=dict)
     imports: list[ImportRecord] = field(default_factory=list)
@@ -405,6 +410,7 @@ class StateDocument:
             "rotating_activations": self.rotating_activations,
             "perk_values": self.perk_values,
             "card_colors": self.card_colors,
+            "card_status": self.card_status,
             "coverage": self.coverage,
             "imports": [i.to_dict() for i in self.imports],
             "last_rollover": self.last_rollover,
@@ -430,6 +436,7 @@ class StateDocument:
                 for k, v in d.get("perk_values", {}).items()
             },
             card_colors=dict(d.get("card_colors", {})),
+            card_status=dict(d.get("card_status", {})),
             coverage={k: dict(v) for k, v in d.get("coverage", {}).items()},
             imports=[ImportRecord.from_dict(i) for i in d.get("imports", [])],
             last_rollover=d.get("last_rollover"),

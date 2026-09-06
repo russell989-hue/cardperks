@@ -9,7 +9,14 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DATA_IMPORTING, DOMAIN, ROLLOVER_HOUR, ROLLOVER_MINUTE, SUBENTRY_CARD
+from .const import (
+    CONF_COLOR,
+    DATA_IMPORTING,
+    DOMAIN,
+    ROLLOVER_HOUR,
+    ROLLOVER_MINUTE,
+    SUBENTRY_CARD,
+)
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .devices import async_cleanup_entities, async_ensure_devices
 from .helpers import async_load_catalog
@@ -58,6 +65,29 @@ def _migrate_card_titles(hass: HomeAssistant, entry: CardPerksConfigEntry) -> in
     return changed
 
 
+@callback
+def _migrate_colors_to_config(hass: HomeAssistant, entry: CardPerksConfigEntry, doc) -> int:
+    """Colours once chosen through a dropdown entity now live in the card form."""
+    if not doc.card_colors:
+        return 0
+    moved = 0
+    hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
+    try:
+        for card_id, color in list(doc.card_colors.items()):
+            sub = entry.subentries.get(card_id)
+            if sub is None or sub.subentry_type != SUBENTRY_CARD:
+                continue
+            if not sub.data.get(CONF_COLOR):
+                hass.config_entries.async_update_subentry(
+                    entry, sub, data={**sub.data, CONF_COLOR: color}
+                )
+                moved += 1
+    finally:
+        hass.data[DOMAIN][DATA_IMPORTING] = False
+    doc.card_colors.clear()
+    return moved
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) -> bool:
     if renamed := _migrate_card_titles(hass, entry):
         _LOGGER.debug("Renamed %s card titles to the new separator", renamed)
@@ -67,6 +97,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) ->
 
     store = CardPerksStore(hass)
     doc = await store.async_load_document()
+    if moved := _migrate_colors_to_config(hass, entry, doc):
+        _LOGGER.debug("Moved %s card colours into the card configuration", moved)
     coordinator = CardPerksCoordinator(hass, entry, catalog, store, doc)
     await coordinator.async_run_rollover()
     await coordinator.async_config_entry_first_refresh()

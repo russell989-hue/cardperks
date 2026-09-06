@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import date, timedelta
 
 from homeassistant.config_entries import ConfigEntry
@@ -10,7 +11,15 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import CARD_COLORS, DOMAIN, FEE_WARNING_DAYS, BenefitStatus, BenefitType, Role
+from .const import (
+    CARD_COLORS,
+    DOMAIN,
+    FEE_WARNING_DAYS,
+    BenefitStatus,
+    BenefitType,
+    CardStatus,
+    Role,
+)
 from .helpers import cards_from_entry, now_iso, owners_from_entry, today_local
 from .models import (
     Benefit,
@@ -56,7 +65,34 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         self.store = store
         self.doc = doc
         self.owners = owners_from_entry(entry)
-        self.cards = cards_from_entry(entry)
+        self.cards = self._cards_with_status(cards_from_entry(entry))
+
+    def _cards_with_status(self, cards: dict[str, HeldCard]) -> dict[str, HeldCard]:
+        out = {}
+        for card_id, card in cards.items():
+            raw = self.doc.card_status.get(card_id, CardStatus.ACTIVE)
+            try:
+                status = CardStatus(raw)
+            except ValueError:
+                status = CardStatus.ACTIVE
+            out[card_id] = replace(card, status=status)
+        return out
+
+    def set_card_status(self, held_card_id: str, status: str) -> None:
+        """Active, frozen or cancelled. Freezing closes the open periods."""
+        self.card(held_card_id)
+        try:
+            new = CardStatus(status)
+        except ValueError as err:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_status",
+                translation_placeholders={"status": status},
+            ) from err
+        self.doc.card_status[held_card_id] = str(new)
+        self.cards = self._cards_with_status(cards_from_entry(self.config_entry))
+        rollover(self.doc, self.cards.values(), self.catalog, today_local(), now_iso())
+        self._commit()
 
     # ------------------------------------------------------------------ lifecycle
 
@@ -234,18 +270,6 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
     def coverage_months(self, held_card_id: str) -> set[str]:
         return set(self.doc.coverage.get(held_card_id, {}))
 
-    def set_card_color(self, held_card_id: str, color: str) -> None:
-        """Colour used for this card on every dashboard."""
-        self.card(held_card_id)
-        if color not in CARD_COLORS:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="unknown_color",
-                translation_placeholders={"color": color},
-            )
-        self.doc.card_colors[held_card_id] = color
-        self._commit()
-
     def set_perk_value(self, held_card_id: str, benefit_id: str, value: float) -> None:
         card = self.card(held_card_id)
         benefit = self.benefit(card, benefit_id)
@@ -378,13 +402,13 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
     def _colors(self) -> dict[str, str]:
         """A distinct colour per card so one card reads the same across every dashboard.
 
-        Cards are ordered by id, which is creation-ordered, so adding a card appends
-        rather than reshuffling what is already on screen. An explicit choice wins.
+        The card form is the one place to choose it. Unchosen cards take a stable slot
+        from the palette: cards are ordered by id, which is creation-ordered, so adding
+        one appends rather than reshuffling what is already on screen.
         """
         out: dict[str, str] = {}
         for i, card_id in enumerate(sorted(self.cards)):
-            chosen = self.doc.card_colors.get(card_id) or self.cards[card_id].color
-            out[card_id] = chosen or CARD_COLORS[i % len(CARD_COLORS)]
+            out[card_id] = self.cards[card_id].color or CARD_COLORS[i % len(CARD_COLORS)]
         return out
 
     def _card_summary(self, card: HeldCard, today: date) -> CardSummary:
@@ -409,7 +433,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
 
         # Per benefit: what a year of it is worth, and what became of the last twelve months.
         per_benefit: dict[str, Totals] = {}
-        if product is not None:
+        if product is not None and card.is_active(today):
             for benefit in product.benefits_for(card):
                 if not benefit.is_dollar or benefit.id in card.not_applicable:
                     continue
@@ -489,7 +513,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         fees = 0.0
         window = add_months(today, -24)
         for card in self.cards.values():
-            if card.owner_id != owner_id:
+            if card.owner_id != owner_id or not card.is_active(today):
                 continue
             summary = card_summaries[card.id]
             unused += summary.unused_value

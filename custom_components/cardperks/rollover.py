@@ -116,7 +116,9 @@ def rollover(
         if card is None or product is None or benefit is None:
             continue  # orphan: keep untouched (card may come back after a reload)
         if not card.is_active(today):
-            _close(doc, inst, now_iso, "closed_card")
+            _close(
+                doc, inst, now_iso, str(card.status) if card.status != "active" else "closed_card"
+            )
             result.closed += 1
             result.changed = True
         elif not benefit.applies_to_role(card.role) or (
