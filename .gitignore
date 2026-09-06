@@ -10,3 +10,11 @@ config/
 *.log
 .DS_Store
 .venv-win/
+
+# statement exports and personal data never belong in the repo
+*.csv
+*.ofx
+*.qfx
+.storage/
+statements/
+data/
