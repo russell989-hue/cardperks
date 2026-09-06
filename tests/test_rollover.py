@@ -25,10 +25,11 @@ def _card(**kw) -> HeldCard:
 def test_opens_all_benefits_for_primary(catalog):
     doc = StateDocument()
     result = rollover(doc, [_card()], catalog, date(2026, 9, 5), NOW)
-    assert result.opened == 5 and result.changed
+    # sub opened in 2024 with a 90-day window is long expired, so it is never opened
+    assert result.opened == 4 and result.changed
     keys = set(doc.instances)
     assert keys == {
-        f"c1:{b}" for b in ("monthly_credit", "dining_credit", "travel_credit", "lounge", "sub")
+        f"c1:{b}" for b in ("monthly_credit", "dining_credit", "travel_credit", "lounge")
     }
     inst = doc.instances["c1:travel_credit"]
     assert (inst.period_start, inst.period_end) == ("2026-03-15", "2027-03-14")
