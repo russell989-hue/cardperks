@@ -30,6 +30,10 @@ is based on: captured, forfeited, unknown, still open.
 
 ## Next
 
+- [x] **Was it worth it?** One verdict per card from its newest complete cardmember year
+      (credits plus perks marked used, against the fee that year), at the top of the Money
+      tab (2026-09-06). Fees are estimated from today's fee until statements covering the
+      fee month are dropped in again; perks count only once marked used.
 - [ ] **An every-four-years cadence** anchored on the open date, so Global Entry can be a
       real $120 credit with a four-year period instead of a $30-a-year shared perk. Needs
       `compute_period` to build multi-year blocks from the open date, not the last anniversary.

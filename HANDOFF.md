@@ -143,8 +143,9 @@ integration and wired in via `extra_module_url` in configuration.yaml):
   use, captured this year, missed this year, the next big credit to close), Cards (one tile
   per active card from a template, tap opens the subview), Big ticket items, Expiring within
   30 days, the Left-to-use ring.
-- **Money**: By card money bars, Net value gauges, Annual fees, Where the big dollars went
-  (ring plus the forfeited list).
+- **Money**: Was it worth it? (a verdict per card from its newest complete cardmember year),
+  By card money bars, Net value gauges, Annual fees, Where the big dollars went (ring plus
+  the forfeited list), By year (a table per card).
 - **Upkeep**: Statements (overdue, then coverage), Log a credit, What perks are worth to you.
 - **Catalog**: an iframe over the page the integration serves.
 - One subview per card, reached from the tiles.

@@ -804,8 +804,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             if current or fee_total or captured or perks or covered_here:
                 if fee_total:
                     fee, source = round(sum(fee_total), 2), "statement"
-                elif summary_fee:
-                    fee, source = summary_fee, "estimate"
+                elif product is not None:
+                    fee, source = summary_fee, "estimate"  # a $0 fee is still a fee
                 else:
                     fee, source = None, "none"
                 out.append(
