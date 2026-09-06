@@ -29,7 +29,8 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     #   monthly/dining/travel 5 each, lounge 6, sign-up bonus 4 (points, so no dollar box) = 25
     # Card-level: fee due, unused, net, annual value, captured, forfeited, capture rate,
     # fee-within-45d = 8. Owners: 4 rollups + 3 dollar totals = 7 each.
-    assert len(ours) == (25 + 8) + (6 + 8) + (7 * 2)
+    # ...plus one colour select per card.
+    assert len(ours) == (25 + 8 + 1) + (6 + 8 + 1) + (7 * 2)
 
     travel = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     assert travel.state == "unused"
@@ -441,3 +442,26 @@ async def test_not_applicable_leaves_the_totals(hass, setup_integration: MockCon
     after = float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_annual_value")).state)
     assert after == before - 300
     assert hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status")).state == "n_a"
+
+
+async def test_card_colour_is_distinct_and_selectable(hass, setup_integration: MockConfigEntry):
+    """Every card gets its own colour, changeable from a dashboard, and it persists."""
+    entry = setup_integration
+    primary = _eid(hass, "select", f"{CARD_ID}_color")
+    au = _eid(hass, "select", f"{AU_CARD_ID}_color")
+    first, second = hass.states.get(primary).state, hass.states.get(au).state
+    assert first != second
+    assert hass.states.get(primary).attributes["chosen"] is False
+
+    await hass.services.async_call(
+        "select", "select_option", {"entity_id": primary, "option": "amber"}, blocking=True
+    )
+    assert hass.states.get(primary).state == "amber"
+    assert hass.states.get(primary).attributes["chosen"] is True
+    # the colour rides along on the card's other entities so dashboards can use it
+    fee = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_fee_due"))
+    assert fee.attributes["color"] == "amber"
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(primary).state == "amber"

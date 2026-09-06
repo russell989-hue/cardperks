@@ -191,6 +191,18 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 inst.updated_at = now_iso()
         self._commit()
 
+    def set_card_color(self, held_card_id: str, color: str) -> None:
+        """Colour used for this card on every dashboard."""
+        self.card(held_card_id)
+        if color not in CARD_COLORS:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_color",
+                translation_placeholders={"color": color},
+            )
+        self.doc.card_colors[held_card_id] = color
+        self._commit()
+
     def set_perk_value(self, held_card_id: str, benefit_id: str, value: float) -> None:
         card = self.card(held_card_id)
         benefit = self.benefit(card, benefit_id)
@@ -328,7 +340,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         """
         out: dict[str, str] = {}
         for i, card_id in enumerate(sorted(self.cards)):
-            chosen = self.cards[card_id].color
+            chosen = self.doc.card_colors.get(card_id) or self.cards[card_id].color
             out[card_id] = chosen or CARD_COLORS[i % len(CARD_COLORS)]
         return out
 

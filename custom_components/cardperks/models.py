@@ -339,6 +339,7 @@ class StateDocument:
     sub_trackers: dict[str, SubTracker] = field(default_factory=dict)
     rotating_activations: dict[str, dict[str, dict[str, str]]] = field(default_factory=dict)
     perk_values: dict[str, dict[str, float]] = field(default_factory=dict)
+    card_colors: dict[str, str] = field(default_factory=dict)
     last_rollover: str | None = None
     imported_refs: set[str] = field(default_factory=set)  # dedupe keys for statement imports
 
@@ -349,6 +350,7 @@ class StateDocument:
             "sub_trackers": {k: v.to_dict() for k, v in self.sub_trackers.items()},
             "rotating_activations": self.rotating_activations,
             "perk_values": self.perk_values,
+            "card_colors": self.card_colors,
             "last_rollover": self.last_rollover,
             "imported_refs": sorted(self.imported_refs),
         }
@@ -371,6 +373,7 @@ class StateDocument:
                 k: {bk: float(bv) for bk, bv in v.items()}
                 for k, v in d.get("perk_values", {}).items()
             },
+            card_colors=dict(d.get("card_colors", {})),
             last_rollover=d.get("last_rollover"),
             imported_refs=set(d.get("imported_refs", [])),
         )

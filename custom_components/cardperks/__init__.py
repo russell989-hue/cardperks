@@ -21,6 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
     Platform.NUMBER,
+    Platform.SELECT,
     Platform.SENSOR,
     Platform.BUTTON,
     Platform.BINARY_SENSOR,

@@ -198,6 +198,9 @@
     }
   },
   "entity": {
+    "select": {
+      "card_color": { "name": "Colour" }
+    },
     "sensor": {
       "benefit_status": {
         "name": "{benefit} status",
@@ -285,6 +288,7 @@
   },
   "exceptions": {
     "not_set_up": { "message": "Set up the CardPerks integration first." },
+    "unknown_color": { "message": "{color} is not one of the available colours." },
     "unknown_device": { "message": "That device does not exist." },
     "not_a_card_device": { "message": "That device is not a CardPerks card." },
     "unknown_card": { "message": "That card is not configured." },
