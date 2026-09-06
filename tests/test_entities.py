@@ -188,6 +188,21 @@ async def test_device_services(hass, setup_integration: MockConfigEntry):
     assert unused.attributes["rotating_activations"]["2026-Q3"]["category"] == "gas"
 
 
+async def test_annual_fee_override(hass, mock_entry: MockConfigEntry):
+    from custom_components.cardperks.const import CONF_ANNUAL_FEE
+
+    sub = mock_entry.subentries[CARD_ID]
+    mock_entry.add_to_hass(hass)
+    hass.config_entries.async_update_subentry(
+        mock_entry, sub, data={**sub.data, CONF_ANNUAL_FEE: 450}
+    )
+    assert await hass.config_entries.async_setup(mock_entry.entry_id)
+    await hass.async_block_till_done()
+    fee = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_fee_due"))
+    assert fee.attributes["annual_fee"] == 450
+    assert float(hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_net_value_12m")).state) == -450
+
+
 async def test_state_survives_reload(hass, setup_integration: MockConfigEntry):
     dining = _eid(hass, "select", f"{CARD_ID}_dining_credit_status")
     await hass.services.async_call(

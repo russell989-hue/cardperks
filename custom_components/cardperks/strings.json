@@ -80,6 +80,7 @@
             "fee_month": "Annual fee month",
             "last4": "Last four digits (optional)",
             "nickname": "Nickname (optional)",
+            "annual_fee": "Annual fee override (optional, if yours differs from the catalog)",
             "notes": "Notes (optional)"
           }
         },
@@ -90,6 +91,7 @@
             "fee_month": "Annual fee month",
             "last4": "Last four digits (optional)",
             "nickname": "Nickname (optional)",
+            "annual_fee": "Annual fee override (optional, if yours differs from the catalog)",
             "notes": "Notes (optional)",
             "close_date": "Close date (YYYY-MM-DD, if closed)"
           }
@@ -98,6 +100,7 @@
       "error": {
         "need_anniversary": "Enter an open date or a fee month.",
         "invalid_date": "Enter a date as YYYY-MM-DD (or MM/DD/YYYY).",
+        "invalid_fee": "Annual fee must be a number.",
         "invalid_last4": "Last four must be exactly four digits.",
         "no_parent_card": "Add the primary cardholder's card first, then add the authorized user."
       },
@@ -180,7 +183,7 @@
     },
     "import_cards": {
       "name": "Import cards",
-      "description": "Create owners and cards in bulk from CSV text. Header row required with at least owner and product; optional columns: issuer, role (primary/au), parent_last4 or parent_owner, open_date, fee_month, last4, nickname, notes. Rows that already exist are skipped.",
+      "description": "Create owners and cards in bulk from CSV text. Header row required with at least owner and product; optional columns: issuer, role (primary/au), parent_last4 or parent_owner, open_date, fee_month, last4, nickname, annual_fee, notes. Rows that already exist are skipped.",
       "fields": {
         "csv": { "name": "CSV", "description": "Paste rows from a spreadsheet, including the header line." }
       }

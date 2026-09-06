@@ -14,29 +14,209 @@
       "needs_verification": true,
       "source_url": "https://www.americanexpress.com/us/credit-cards/card/platinum/",
       "benefits": [
-        {"id": "hotel_credit", "name": "Hotel credit (FHR / The Hotel Collection)", "type": "statement_credit", "cadence": "semiannual", "amount": 300, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary", "notes": "Prepaid bookings via Amex Travel; two-night minimum for The Hotel Collection"},
-        {"id": "airline_fee_credit", "name": "Airline fee credit", "type": "statement_credit", "cadence": "annual", "amount": 200, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary", "notes": "Incidental fees on one selected airline"},
-        {"id": "uber_cash", "name": "Uber Cash", "type": "statement_credit", "cadence": "monthly", "amount": 15, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary", "notes": "$35 in December"},
-        {"id": "digital_entertainment", "name": "Digital entertainment credit", "type": "statement_credit", "cadence": "monthly", "amount": 25, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "resy_credit", "name": "Resy dining credit", "type": "statement_credit", "cadence": "semiannual", "amount": 100, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "lululemon_credit", "name": "Lululemon credit", "type": "statement_credit", "cadence": "quarterly", "amount": 75, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "equinox_credit", "name": "Equinox credit", "type": "statement_credit", "cadence": "annual", "amount": 300, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "walmart_plus", "name": "Walmart+ membership credit", "type": "statement_credit", "cadence": "monthly", "amount": 12.95, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "clear_plus", "name": "CLEAR Plus credit", "type": "statement_credit", "cadence": "annual", "amount": 209, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "uber_one", "name": "Uber One membership credit", "type": "statement_credit", "cadence": "annual", "amount": 120, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "oura_credit", "name": "Oura Ring credit", "type": "statement_credit", "cadence": "annual", "amount": 200, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "primary"},
-        {"id": "global_entry", "name": "Global Entry / TSA PreCheck credit", "type": "statement_credit", "cadence": "annual", "amount": 120, "unit": "USD", "reset": "calendar", "applies_to": "primary", "notes": "Once every four years"},
-        {"id": "centurion_lounge", "name": "Centurion Lounge access", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "applies_to": "au_own_allotment", "default_value": 400},
-        {"id": "priority_pass", "name": "Priority Pass Select", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "enrollment_required": true, "applies_to": "au_own_allotment", "default_value": 200},
-        {"id": "hotel_status", "name": "Hilton Gold and Marriott Gold status", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "au_own_allotment", "default_value": 100},
-        {"id": "sub", "name": "Welcome offer", "type": "earning", "cadence": "one_time", "amount": 175000, "unit": "points", "applies_to": "primary", "expires_days_after_open": 180, "spend_required": 8000}
+        {
+          "id": "hotel_credit",
+          "name": "Hotel credit (FHR / The Hotel Collection)",
+          "type": "statement_credit",
+          "cadence": "semiannual",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "notes": "Prepaid bookings via Amex Travel; two-night minimum for The Hotel Collection"
+        },
+        {
+          "id": "airline_fee_credit",
+          "name": "Airline fee credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 200,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "notes": "Incidental fees on one selected airline"
+        },
+        {
+          "id": "uber_cash",
+          "name": "Uber Cash",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 15,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "notes": "$35 in December"
+        },
+        {
+          "id": "digital_entertainment",
+          "name": "Digital entertainment credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 25,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary"
+        },
+        {
+          "id": "resy_credit",
+          "name": "Resy dining credit",
+          "type": "statement_credit",
+          "cadence": "quarterly",
+          "amount": 100,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary",
+          "notes": "Confirmed quarterly from 2026 statements"
+        },
+        {
+          "id": "lululemon_credit",
+          "name": "Lululemon credit",
+          "type": "statement_credit",
+          "cadence": "quarterly",
+          "amount": 75,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary"
+        },
+        {
+          "id": "equinox_credit",
+          "name": "Equinox credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 300,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary"
+        },
+        {
+          "id": "walmart_plus",
+          "name": "Walmart+ membership credit",
+          "type": "statement_credit",
+          "cadence": "monthly",
+          "amount": 12.95,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary"
+        },
+        {
+          "id": "clear_plus",
+          "name": "CLEAR Plus credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 209,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary"
+        },
+        {
+          "id": "uber_one",
+          "name": "Uber One membership credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary"
+        },
+        {
+          "id": "oura_credit",
+          "name": "Oura Ring credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 200,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "primary"
+        },
+        {
+          "id": "global_entry",
+          "name": "Global Entry / TSA PreCheck credit",
+          "type": "statement_credit",
+          "cadence": "annual",
+          "amount": 120,
+          "unit": "USD",
+          "reset": "calendar",
+          "applies_to": "primary",
+          "notes": "Once every four years"
+        },
+        {
+          "id": "centurion_lounge",
+          "name": "Centurion Lounge access",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "applies_to": "au_own_allotment",
+          "default_value": 400
+        },
+        {
+          "id": "priority_pass",
+          "name": "Priority Pass Select",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "cardmember_year",
+          "enrollment_required": true,
+          "applies_to": "au_own_allotment",
+          "default_value": 200
+        },
+        {
+          "id": "hotel_status",
+          "name": "Hilton Gold and Marriott Gold status",
+          "type": "perk",
+          "cadence": "annual",
+          "amount": null,
+          "unit": "USD",
+          "reset": "calendar",
+          "enrollment_required": true,
+          "applies_to": "au_own_allotment",
+          "default_value": 100
+        },
+        {
+          "id": "sub",
+          "name": "Welcome offer",
+          "type": "earning",
+          "cadence": "one_time",
+          "amount": 175000,
+          "unit": "points",
+          "applies_to": "primary",
+          "expires_days_after_open": 180,
+          "spend_required": 8000
+        }
       ],
       "earning_rates": [
-        {"category": "flights_direct_or_amex_travel", "multiplier": 5, "notes": "Up to $500k per calendar year"},
-        {"category": "prepaid_hotels_amex_travel", "multiplier": 5},
-        {"category": "other", "multiplier": 1}
+        {
+          "category": "flights_direct_or_amex_travel",
+          "multiplier": 5,
+          "notes": "Up to $500k per calendar year"
+        },
+        {
+          "category": "prepaid_hotels_amex_travel",
+          "multiplier": 5
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
       ],
-      "au_terms": {"fee": 195, "own_lounge_access": true, "notes": "AU gets own Centurion Lounge and Priority Pass; not the statement credits"}
+      "au_terms": {
+        "fee": 195,
+        "own_lounge_access": true,
+        "notes": "AU gets own Centurion Lounge and Priority Pass; not the statement credits"
+      }
     }
   ]
 }

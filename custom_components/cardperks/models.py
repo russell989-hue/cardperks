@@ -137,6 +137,7 @@ class HeldCard:
     nickname: str | None = None
     close_date: date | None = None
     notes: str | None = None
+    annual_fee: float | None = None  # overrides the catalog fee (grandfathered pricing)
 
     def is_active(self, today: date) -> bool:
         return self.close_date is None or self.close_date >= today

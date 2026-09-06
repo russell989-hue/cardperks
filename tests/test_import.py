@@ -19,9 +19,9 @@ from custom_components.cardperks.importer import find_product, parse_date, parse
 
 from .conftest import CARD_ID
 
-CSV = """owner,issuer,card_product,role,primary_holder_if_AU,open_date,fee_month,last4,nickname
+CSV = """owner,issuer,card_product,role,primary_holder_if_AU,open_date,fee_month,last4,nickname,annual_fee
 Brian,Test Bank,Premium Card,primary,,2026-07-01,,1234,
-Brian,Test Bank,Basic Card,primary,,03/15/2022,,5555,Old Basic
+Brian,Test Bank,Basic Card,primary,,03/15/2022,,5555,Old Basic,$39
 Sam,Test Bank,premium,,,,November,7777,
 Nick,testbank,Premium Card,au,Brian,,,,
 Nick,Test Bank,Nonexistent Card,primary,,2020-01-01,,,
@@ -61,6 +61,7 @@ async def test_import_cards(hass, setup_integration: MockConfigEntry):
     cards = {s.title: s for s in entry.subentries.values() if s.subentry_type == SUBENTRY_CARD}
     assert cards["Old Basic"].data[CONF_OPEN_DATE] == "2022-03-15"
     assert cards["Old Basic"].data[CONF_LAST4] == "5555"
+    assert cards["Old Basic"].data["annual_fee"] == 39.0
     sam = cards["Premium Card (Sam ·7777)"]
     assert sam.data[CONF_FEE_MONTH] == 11 and sam.data[CONF_OPEN_DATE] is None
     au = cards["Premium Card (AU) (Nick)"]

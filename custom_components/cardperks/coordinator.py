@@ -224,7 +224,9 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
     def _card_summary(self, card: HeldCard, today: date) -> CardSummary:
         product = self.catalog.get(card.product_id)
         annual_fee = 0.0
-        if product is not None:
+        if card.annual_fee is not None:
+            annual_fee = card.annual_fee
+        elif product is not None:
             annual_fee = (
                 product.au_terms.fee if card.role is Role.AUTHORIZED_USER else product.annual_fee
             )

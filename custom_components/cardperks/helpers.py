@@ -12,6 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from .catalog import SHIPPED_DIR, load_catalog
 from .const import (
+    CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
     CONF_FEE_MONTH,
     CONF_LAST4,
@@ -92,6 +93,7 @@ def card_from_subentry(sub: ConfigSubentry) -> HeldCard:
         nickname=d.get(CONF_NICKNAME) or None,
         close_date=_parse_date(d.get(CONF_CLOSE_DATE)),
         notes=d.get(CONF_NOTES) or None,
+        annual_fee=float(d[CONF_ANNUAL_FEE]) if d.get(CONF_ANNUAL_FEE) not in (None, "") else None,
     )
 
 

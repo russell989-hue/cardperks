@@ -29,6 +29,7 @@ CONF_LAST4 = "last4"
 CONF_NICKNAME = "nickname"
 CONF_CLOSE_DATE = "close_date"
 CONF_NOTES = "notes"
+CONF_ANNUAL_FEE = "annual_fee"
 
 ATTR_AMOUNT = "amount"
 ATTR_AMOUNT_USED = "amount_used"

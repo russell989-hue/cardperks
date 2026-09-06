@@ -14,6 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
     CONF_FEE_MONTH,
     CONF_LAST4,
@@ -50,6 +51,8 @@ COLUMN_ALIASES: dict[str, str] = {
     "last_4": "last4",
     "nickname": "nickname",
     "notes": "notes",
+    "annual_fee": "annual_fee",
+    "fee": "annual_fee",
 }
 
 MONTHS = {
@@ -209,6 +212,13 @@ async def async_import_cards(
                 raise ValueError(f"last4 must be four digits, got {last4!r}")
             open_date = parse_date(row.get("open_date", ""))
             fee_month = parse_month(row.get("fee_month", ""))
+            fee_raw = row.get("annual_fee", "").strip().lstrip("$")
+            annual_fee: float | None = None
+            if fee_raw:
+                try:
+                    annual_fee = float(fee_raw)
+                except ValueError as err:
+                    raise ValueError(f"annual_fee must be a number, got {fee_raw!r}") from err
             if row.get("fee_month") and fee_month is None:
                 raise ValueError(f"unknown fee month {row.get('fee_month')!r}")
 
@@ -279,6 +289,7 @@ async def async_import_cards(
                 CONF_LAST4: last4 or None,
                 CONF_NICKNAME: nickname,
                 CONF_NOTES: row.get("notes", "") or None,
+                CONF_ANNUAL_FEE: annual_fee,
                 CONF_CLOSE_DATE: None,
             }
             sub = ConfigSubentry(

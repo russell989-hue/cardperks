@@ -26,6 +26,7 @@ from homeassistant.helpers.selector import (
 from homeassistant.util import slugify
 
 from .const import (
+    CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
     CONF_FEE_MONTH,
     CONF_FIRST_OWNER,
@@ -287,6 +288,7 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             vol.Optional(CONF_FEE_MONTH): _month_selector(),
             vol.Optional(CONF_LAST4): TextSelector(),
             vol.Optional(CONF_NICKNAME): TextSelector(),
+            vol.Optional(CONF_ANNUAL_FEE): TextSelector(),
             vol.Optional(CONF_NOTES): TextSelector(),
         }
         if include_close:
@@ -305,6 +307,12 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
                     user_input[key] = parse_date(raw).isoformat()
                 except ValueError:
                     errors[key] = "invalid_date"
+        fee_raw = str(user_input.get(CONF_ANNUAL_FEE) or "").strip().lstrip("$")
+        if fee_raw:
+            try:
+                user_input[CONF_ANNUAL_FEE] = float(fee_raw)
+            except ValueError:
+                errors[CONF_ANNUAL_FEE] = "invalid_fee"
         if (
             role is Role.PRIMARY
             and not user_input.get(CONF_OPEN_DATE)
@@ -320,6 +328,8 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
             out[key] = (str(val).strip() or None) if val is not None else None
         fee = user_input.get(CONF_FEE_MONTH)
         out[CONF_FEE_MONTH] = int(fee) if fee else None
+        af = user_input.get(CONF_ANNUAL_FEE)
+        out[CONF_ANNUAL_FEE] = float(af) if af not in (None, "") else None
         return out
 
     async def _title_for(self, data: dict[str, Any]) -> str:
@@ -397,6 +407,7 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
                 CONF_FEE_MONTH,
                 CONF_LAST4,
                 CONF_NICKNAME,
+                CONF_ANNUAL_FEE,
                 CONF_NOTES,
                 CONF_CLOSE_DATE,
             )
@@ -404,6 +415,8 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         }
         if CONF_FEE_MONTH in current:
             current[CONF_FEE_MONTH] = str(current[CONF_FEE_MONTH])
+        if CONF_ANNUAL_FEE in current:
+            current[CONF_ANNUAL_FEE] = str(current[CONF_ANNUAL_FEE])
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=self.add_suggested_values_to_schema(
