@@ -11,7 +11,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DATA_IMPORTING, DOMAIN, ROLLOVER_HOUR, ROLLOVER_MINUTE
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
-from .devices import async_ensure_devices
+from .devices import async_cleanup_entities, async_ensure_devices
 from .helpers import async_load_catalog
 from .repairs import async_check_catalog_issues
 from .services import async_setup_services
@@ -43,6 +43,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) ->
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
     async_ensure_devices(hass, entry, coordinator)
+
+    removed = async_cleanup_entities(hass, entry, coordinator)
+    if removed:
+        _LOGGER.debug("Removed %s stale entities after a catalog or card change", removed)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

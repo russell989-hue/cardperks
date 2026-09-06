@@ -118,6 +118,11 @@ def rollover(
             _close(doc, inst, now_iso, "closed_card")
             result.closed += 1
             result.changed = True
+        elif not benefit.applies_to_role(card.role):
+            # Catalog corrected: this benefit no longer applies to this cardholder role.
+            _close(doc, inst, now_iso, "not_applicable")
+            result.closed += 1
+            result.changed = True
 
     # 2. For every active card/benefit, open or roll the current period.
     for card in active_cards.values():

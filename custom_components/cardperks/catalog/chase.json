@@ -476,9 +476,9 @@
           "amount": null,
           "unit": "USD",
           "reset": "cardmember_year",
-          "applies_to": "au_own_allotment",
+          "applies_to": "primary",
           "default_value": 750,
-          "notes": "AU cards get their own United Club lounge access"
+          "notes": "Primary cardholder only; authorized users do not get their own access"
         },
         {
           "id": "hotel_credit",
@@ -607,8 +607,8 @@
       ],
       "au_terms": {
         "fee": 0,
-        "own_lounge_access": true,
-        "notes": "AU cardholders get their own United Club access"
+        "own_lounge_access": false,
+        "notes": "Authorized users do NOT get their own United Club access"
       }
     }
   ]

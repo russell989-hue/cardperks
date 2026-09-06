@@ -1,5 +1,6 @@
 """Entity states, services, and persistence."""
 
+import pathlib
 from datetime import date
 
 import pytest
@@ -221,3 +222,45 @@ async def test_state_survives_reload(hass, setup_integration: MockConfigEntry):
     await hass.config_entries.async_reload(setup_integration.entry_id)
     await hass.async_block_till_done()
     assert hass.states.get(dining).state == "used"
+
+
+async def test_catalog_change_removes_stale_entities(
+    hass, setup_integration: MockConfigEntry, tmp_path, monkeypatch
+):
+    """A benefit that stops applying to authorized users loses its entities and instance."""
+    import json
+    import shutil
+
+    from custom_components.cardperks.const import BenefitStatus
+
+    entry = setup_integration
+    reg = er.async_get(hass)
+    assert reg.async_get_entity_id("select", DOMAIN, f"{AU_CARD_ID}_lounge_status")
+    assert f"{AU_CARD_ID}:lounge" in entry.runtime_data.doc.instances
+    entry.runtime_data.set_status(AU_CARD_ID, "lounge", BenefitStatus.USED)
+
+    # Rewrite the fixture catalog so the lounge perk is primary-only.
+    src = pathlib.Path(__file__).parent / "fixtures" / "catalog"
+    dst = tmp_path / "catalog"
+    shutil.copytree(src, dst)
+    f = dst / "test_issuer.json"
+    data = json.loads(f.read_text())
+    for prod in data["products"]:
+        for b in prod["benefits"]:
+            if b["id"] == "lounge":
+                b["applies_to"] = "primary"
+    f.write_text(json.dumps(data))
+    monkeypatch.setattr("custom_components.cardperks.helpers.SHIPPED_DIR", dst)
+
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert reg.async_get_entity_id("select", DOMAIN, f"{AU_CARD_ID}_lounge_status") is None
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{AU_CARD_ID}_lounge_remaining") is None
+    # The primary keeps it, and the AU instance is closed into history, not silently dropped.
+    assert reg.async_get_entity_id("select", DOMAIN, f"{CARD_ID}_lounge_status")
+    doc = entry.runtime_data.doc
+    assert f"{AU_CARD_ID}:lounge" not in doc.instances
+    closed = [h for h in doc.history if h.held_card_id == AU_CARD_ID and h.benefit_id == "lounge"]
+    assert len(closed) == 1 and closed[0].closed_by == "not_applicable"
+    assert closed[0].final_status == "used"

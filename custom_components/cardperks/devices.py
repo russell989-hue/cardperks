@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN, SUBENTRY_CARD, SUBENTRY_OWNER, Role
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
@@ -65,3 +66,43 @@ def async_ensure_devices(
             configuration_url=product.source_url if product else None,
             via_device_id=via_device_id,
         )
+
+
+@callback
+def async_cleanup_entities(
+    hass: HomeAssistant, entry: CardPerksConfigEntry, coordinator: CardPerksCoordinator
+) -> int:
+    """Drop registry entries for benefits that no longer exist for their card.
+
+    Without this, correcting the catalog (a benefit removed, or no longer offered to
+    authorized users) leaves entities behind that never become available again.
+    """
+    expected: set[str] = set()
+    for owner_id in coordinator.owners:
+        expected.update(
+            f"owner_{owner_id}_{suffix}"
+            for suffix in ("unused_credits", "expiring_7d", "expiring_30d", "5_24")
+        )
+    for card in coordinator.cards.values():
+        expected.update(
+            f"{card.id}_{suffix}"
+            for suffix in ("fee_due", "unused_value", "net_value_12m", "fee_within_45d")
+        )
+        product = coordinator.catalog.get(card.product_id)
+        if product is None:
+            continue
+        for benefit in product.benefits_for_role(card.role):
+            expected.update(
+                f"{card.id}_{benefit.id}_{suffix}"
+                for suffix in ("status", "expires", "remaining", "mark_used")
+            )
+
+    registry = er.async_get(hass)
+    stale = [
+        e.entity_id
+        for e in er.async_entries_for_config_entry(registry, entry.entry_id)
+        if e.unique_id not in expected
+    ]
+    for entity_id in stale:
+        registry.async_remove(entity_id)
+    return len(stale)
