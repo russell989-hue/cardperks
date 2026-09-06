@@ -6,6 +6,9 @@ change applies immediately with no restart and no direct .storage editing.
 
 Usage (on the HA box):
   python3 push_dashboard.py <url_path> <view_path> <view.json>
+
+<view.json> may hold a single view object, or a list of views. A list is merged by
+each view's own path and <view_path> is ignored, so existing views are left alone.
 e.g.
   python3 push_dashboard.py scratchpad-dashboard-wips cardperks /tmp/view.json
 
@@ -34,7 +37,9 @@ def main() -> int:
         return 2
 
     with open(view_file, encoding="utf-8") as fh:
-        view = json.load(fh)
+        payload = json.load(fh)
+    # One view, or a list of views merged by their own path.
+    views_in = payload if isinstance(payload, list) else [payload]
 
     ws = websocket.create_connection("ws://supervisor/core/websocket", timeout=30)
     assert json.loads(ws.recv())["type"] == "auth_required"
@@ -64,20 +69,20 @@ def main() -> int:
     print(f"backed up current config to {backup}")
 
     views = config.setdefault("views", [])
-    for i, v in enumerate(views):
-        if v.get("path") == view_path:
-            views[i] = view
-            print(f"replaced view '{view_path}' at index {i}")
-            break
-    else:
-        views.append(view)
-        print(f"appended new view '{view_path}'")
+    for view in views_in:
+        path = view.get("path") if isinstance(payload, list) else view_path
+        view["path"] = path
+        for i, v in enumerate(views):
+            if v.get("path") == path:
+                views[i] = view
+                print(f"replaced view '{path}'")
+                break
+        else:
+            views.append(view)
+            print(f"appended view '{path}'")
 
     cmd(type="lovelace/config/save", url_path=url_path, config=config)
-    print(
-        f"saved {url_path}: {len(views)} views, "
-        f"{len(view.get('sections', []))} sections in '{view_path}'"
-    )
+    print(f"saved {url_path}: {len(views)} views total")
     ws.close()
     return 0
 
