@@ -24,6 +24,7 @@ from lovelace import (
     auto_rows,
     base_filter,
     donut_by_card,
+    gauge_grid,
     heading,
     note,
 )
@@ -205,6 +206,37 @@ def outstanding() -> dict:
     }
 
 
+def net_value() -> dict:
+    """A gauge per card: captured over the trailing year, less the annual fee.
+
+    The arc runs from paying the fee and getting nothing back, to capturing every
+    credit the card offers. The annual value lives on the capture-rate sensor, so it
+    is looked up by card id.
+    """
+    fee = "(s.attributes.annual_fee or 0)"
+    annual = (
+        "((states.sensor | selectattr('attributes.kind', 'eq', 'capture_rate') "
+        "| selectattr('attributes.card_id', 'eq', s.attributes.card_id) "
+        "| map(attribute='attributes.annual_value') | list | first) or 0)"
+    )
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Net value, by card", "mdi:scale-balance"),
+            note(
+                "Credits captured over the trailing twelve months, less the annual fee. "
+                "Empty is paying the fee for nothing; full is capturing everything."
+            ),
+            gauge_grid(
+                "net_value_12m",
+                minimum=f"-{fee}",
+                maximum=f"([{annual} - {fee}, 1 - {fee}] | max)",
+                by_value=True,
+            ),
+        ],
+    }
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
@@ -220,6 +252,7 @@ def main() -> int:
         "coverage": coverage(),
         "perk_values": perk_values(),
         "outstanding": outstanding(),
+        "net_value": net_value(),
     }
     for name, section in sections.items():
         path = outdir / f"{name}.json"

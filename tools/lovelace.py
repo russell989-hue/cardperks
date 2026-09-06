@@ -160,6 +160,7 @@ def gauge_grid(
     kind: str,
     *,
     name: str = "s.attributes.card",
+    minimum: str = "0",
     maximum: str = "100",
     where: str = "",
     by_value: bool = False,
@@ -168,7 +169,7 @@ def gauge_grid(
     """auto-entities feeding a grid of gauge cards, one per matching entity.
 
     Built by a template so new cards and benefits appear by themselves and each
-    gauge takes its card's colour live. `name` and `maximum` are Jinja expressions
+    gauge takes its card's colour live. `name`, `minimum` and `maximum` are Jinja expressions
     over the state object `s`; `where` is an extra condition. Sorted by name, or by
     value (largest first) when `by_value` is set.
 
@@ -187,7 +188,7 @@ def gauge_grid(
         f"{{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and {cond} %}}"
         "{% set c = s.attributes.color or 'grey' %}"
         "{% set ns.items = ns.items + [[s.state | float(0), {'type': 'gauge', "
-        f"'entity': s.entity_id, 'name': {name}, 'min': 0, 'max': {maximum}, "
+        f"'entity': s.entity_id, 'name': {name}, 'min': {minimum}, 'max': {maximum}, "
         "'card_mod': {'style': " + style + "}}]] %}"
         "{% endfor %}"
         + (
