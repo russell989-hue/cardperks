@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "issuer": "capital_one",
+  "issuer_name": "Capital One",
+  "products": [
+    {
+      "id": "capital_one_venture_x",
+      "name": "Venture X",
+      "annual_fee": 395,
+      "currency": "capital_one_miles",
+      "default_point_value": 0.0125,
+      "reports_to_personal_credit": true,
+      "last_verified": "2026-06-01",
+      "needs_verification": true,
+      "source_url": "https://www.capitalone.com/credit-cards/venture-x/",
+      "benefits": [
+        {"id": "travel_credit", "name": "Capital One Travel credit", "type": "statement_credit", "cadence": "per_anniversary", "amount": 300, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary"},
+        {"id": "anniversary_miles", "name": "Anniversary bonus miles", "type": "earning", "cadence": "per_anniversary", "amount": 10000, "unit": "miles", "reset": "cardmember_year", "applies_to": "primary"},
+        {"id": "capital_one_lounge", "name": "Capital One Lounge access", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "applies_to": "au_own_allotment", "default_value": 300},
+        {"id": "priority_pass", "name": "Priority Pass Select", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "cardmember_year", "enrollment_required": true, "applies_to": "au_own_allotment", "default_value": 200},
+        {"id": "global_entry", "name": "Global Entry / TSA PreCheck credit", "type": "statement_credit", "cadence": "annual", "amount": 120, "unit": "USD", "reset": "cardmember_year", "applies_to": "primary", "notes": "Once every four years"},
+        {"id": "hertz_presidents_circle", "name": "Hertz President's Circle status", "type": "perk", "cadence": "annual", "amount": null, "unit": "USD", "reset": "calendar", "enrollment_required": true, "applies_to": "au_own_allotment", "default_value": 50},
+        {"id": "sub", "name": "Sign-up bonus", "type": "earning", "cadence": "one_time", "amount": 75000, "unit": "miles", "applies_to": "primary", "expires_days_after_open": 90, "spend_required": 4000}
+      ],
+      "earning_rates": [
+        {"category": "capital_one_travel_hotels_cars", "multiplier": 10},
+        {"category": "capital_one_travel_flights", "multiplier": 5},
+        {"category": "other", "multiplier": 2}
+      ],
+      "au_terms": {"fee": 0, "own_lounge_access": true, "notes": "Up to four free AUs, each with lounge access"}
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+mark_used:
+  target:
+    entity:
+      integration: cardperks
+      domain: select
+  fields:
+    amount:
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+    date:
+      required: false
+      selector:
+        date:
+    note:
+      required: false
+      selector:
+        text:
+
+reset_benefit:
+  target:
+    entity:
+      integration: cardperks
+      domain: select
+
+add_sub_spend:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: cardperks
+    amount:
+      required: true
+      selector:
+        number:
+          min: 0
+          step: 0.01
+          mode: box
+    date:
+      required: false
+      selector:
+        date:
+    note:
+      required: false
+      selector:
+        text:
+
+set_perk_value:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: cardperks
+    benefit_id:
+      required: true
+      selector:
+        text:
+    value:
+      required: true
+      selector:
+        number:
+          min: 0
+          step: 1
+          mode: box
+
+activate_rotating_category:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: cardperks
+    category:
+      required: true
+      selector:
+        text:
+    quarter:
+      required: false
+      example: "2026-Q3"
+      selector:
+        text:

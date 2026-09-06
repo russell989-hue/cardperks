@@ -1,0 +1,212 @@
+{
+  "title": "CardPerks",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up CardPerks",
+        "description": "Name the household and add the first card owner. More owners and cards are added from the integration page afterwards.",
+        "data": {
+          "household_name": "Household name",
+          "first_owner": "First owner"
+        }
+      }
+    },
+    "error": {
+      "name_required": "Enter a name."
+    },
+    "abort": {
+      "single_instance_allowed": "CardPerks is already set up. Add owners and cards from its integration page."
+    }
+  },
+  "config_subentries": {
+    "owner": {
+      "title": "Owner",
+      "entry_type": "Owner",
+      "initiate_flow": {
+        "user": "Add owner",
+        "reconfigure": "Rename owner"
+      },
+      "step": {
+        "user": {
+          "title": "Add owner",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "reconfigure": {
+          "title": "Rename owner",
+          "data": {
+            "name": "Name"
+          }
+        }
+      },
+      "error": {
+        "name_required": "Enter a name.",
+        "already_configured": "An owner with that name already exists."
+      },
+      "abort": {
+        "already_configured": "An owner with that name already exists.",
+        "reconfigure_successful": "Owner updated."
+      }
+    },
+    "held_card": {
+      "title": "Card",
+      "entry_type": "Card",
+      "initiate_flow": {
+        "user": "Add card",
+        "reconfigure": "Edit card"
+      },
+      "step": {
+        "user": {
+          "title": "Add card",
+          "data": {
+            "owner_id": "Owner",
+            "issuer": "Issuer",
+            "role": "Role"
+          }
+        },
+        "product": {
+          "title": "Which card?",
+          "data": {
+            "product_id": "Card product",
+            "parent_card_id": "Primary card this is an authorized user on"
+          }
+        },
+        "details": {
+          "title": "Card details",
+          "description": "Open date or fee month is needed for anniversary-based benefits. Last four digits only help tell duplicate products apart; never enter a full card number.",
+          "data": {
+            "open_date": "Open date",
+            "fee_month": "Annual fee month",
+            "last4": "Last four digits (optional)",
+            "nickname": "Nickname (optional)",
+            "notes": "Notes (optional)"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit card",
+          "data": {
+            "open_date": "Open date",
+            "fee_month": "Annual fee month",
+            "last4": "Last four digits (optional)",
+            "nickname": "Nickname (optional)",
+            "notes": "Notes (optional)",
+            "close_date": "Close date (if closed)"
+          }
+        }
+      },
+      "error": {
+        "need_anniversary": "Enter an open date or a fee month.",
+        "invalid_last4": "Last four must be exactly four digits.",
+        "no_parent_card": "Add the primary cardholder's card first, then add the authorized user."
+      },
+      "abort": {
+        "no_owners": "Add an owner first.",
+        "no_parent_card": "Add the primary cardholder's card from this issuer first.",
+        "reconfigure_successful": "Card updated."
+      }
+    }
+  },
+  "selector": {
+    "role": {
+      "options": {
+        "primary": "Primary cardholder",
+        "authorized_user": "Authorized user"
+      }
+    }
+  },
+  "entity": {
+    "select": {
+      "benefit_status": {
+        "name": "{benefit}",
+        "state": {
+          "unused": "Unused",
+          "partial": "Partially used",
+          "used": "Used",
+          "n_a": "Not applicable"
+        }
+      }
+    },
+    "sensor": {
+      "benefit_expires": { "name": "{benefit} expires" },
+      "fee_due": { "name": "Annual fee due" },
+      "unused_value": { "name": "Unused value" },
+      "net_value_12m": { "name": "Net value (12 months)" },
+      "unused_credits": { "name": "Unused credits" },
+      "expiring_7d": { "name": "Expiring within 7 days" },
+      "expiring_30d": { "name": "Expiring within 30 days" },
+      "five_24": { "name": "5/24 count" }
+    },
+    "button": {
+      "benefit_mark_used": { "name": "Mark {benefit} used" }
+    },
+    "binary_sensor": {
+      "fee_within_45d": { "name": "Fee due within 45 days" }
+    }
+  },
+  "services": {
+    "mark_used": {
+      "name": "Mark benefit used",
+      "description": "Record a use of a benefit for the current period. Without an amount, marks the whole benefit used.",
+      "fields": {
+        "amount": { "name": "Amount", "description": "Dollar amount used this time." },
+        "date": { "name": "Date", "description": "When it was used. Defaults to today." },
+        "note": { "name": "Note", "description": "Free-text note." }
+      }
+    },
+    "reset_benefit": {
+      "name": "Reset benefit",
+      "description": "Clear usage for the current period and set the benefit back to unused."
+    },
+    "add_sub_spend": {
+      "name": "Add sign-up bonus spend",
+      "description": "Add spend toward a card's sign-up bonus requirement.",
+      "fields": {
+        "device_id": { "name": "Card", "description": "The card device." },
+        "amount": { "name": "Amount", "description": "Spend to add." },
+        "date": { "name": "Date", "description": "When the spend happened." },
+        "note": { "name": "Note", "description": "Free-text note." }
+      }
+    },
+    "set_perk_value": {
+      "name": "Set perk value",
+      "description": "Assign the annual dollar value you place on a perk (lounge access, status, insurance).",
+      "fields": {
+        "device_id": { "name": "Card", "description": "The card device." },
+        "benefit_id": { "name": "Benefit ID", "description": "Catalog benefit id, e.g. priority_pass." },
+        "value": { "name": "Value", "description": "Annual value in dollars." }
+      }
+    },
+    "activate_rotating_category": {
+      "name": "Activate rotating category",
+      "description": "Record which rotating bonus category was activated for a quarter.",
+      "fields": {
+        "device_id": { "name": "Card", "description": "The card device." },
+        "category": { "name": "Category", "description": "e.g. gas, grocery." },
+        "quarter": { "name": "Quarter", "description": "YYYY-Qn. Defaults to the current quarter." }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_device": { "message": "That device does not exist." },
+    "not_a_card_device": { "message": "That device is not a CardPerks card." },
+    "unknown_card": { "message": "That card is not configured." },
+    "unknown_benefit": { "message": "Benefit {benefit_id} is not in the catalog for this card." },
+    "no_current_period": { "message": "Benefit {benefit_id} has no open period." },
+    "not_a_perk": { "message": "Benefit {benefit_id} is not a perk; its value comes from the catalog." }
+  },
+  "issues": {
+    "stale_catalog": {
+      "title": "Catalog entry for {product} may be out of date",
+      "description": "The benefits for {product} were last verified on {last_verified}. Check the issuer page ({source_url}) and update the catalog or add an override file in `config/cardperks/catalog/`."
+    },
+    "catalog_needs_verification": {
+      "title": "Catalog entries need verification",
+      "description": "These products were drafted from general knowledge and have not been verified against the issuer: {products}. Check each against its issuer page and edit the catalog, or drop a corrected copy in `config/cardperks/catalog/`."
+    },
+    "invalid_override": {
+      "title": "Catalog override file could not be loaded",
+      "description": "The file {path} was skipped: {error}"
+    }
+  }
+}

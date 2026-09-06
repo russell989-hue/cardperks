@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+ha-scratch/
+config/
+*.log
+.DS_Store
+.venv-win/
