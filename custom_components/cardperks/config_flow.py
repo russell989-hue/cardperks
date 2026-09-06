@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 import voluptuous as vol
+from homeassistant.components.file_upload import process_uploaded_file
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
@@ -17,6 +18,8 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    FileSelector,
+    FileSelectorConfig,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -28,6 +31,7 @@ from homeassistant.util import slugify
 
 from .const import (
     ATTR_CSV,
+    ATTR_FILE,
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
     CONF_FEE_MONTH,
@@ -437,13 +441,34 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
 class ImportSubentryFlow(ConfigSubentryFlow):
     """Bulk import from pasted CSV. Creates owner/card subentries, never one of its own."""
 
+    async def _read_upload(self, file_id: str) -> str:
+        def _read() -> str:
+            with process_uploaded_file(self.hass, file_id) as path:
+                raw = path.read_bytes()
+            for enc in ("utf-8-sig", "utf-16", "cp1252"):
+                try:
+                    return raw.decode(enc)
+                except UnicodeDecodeError:
+                    continue
+            return raw.decode("utf-8", errors="replace")
+
+        return await self.hass.async_add_executor_job(_read)
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        if user_input is not None and (user_input.get(ATTR_CSV) or "").strip():
+        errors: dict[str, str] = {}
+        text = ""
+        if user_input is not None:
+            text = (user_input.get(ATTR_CSV) or "").strip()
+            if user_input.get(ATTR_FILE):
+                text = await self._read_upload(user_input[ATTR_FILE])
+            if not text.strip():
+                errors["base"] = "nothing_to_import"
+        if user_input is not None and not errors:
             entry = self._get_entry()
             catalog = await async_get_catalog(self.hass)
             self.hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
             try:
-                result = await async_import_cards(self.hass, entry, catalog, user_input[ATTR_CSV])
+                result = await async_import_cards(self.hass, entry, catalog, text)
             finally:
                 self.hass.data[DOMAIN][DATA_IMPORTING] = False
             if result.created_owners or result.created_cards:
@@ -462,6 +487,9 @@ class ImportSubentryFlow(ConfigSubentryFlow):
                 },
             )
         schema = vol.Schema(
-            {vol.Required(ATTR_CSV): TextSelector(TextSelectorConfig(multiline=True))}
+            {
+                vol.Optional(ATTR_FILE): FileSelector(FileSelectorConfig(accept=".csv,text/csv")),
+                vol.Optional(ATTR_CSV): TextSelector(TextSelectorConfig(multiline=True)),
+            }
         )
-        return self.async_show_form(step_id="user", data_schema=schema)
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)

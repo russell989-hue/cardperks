@@ -199,3 +199,35 @@ async def test_import_subentry_flow(hass, setup_integration: MockConfigEntry):
     assert "already have" in ph["skipped"] and ph["errors"] == "- none"
     await hass.async_block_till_done()
     assert hass.states.get("select.premium_card_sam_7777_travel_credit").state == "unused"
+
+
+async def test_import_subentry_flow_from_file(hass, setup_integration: MockConfigEntry, tmp_path):
+    from contextlib import contextmanager
+
+    entry = setup_integration
+    csv_path = tmp_path / "cards.csv"
+    csv_path.write_text(
+        "owner,product,fee_month,last4\nSam,Premium Card,November,7777\n", encoding="utf-8-sig"
+    )
+
+    @contextmanager
+    def fake_upload(hass_, file_id):
+        assert file_id == "12345678-1234-5678-1234-567812345678"
+        yield csv_path
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "import"), context={"source": config_entries.SOURCE_USER}
+    )
+    # nothing provided
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "nothing_to_import"}
+
+    with patch("custom_components.cardperks.config_flow.process_uploaded_file", fake_upload):
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"file": "12345678-1234-5678-1234-567812345678"}
+        )
+    assert result["type"] is FlowResultType.ABORT and result["reason"] == "import_complete"
+    assert "Sam" in result["description_placeholders"]["owners"]
+    await hass.async_block_till_done()
+    assert hass.states.get("select.premium_card_sam_7777_travel_credit").state == "unused"
