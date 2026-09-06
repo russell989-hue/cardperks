@@ -156,6 +156,35 @@ def auto_rows(
     }
 
 
+def gauge_grid(kind: str, *, columns: int = 2, unit_max: int = 100) -> dict:
+    """auto-entities feeding a grid of gauge cards, one per active card.
+
+    Built by a template so a new card appears by itself and each gauge takes its
+    card's colour live. The gauge card colours its arc with --gauge-color, which it
+    sets inline to --info-color when no severity is configured, so both are overridden.
+    """
+    where = f"s.attributes.kind == '{kind}' and s.attributes.card_status == 'active'"
+    style = (
+        "'ha-card { --info-color: var(--' ~ c ~ '-color); } "
+        "ha-gauge { --gauge-color: var(--' ~ c ~ '-color) !important; }'"
+    )
+    template = (
+        "{% set ns = namespace(cards=[]) %}"
+        f"{{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and {where} %}}"
+        "{% set c = s.attributes.color or 'grey' %}"
+        "{% set ns.cards = ns.cards + [{'type': 'gauge', 'entity': s.entity_id, "
+        f"'name': s.attributes.card, 'min': 0, 'max': {unit_max}, "
+        "'card_mod': {'style': " + style + "}}] %}"
+        "{% endfor %}{{ ns.cards | sort(attribute='name') }}"
+    )
+    return {
+        "type": "custom:auto-entities",
+        "card": {"type": "grid", "columns": columns, "square": False},
+        "card_param": "cards",
+        "filter": {"template": template},
+    }
+
+
 def coloured_row(entity: str, name: str) -> dict:
     """An explicit entity row whose icon takes the card colour."""
     return {"entity": entity, "name": name, "card_mod": {"style": ROW_STYLE}}

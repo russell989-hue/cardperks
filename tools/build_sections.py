@@ -16,7 +16,17 @@ import json
 import pathlib
 import sys
 
-from lovelace import DAYS_UNTIL, DOLLARS, attr, auto_cards, auto_rows, base_filter, heading, note
+from lovelace import (
+    DAYS_UNTIL,
+    DOLLARS,
+    attr,
+    auto_cards,
+    auto_rows,
+    base_filter,
+    gauge_grid,
+    heading,
+    note,
+)
 
 ACTIVE_ONLY = {"card_status": "active"}
 
@@ -65,21 +75,10 @@ def by_card() -> dict:
         "cards": [
             heading("By card", "mdi:credit-card-multiple"),
             note(
-                "Trailing twelve months. Forfeited is money a period closed without you "
-                "using it, which is gone rather than pending."
+                "Share of each card's yearly credits captured over the trailing twelve "
+                "months. Tap a gauge for the dollars behind it."
             ),
-            auto_cards(
-                [with_status(base_filter(kind="capture_rate"))],
-                primary="{{ state_attr(entity, 'card') }}",
-                secondary=(
-                    "${{ " + attr("captured_12m") + " | round(0) | int }} of "
-                    "${{ " + attr("annual_value") + " | round(0) | int }} captured · "
-                    "${{ " + attr("forfeited_12m") + " | round(0) | int }} forfeited · "
-                    "{{ states(entity) | float(0) | round(0) | int }}%"
-                ),
-                icon="mdi:cash-100",
-                sort={"method": "friendly_name"},
-            ),
+            gauge_grid("capture_rate"),
         ],
     }
 
