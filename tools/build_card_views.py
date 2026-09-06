@@ -52,6 +52,7 @@ from lovelace import (
 )
 
 THEME = "CardPerks"  # themes/cardperks.yaml; applied per view so the rest of HA keeps its own
+DASHBOARD = "dashboard-cardperks"
 
 
 def slugify(name: str) -> str:
@@ -253,7 +254,8 @@ def build_view(card: dict) -> dict:
         {
             "type": "grid",
             "cards": [
-                expander(heading("Card settings", "mdi:credit-card-settings-outline"), settings)
+                expander(heading("Card settings", "mdi:credit-card-settings-outline"), settings),
+                bottom_bar(),
             ],
         }
     )
@@ -276,6 +278,26 @@ CATALOG_FRAME_STYLE = (
     "#root { height: 100% !important; padding-top: 0 !important; } "
     "iframe { height: 100%; }"
 )
+
+
+def bottom_bar() -> dict:
+    """The same four tabs the dashboard shows, on a card's page, where Home Assistant
+    hides its own bar (subviews only get a back arrow). navbar-card from HACS."""
+    routes = [
+        ("cardperks", "mdi:credit-card-multiple", "Overview"),
+        ("money", "mdi:chart-box-outline", "Analysis"),
+        ("upkeep", "mdi:clipboard-check-outline", "Upkeep"),
+        ("catalog", "mdi:credit-card-search-outline", "Catalog"),
+    ]
+    return {
+        "type": "custom:navbar-card",
+        "desktop": {"position": "bottom", "show_labels": True},
+        "mobile": {"show_labels": True},
+        "routes": [
+            {"url": f"/{DASHBOARD}/{path}", "icon": icon, "label": label}
+            for path, icon, label in routes
+        ],
+    }
 
 
 def catalog_view() -> dict:
