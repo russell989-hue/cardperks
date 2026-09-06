@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Rebuild the generated CardPerks overview sections.
 
-These are written as templates that walk entities by attribute rather than naming
-them, so a card added or removed later needs no regeneration. Every card's colour is
-read from its own entities, which is how the colour reaches lists that Lovelace has
-no per-row colour option for.
+Each section is a template that walks entities by attribute rather than naming them,
+so adding or removing a card needs no regeneration.
+
+Colour: Home Assistant's markdown card sanitises inline styles away, so a coloured
+`<span>` renders as a plain dot. Emoji survive sanitising, so each card's colour is
+shown as the nearest coloured emoji. Tiles elsewhere use the real colour.
 
 Push each with tools/append_section.py, which replaces a section by its heading and
 leaves the rest of a hand-edited view alone.
@@ -18,29 +20,38 @@ import json
 import pathlib
 import sys
 
-DOT = "<span style=\"color: var(--{{ r.color or 'grey' }}-color)\">&#9679;</span>"
+# Nearest emoji per Home Assistant tile colour. Circles and squares are used to keep
+# neighbouring hues apart, since emoji offer far fewer colours than the palette does.
+EMOJI = {
+    "red": "🔴",
+    "pink": "🟥",
+    "purple": "🟣",
+    "deep-purple": "🟪",
+    "indigo": "🔵",
+    "blue": "🟦",
+    "light-blue": "🩵",
+    "cyan": "🧊",
+    "teal": "🟢",
+    "green": "🟩",
+    "light-green": "🍀",
+    "lime": "🟨",
+    "yellow": "🟡",
+    "amber": "🟧",
+    "orange": "🟠",
+    "deep-orange": "🔶",
+    "brown": "🟤",
+    "grey": "⚪",
+    "blue-grey": "⬜",
+}
 
-# Entities that know both a card title and its colour. Home Assistant's template
-# sandbox forbids dict.update, so lists keyed by card name look the colour up here.
-COLOUR_LOOKUP = """
+EMOJI_MAP = "{%- set EMOJI = " + json.dumps(EMOJI, ensure_ascii=False) + " -%}"
+DOT = "{{ EMOJI.get(r.color, '⚪') }}"
+
+# Entities that know a card title and its colour, for lists keyed only by card name.
+TINTED = """
 {%- set tinted = states.sensor
       | selectattr('attributes.card_id', 'defined')
       | selectattr('attributes.color', 'defined') | list -%}
-"""
-
-# Every per-benefit "remaining" sensor with a balance, plus a clean benefit name.
-BENEFIT_ROWS = """
-{%- set ns = namespace(rows=[]) -%}
-{%- for s in states.sensor -%}
-  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_remaining') -%}
-    {%- set v = s.state | float(-1) -%}
-    {%- if v > 0 -%}
-      {%- set label = s.name | replace(s.attributes.card ~ ' ', '') | replace(' remaining', '') -%}
-      {%- set ns.rows = ns.rows + [{'amt': v, 'card': s.attributes.card,
-          'color': s.attributes.color, 'name': label}] -%}
-    {%- endif -%}
-  {%- endif -%}
-{%- endfor -%}
 """
 
 
@@ -52,16 +63,43 @@ def markdown(content: str) -> dict:
     return {"type": "markdown", "content": content}
 
 
+def rows_from(suffix: str, fields: str) -> str:
+    """Collect one row per card-level sensor ending in `suffix`."""
+    return f"""
+{{%- set ns = namespace(rows=[]) -%}}
+{{%- for s in states.sensor -%}}
+  {{%- if s.attributes.card_id is defined and s.entity_id.endswith('{suffix}') -%}}
+    {{%- set a = s.attributes -%}}
+    {{%- set ns.rows = ns.rows + [{{'card': a.card, 'color': a.color, {fields}}}] -%}}
+  {{%- endif -%}}
+{{%- endfor -%}}
+"""
+
+
 def dollars_left() -> dict:
     body = (
-        BENEFIT_ROWS
-        + "| Benefit | Card | Left |\n|---|---|--:|\n"
-        + "{% for r in ns.rows | sort(attribute='amt', reverse=true) -%}\n"
-        + f"| {{{{ r.name }}}} | {DOT} {{{{ r.card }}}} "
-        + "| ${{ r.amt | round(0) | int }} |\n"
-        + "{% endfor %}\n"
-        + "_{{ ns.rows | count }} credits, "
-        + "${{ ns.rows | sum(attribute='amt') | round(0) | int }} on the table._"
+        EMOJI_MAP
+        + """
+{%- set ns = namespace(rows=[]) -%}
+{%- for s in states.sensor -%}
+  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_remaining') -%}
+    {%- set v = s.state | float(-1) -%}
+    {%- if v > 0 -%}
+      {%- set label = s.name | replace(s.attributes.card ~ ' ', '') | replace(' remaining', '') -%}
+      {%- set ns.rows = ns.rows + [{'amt': v, 'card': s.attributes.card,
+          'color': s.attributes.color, 'name': label}] -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+
+| Benefit | Card | Left |
+|---|---|--:|
+{% for r in ns.rows | sort(attribute='amt', reverse=true) -%}
+| {{ r.name }} | DOT {{ r.card }} | ${{ r.amt | round(0) | int }} |
+{% endfor %}
+_{{ ns.rows | count }} credits, ${{ ns.rows | sum(attribute='amt') | round(0) | int }} \
+still on the table._
+""".replace("DOT", DOT)
     )
     return {
         "type": "grid",
@@ -70,16 +108,15 @@ def dollars_left() -> dict:
 
 
 def by_card() -> dict:
-    body = """
-{%- set ns = namespace(rows=[]) -%}
-{%- for s in states.sensor -%}
-  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_capture_rate') -%}
-    {%- set a = s.attributes -%}
-    {%- set ns.rows = ns.rows + [{'card': a.card, 'color': a.color,
-        'worth': a.get('annual_value', 0), 'cap': a.get('captured_12m', 0),
-        'forf': a.get('forfeited_12m', 0), 'rate': s.state | float(0)}] -%}
-  {%- endif -%}
-{%- endfor -%}
+    body = (
+        EMOJI_MAP
+        + rows_from(
+            "_capture_rate",
+            "'worth': a.get('annual_value', 0), 'cap': a.get('captured_12m', 0),"
+            " 'forf': a.get('forfeited_12m', 0), 'rate': s.state | float(0)",
+        )
+        + """
+Trailing twelve months. Forfeited is money a period closed without you using it.
 
 | Card | A year's worth | Captured | Forfeited | Rate |
 |---|--:|--:|--:|--:|
@@ -88,21 +125,43 @@ def by_card() -> dict:
 | ${{ r.forf | round(0) | int }} | {{ r.rate | round(0) | int }}% |
 {% endfor %}
 """.replace("DOT", DOT)
+    )
     return {
         "type": "grid",
-        "cards": [
-            heading("By card", "mdi:credit-card-multiple"),
-            markdown(
-                "Trailing twelve months. Forfeited is money a period closed without "
-                "you using it.\n" + body
-            ),
-        ],
+        "cards": [heading("By card", "mdi:credit-card-multiple"), markdown(body)],
+    }
+
+
+def fees() -> dict:
+    body = (
+        EMOJI_MAP
+        + rows_from(
+            "_annual_fee_due",
+            "'fee': a.get('annual_fee', 0), 'due': s.state",
+        )
+        + """
+| Card | Fee | Due | Days |
+|---|--:|---|--:|
+{% for r in ns.rows | sort(attribute='due') -%}
+{%- if r.due not in ['unknown', 'unavailable'] -%}
+| DOT {{ r.card }} | ${{ r.fee | round(0) | int }} | {{ r.due }} \
+| {{ ((r.due | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }} |
+{% endif -%}
+{% endfor %}
+_${{ ns.rows | sum(attribute='fee') | round(0) | int }} a year across \
+{{ ns.rows | count }} cards._
+""".replace("DOT", DOT)
+    )
+    return {
+        "type": "grid",
+        "cards": [heading("Annual fees", "mdi:calendar-cash"), markdown(body)],
     }
 
 
 def expiring() -> dict:
     body = (
-        COLOUR_LOOKUP
+        EMOJI_MAP
+        + TINTED
         + """
 {%- set ns = namespace(rows=[]) -%}
 {%- for s in states.sensor -%}
@@ -112,9 +171,10 @@ def expiring() -> dict:
     {%- endfor -%}
   {%- endif -%}
 {%- endfor -%}
-{%- if ns.rows | count == 0 -%}
+{%- if ns.rows | count == 0 %}
 Nothing expires in the next 30 days.
-{%- else -%}
+{%- else %}
+
 | Benefit | Card | Left | Days |
 |---|---|--:|--:|
 {% for i in ns.rows | sort(attribute='expires') -%}
@@ -133,16 +193,14 @@ Nothing expires in the next 30 days.
 
 
 def coverage() -> dict:
-    body = """
-{%- set ns = namespace(rows=[]) -%}
-{%- for s in states.sensor -%}
-  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_coverage_12m') -%}
-    {%- set a = s.attributes -%}
-    {%- set ns.rows = ns.rows + [{'card': a.card, 'color': a.color,
-        'n': s.state | int(0), 'missing': a.get('missing', []),
-        'files': a.get('statements_imported', 0)}] -%}
-  {%- endif -%}
-{%- endfor -%}
+    body = (
+        EMOJI_MAP
+        + rows_from(
+            "_coverage_12m",
+            "'n': s.state | int(0), 'missing': a.get('missing', []),"
+            " 'files': a.get('statements_imported', 0)",
+        )
+        + """
 A month with no statement is unknown, not proof a credit went unused.
 
 | Card | Covered | Files | Gaps |
@@ -154,12 +212,35 @@ A month with no statement is unknown, not proof a credit went unused.
 {% else %}{{ r.missing | join(', ') }}{% endif %} |
 {% endfor %}
 """.replace("DOT", DOT)
+    )
     return {
         "type": "grid",
         "cards": [
             heading("Statement coverage", "mdi:file-document-check-outline"),
             markdown(body),
         ],
+    }
+
+
+def legend() -> dict:
+    """So the emoji in every table can be tied back to a card."""
+    body = (
+        EMOJI_MAP
+        + TINTED
+        + """
+{%- set ns = namespace(seen=[], rows=[]) -%}
+{%- for s in tinted -%}
+  {%- if s.attributes.card not in ns.seen -%}
+    {%- set ns.seen = ns.seen + [s.attributes.card] -%}
+    {%- set ns.rows = ns.rows + [{'card': s.attributes.card, 'color': s.attributes.color}] -%}
+  {%- endif -%}
+{%- endfor -%}
+{% for r in ns.rows | sort(attribute='card') %}DOT {{ r.card }}&nbsp;&nbsp; {% endfor %}
+""".replace("DOT", DOT)
+    )
+    return {
+        "type": "grid",
+        "cards": [heading("Colour key", "mdi:palette"), markdown(body)],
     }
 
 
@@ -172,11 +253,13 @@ def main() -> int:
     for name, section in {
         "dollars_left": dollars_left(),
         "by_card": by_card(),
+        "fees": fees(),
         "expiring": expiring(),
         "coverage": coverage(),
+        "legend": legend(),
     }.items():
         path = outdir / f"{name}.json"
-        path.write_text(json.dumps(section, indent=2), encoding="utf-8")
+        path.write_text(json.dumps(section, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"wrote {path}")
     return 0
 
