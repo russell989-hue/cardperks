@@ -45,6 +45,9 @@ SERVICE_RESET_BENEFIT = "reset_benefit"
 SERVICE_ADD_SUB_SPEND = "add_sub_spend"
 SERVICE_SET_PERK_VALUE = "set_perk_value"
 SERVICE_ACTIVATE_ROTATING_CATEGORY = "activate_rotating_category"
+SERVICE_IMPORT_CARDS = "import_cards"
+ATTR_CSV = "csv"
+DATA_IMPORTING = "importing"
 
 STALE_CATALOG_DAYS = 183
 FEE_WARNING_DAYS = 45

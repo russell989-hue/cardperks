@@ -17,7 +17,6 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
-    DateSelector,
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
@@ -47,6 +46,7 @@ from .const import (
     Role,
 )
 from .helpers import async_get_catalog
+from .importer import parse_date
 from .models import Catalog
 
 MONTH_NAMES = [
@@ -283,14 +283,14 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
     # ---- step 3: details
     def _details_schema(self, include_close: bool) -> vol.Schema:
         schema: dict[Any, Any] = {
-            vol.Optional(CONF_OPEN_DATE): DateSelector(),
+            vol.Optional(CONF_OPEN_DATE): TextSelector(),
             vol.Optional(CONF_FEE_MONTH): _month_selector(),
             vol.Optional(CONF_LAST4): TextSelector(),
             vol.Optional(CONF_NICKNAME): TextSelector(),
             vol.Optional(CONF_NOTES): TextSelector(),
         }
         if include_close:
-            schema[vol.Optional(CONF_CLOSE_DATE)] = DateSelector()
+            schema[vol.Optional(CONF_CLOSE_DATE)] = TextSelector()
         return vol.Schema(schema)
 
     def _validate_details(self, user_input: dict[str, Any], role: Role) -> dict[str, str]:
@@ -298,6 +298,13 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         last4 = (user_input.get(CONF_LAST4) or "").strip()
         if last4 and not LAST4_RE.match(last4):
             errors[CONF_LAST4] = "invalid_last4"
+        for key in (CONF_OPEN_DATE, CONF_CLOSE_DATE):
+            raw = (user_input.get(key) or "").strip()
+            if raw:
+                try:
+                    user_input[key] = parse_date(raw).isoformat()
+                except ValueError:
+                    errors[key] = "invalid_date"
         if (
             role is Role.PRIMARY
             and not user_input.get(CONF_OPEN_DATE)

@@ -84,3 +84,15 @@ activate_rotating_category:
       example: "2026-Q3"
       selector:
         text:
+
+import_cards:
+  fields:
+    csv:
+      required: true
+      example: |
+        owner,issuer,product,role,parent_last4,open_date,fee_month,last4,nickname
+        Brian,Chase,Sapphire Reserve,primary,,2021-03-15,,1234,
+        Nick,Chase,United Club,au,5678,,,,
+      selector:
+        text:
+          multiline: true

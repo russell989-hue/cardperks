@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 import voluptuous as vol
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceCall,
+    ServiceResponse,
+    SupportsResponse,
+    callback,
+)
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
@@ -12,17 +18,24 @@ from .const import (
     ATTR_AMOUNT,
     ATTR_BENEFIT_ID,
     ATTR_CATEGORY,
+    ATTR_CSV,
     ATTR_DATE,
     ATTR_DEVICE_ID,
     ATTR_NOTE,
     ATTR_QUARTER,
     ATTR_VALUE,
+    DATA_IMPORTING,
     DOMAIN,
     SERVICE_ACTIVATE_ROTATING_CATEGORY,
     SERVICE_ADD_SUB_SPEND,
+    SERVICE_IMPORT_CARDS,
     SERVICE_SET_PERK_VALUE,
 )
 from .coordinator import CardPerksCoordinator
+from .helpers import async_get_catalog
+from .importer import async_import_cards
+
+IMPORT_CARDS_SCHEMA = vol.Schema({vol.Required(ATTR_CSV): cv.string})
 
 ADD_SUB_SPEND_SCHEMA = vol.Schema(
     {
@@ -89,7 +102,30 @@ def async_setup_services(hass: HomeAssistant) -> None:
             card_id, call.data[ATTR_CATEGORY], call.data.get(ATTR_QUARTER)
         )
 
+    async def import_cards(call: ServiceCall) -> ServiceResponse:
+        entries = hass.config_entries.async_entries(DOMAIN)
+        if not entries:
+            raise ServiceValidationError(translation_domain=DOMAIN, translation_key="not_set_up")
+        entry = entries[0]
+        catalog = await async_get_catalog(hass)
+        # Suppress the per-subentry reload while importing; reload once at the end.
+        hass.data.setdefault(DOMAIN, {})[DATA_IMPORTING] = True
+        try:
+            result = await async_import_cards(hass, entry, catalog, call.data[ATTR_CSV])
+        finally:
+            hass.data[DOMAIN][DATA_IMPORTING] = False
+        if result.created_owners or result.created_cards:
+            await hass.config_entries.async_reload(entry.entry_id)
+        return result.as_dict()
+
     hass.services.async_register(DOMAIN, SERVICE_ADD_SUB_SPEND, add_sub_spend, ADD_SUB_SPEND_SCHEMA)
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_IMPORT_CARDS,
+        import_cards,
+        IMPORT_CARDS_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
     hass.services.async_register(
         DOMAIN, SERVICE_SET_PERK_VALUE, set_perk_value, SET_PERK_VALUE_SCHEMA
     )

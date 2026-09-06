@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.typing import ConfigType
 
-from .const import ROLLOVER_HOUR, ROLLOVER_MINUTE
+from .const import DATA_IMPORTING, DOMAIN, ROLLOVER_HOUR, ROLLOVER_MINUTE
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .devices import async_ensure_devices
 from .helpers import async_load_catalog
@@ -62,6 +62,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) ->
 
 
 async def _async_reload_entry(hass: HomeAssistant, entry: CardPerksConfigEntry) -> None:
+    if hass.data.get(DOMAIN, {}).get(DATA_IMPORTING):
+        return  # the import service reloads once when it finishes
     await hass.config_entries.async_reload(entry.entry_id)
 
 
