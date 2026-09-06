@@ -188,6 +188,36 @@ def build_view(card: dict) -> dict:
         )
     )
 
+    ledger_table = (
+        "{% set s = states.sensor | selectattr('attributes.kind', 'defined') "
+        "| selectattr('attributes.kind', 'eq', 'ledger') "
+        f"| selectattr('attributes.card_id', 'eq', '{card_id}') | list | first %}}"
+        "{% set rows = (s.attributes.get('entries') if s else []) or [] %}"
+        "{% if not rows %}Nothing logged yet.{% else %}"
+        "| When | Benefit | Amount | How |\n|---|---|---:|---|\n"
+        "{% for r in rows[:60] %}| {{ r.on }} | {{ r.benefit }} | "
+        "{{ ('-' if r.amount < 0 else '') ~ '$' ~ (r.amount | abs | round(2)) }} | "
+        "{{ r.source }}{{ (' · ' ~ r.note) if r.note else '' }} |\n{% endfor %}"
+        "{% if rows | count > 60 %}\n{{ rows | count - 60 }} older entries not shown.{% endif %}"
+        "{% endif %}"
+    )
+    sections.append(
+        wide_section(
+            [
+                expander(
+                    heading("Ledger", "mdi:notebook-outline"),
+                    [
+                        note(
+                            "Every dollar logged against this card's benefits, newest first: "
+                            "from a statement, or typed by hand. A negative line is a correction."
+                        ),
+                        {"type": "markdown", "content": ledger_table},
+                    ],
+                )
+            ]
+        )
+    )
+
     settings = []
     if ids.get("status"):
         settings.append(

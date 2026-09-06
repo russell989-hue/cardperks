@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, ClassVar
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
@@ -56,6 +56,7 @@ async def async_setup_entry(
                 CardTotalSensor(coordinator, card, "forfeited_12m"),
                 CardCaptureRateSensor(coordinator, card),
                 CardCoverageSensor(coordinator, card),
+                CardLedgerSensor(coordinator, card),
             ]
             for b in product.benefits_for(card):
                 if not b.is_uncapped:
@@ -321,6 +322,54 @@ class CardTotalSensor(CardEntity, SensorEntity):
         out = dict(s.totals.as_dict())
         out["annual_fee"] = s.annual_fee
         return {**out, **self.card_attributes}
+
+
+class CardLedgerSensor(CardEntity, SensorEntity):
+    """Every dollar logged against this card's benefits: the state counts the last
+    twelve months' entries, the attributes carry the lines, newest first."""
+
+    _attr_translation_key = "ledger"
+    _attr_native_unit_of_measurement = "entries"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:notebook-outline"
+
+    def __init__(self, coordinator: CardPerksCoordinator, card: HeldCard) -> None:
+        super().__init__(coordinator, card)
+        self._attr_unique_id = f"{card.id}_ledger"
+
+    @property
+    def native_value(self) -> int:
+        cutoff = (self.coordinator.data.today - timedelta(days=365)).isoformat()
+        return sum(
+            1
+            for r in self.coordinator.doc.ledger
+            if r["card_id"] == self.held_card_id and r["on"] >= cutoff
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        rows = self.coordinator.ledger_for(self.held_card_id)
+        return {
+            **self.card_attributes,
+            "entries": [
+                {
+                    "on": r["on"],
+                    "benefit": r["benefit"],
+                    "amount": r["amount"],
+                    "source": r["source"],
+                    "note": r.get("note"),
+                }
+                for r in rows
+            ],
+            "total_12m": round(
+                sum(
+                    r["amount"]
+                    for r in rows
+                    if r["on"] >= (self.coordinator.data.today - timedelta(days=365)).isoformat()
+                ),
+                2,
+            ),
+        }
 
 
 class CardCoverageSensor(CardEntity, SensorEntity):

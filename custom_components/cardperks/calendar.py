@@ -106,7 +106,7 @@ class CardPerksCalendar(CardPerksEntity, CalendarEntity):
                         f"Review {card.title} before its ${fee:,.0f} fee",
                         f"The fee posts on {day.isoformat()}, in {REVIEW_DAYS_BEFORE_FEE} days. "
                         "Decide whether the card still earns its keep: keep, downgrade or cancel. "
-                        "Check its captured, forfeited and net figures on the Money tab first.",
+                        "Check its captured, forfeited and net figures on the Analysis tab first.",
                         f"review-{card.id}-{day.isoformat()}",
                     )
                 day = add_months(day, 12)

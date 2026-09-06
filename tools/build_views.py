@@ -3,7 +3,7 @@
 
   Overview   the household at a glance, the cards, the big credits closing soon,
              everything expiring this month, and the ring of dollars left
-  Money      where the year's dollars went, net value, fees, the big-ticket ring
+  Analysis   where the year's dollars went, net value, fees, the big-ticket ring
   Upkeep     statements (overdue and coverage), logging a credit, perk values
 
 Every list and tile is a template over entity attributes, so a card added later
@@ -289,12 +289,12 @@ def overview() -> dict:
     }
 
 
-def money() -> dict:
+def analysis() -> dict:
     return {
         "type": "sections",
-        "title": "Money",
+        "title": "Analysis",
         "path": "money",
-        "icon": "mdi:cash-multiple",
+        "icon": "mdi:chart-box-outline",
         "theme": THEME,
         "max_columns": 4,
         "show_icon_and_title": True,
@@ -334,7 +334,7 @@ def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__)
         return 2
-    views = [overview(), money(), upkeep()]
+    views = [overview(), analysis(), upkeep()]
     with open(sys.argv[1], "w", encoding="utf-8") as fh:
         json.dump(views, fh, indent=2, ensure_ascii=False)
     for v in views:

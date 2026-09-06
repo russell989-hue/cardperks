@@ -519,6 +519,8 @@ class StateDocument:
     fees_seen: dict[str, dict[str, float]] = field(default_factory=dict)
     # the household's own calendar reminders: {uid, date, summary, description}
     reminders: list[dict[str, Any]] = field(default_factory=list)
+    # every dollar logged against a benefit: {at, on, card_id, benefit_id, amount, source, note}
+    ledger: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -537,6 +539,7 @@ class StateDocument:
             "shared_values": self.shared_values,
             "fees_seen": self.fees_seen,
             "reminders": self.reminders,
+            "ledger": self.ledger,
         }
 
     @classmethod
@@ -566,6 +569,7 @@ class StateDocument:
             fee_seen=dict(d.get("fee_seen", {})),
             shared_values={k: float(v) for k, v in d.get("shared_values", {}).items()},
             reminders=[dict(r) for r in d.get("reminders", [])],
+            ledger=[dict(r) for r in d.get("ledger", [])],
             fees_seen={
                 k: {dk: float(dv) for dk, dv in v.items()}
                 for k, v in d.get("fees_seen", {}).items()

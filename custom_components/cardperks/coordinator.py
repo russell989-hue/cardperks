@@ -87,6 +87,41 @@ def seed_shared_values(
     return seeded
 
 
+def seed_ledger(doc: StateDocument) -> int:
+    """Build the ledger once from the statement lines already imported.
+
+    Before the ledger existed, statement credits left only their dedupe keys behind
+    (card:benefit:date:amount:note). Those are enough to reconstruct what a statement
+    recorded and when; manual entries from before this point are gone for good.
+    """
+    if doc.ledger or not doc.imported_refs:
+        return 0
+    rows = []
+    for ref in doc.imported_refs:
+        parts = ref.split(":", 4)
+        if len(parts) < 4:
+            continue
+        card_id, benefit_id, on, amount = parts[:4]
+        note = parts[4] if len(parts) > 4 else ""
+        try:
+            rows.append(
+                {
+                    "at": f"{on}T00:00:00",
+                    "on": on,
+                    "card_id": card_id,
+                    "benefit_id": benefit_id,
+                    "amount": float(amount),
+                    "source": "statement",
+                    "note": note or None,
+                }
+            )
+        except ValueError:
+            continue
+    rows.sort(key=lambda r: (r["on"], r["card_id"], r["benefit_id"]))
+    doc.ledger = rows
+    return len(rows)
+
+
 class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
     """Holds the mutable state document and publishes immutable snapshots."""
 
@@ -108,6 +143,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         self.cards = self._cards_with_status(cards_from_entry(entry))
         self.user_statuses = statuses_from_entry(entry)
         if seed_shared_values(self.doc, self.shared_members(today_local())):
+            self.store.async_schedule_save(self.doc)
+        if seed_ledger(self.doc):
             self.store.async_schedule_save(self.doc)
 
     def _cards_with_status(self, cards: dict[str, HeldCard]) -> dict[str, HeldCard]:
@@ -171,6 +208,47 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             _LOGGER.debug("Rollover: %s", result)
             self._commit()
         return result
+
+    # ------------------------------------------------------------------ the ledger
+
+    def _log(
+        self,
+        card_id: str,
+        benefit_id: str,
+        amount: float,
+        source: str,
+        on: date | None = None,
+        note: str | None = None,
+    ) -> None:
+        """One ledger line. Negative amounts are corrections (a box set lower, a reset)."""
+        if not amount:
+            return
+        self.doc.ledger.append(
+            {
+                "at": now_iso(),
+                "on": (on or today_local()).isoformat(),
+                "card_id": card_id,
+                "benefit_id": benefit_id,
+                "amount": round(float(amount), 2),
+                "source": source,
+                "note": note,
+            }
+        )
+
+    def ledger_for(self, card_id: str, limit: int = 200) -> list[dict]:
+        """This card's ledger, newest first, with benefit names filled in."""
+        card = self.cards.get(card_id)
+        product = self.catalog.get(card.product_id) if card else None
+        names = {b.id: b.label for b in product.benefits} if product else {}
+        rows = [r for r in self.doc.ledger if r["card_id"] == card_id]
+        # Newest first; entries logged the same second keep their order of entry.
+        rows = [
+            r
+            for _, r in sorted(
+                enumerate(rows), key=lambda t: (t[1]["on"], t[1]["at"], t[0]), reverse=True
+            )
+        ]
+        return [{**r, "benefit": names.get(r["benefit_id"], r["benefit_id"])} for r in rows[:limit]]
 
     # ------------------------------------------------------------------ calendar reminders
 
@@ -357,6 +435,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             UsageEvent(date=(on or today_local()).isoformat(), amount=amount, note=note)
         )
         inst.amount_used = round(inst.amount_used + amount, 2)
+        self._log(held_card_id, benefit_id, amount, "manual", on, note)
         if total is None or total <= 0 or inst.amount_used >= total:
             inst.status = BenefitStatus.USED
         else:
@@ -372,6 +451,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         amount = max(0.0, round(float(amount), 2))
         if total is not None:
             amount = min(amount, float(total))
+        self._log(held_card_id, benefit_id, round(amount - inst.amount_used, 2), "manual")
         inst.amount_used = amount
         if amount <= 0:
             inst.status = BenefitStatus.UNUSED
@@ -387,8 +467,12 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
     def set_status(self, held_card_id: str, benefit_id: str, status: BenefitStatus) -> None:
         inst = self._require_instance(held_card_id, benefit_id)
         if status is BenefitStatus.USED and inst.amount:
+            self._log(
+                held_card_id, benefit_id, round(float(inst.amount) - inst.amount_used, 2), "manual"
+            )
             inst.amount_used = float(inst.amount)
         elif status is BenefitStatus.UNUSED:
+            self._log(held_card_id, benefit_id, -inst.amount_used, "manual", note="reset")
             inst.amount_used = 0.0
             inst.uses = []
         inst.status = status
@@ -564,6 +648,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 else BenefitStatus.PARTIAL
             )
         self.doc.imported_refs.add(ref)
+        self._log(held_card_id, benefit_id, amount, "statement", on, note)
         return True
 
     def commit(self) -> None:
