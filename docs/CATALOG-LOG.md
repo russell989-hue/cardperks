@@ -6,6 +6,8 @@ what was available when, since issuer pages do not publish theirs.
 
 ## 2026-09-06
 
+- **Loyalty programs** join the catalog, starting with United MileagePlus: the four Premier
+  tiers, how each is earned for 2027, and what each gives, from united.com.
 - **Amex Platinum Digital Entertainment credit**: eligible services recorded in the new
   `eligible` field (Disney+, ESPN, Hulu, The New York Times, Paramount+, Peacock, The Wall
   Street Journal, YouTube).

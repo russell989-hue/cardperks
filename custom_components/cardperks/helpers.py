@@ -10,7 +10,7 @@ from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .catalog import SHIPPED_DIR, load_catalog
+from .catalog import PROGRAMS_DIR, SHIPPED_DIR, load_catalog
 from .const import (
     CONF_ANNUAL_FEE,
     CONF_CLOSE_DATE,
@@ -28,9 +28,11 @@ from .const import (
     CONF_PREVIOUS_LAST4,
     CONF_PRODUCT_ID,
     CONF_PROGRAM,
+    CONF_PROGRAM_ID,
     CONF_ROLE,
     CONF_SOURCE,
     CONF_TIER,
+    CONF_TIER_ID,
     CONF_VALID_THROUGH,
     DOMAIN,
     OVERRIDE_DIR,
@@ -52,7 +54,7 @@ def override_dir(hass: HomeAssistant) -> Path:
 async def async_load_catalog(hass: HomeAssistant) -> tuple[Catalog, list[CatalogProblem]]:
     """Load (and cache) the catalog."""
     catalog, problems = await hass.async_add_executor_job(
-        load_catalog, SHIPPED_DIR, override_dir(hass)
+        load_catalog, SHIPPED_DIR, override_dir(hass), PROGRAMS_DIR
     )
     hass.data.setdefault(DOMAIN, {})[DATA_CATALOG] = catalog
     hass.data[DOMAIN][DATA_PROBLEMS] = problems
@@ -120,6 +122,8 @@ def status_from_subentry(sub: ConfigSubentry) -> LoyaltyStatus:
         valid_through=_parse_date(d.get(CONF_VALID_THROUGH)),
         source=d.get(CONF_SOURCE) or "entered by hand",
         notes=d.get(CONF_NOTES) or None,
+        program_id=d.get(CONF_PROGRAM_ID) or None,
+        tier_id=d.get(CONF_TIER_ID) or None,
     )
 
 

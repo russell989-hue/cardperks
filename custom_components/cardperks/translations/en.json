@@ -201,6 +201,14 @@
           "description": "Status you earned outright (flights, nights, a match). Status a card gives you, such as Hilton Gold from the Amex Platinum, shows up by itself while you hold the card.",
           "data": {
             "owner_id": "Owner",
+            "program_id": "Program"
+          }
+        },
+        "details": {
+          "title": "Elite status details",
+          "description": "Your status with {program}.",
+          "data": {
+            "tier_id": "Tier",
             "program": "Program",
             "tier": "Tier",
             "valid_through": "Valid through",
@@ -212,11 +220,7 @@
           "title": "Edit elite status",
           "data": {
             "owner_id": "Owner",
-            "program": "Program",
-            "tier": "Tier",
-            "valid_through": "Valid through",
-            "source": "How it was earned",
-            "notes": "Notes"
+            "program_id": "Program"
           }
         }
       },

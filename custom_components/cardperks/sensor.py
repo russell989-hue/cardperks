@@ -562,7 +562,7 @@ class StatusSensor(CardPerksEntity, SensorEntity):
         owner = data.owners.get(st.owner_id)
         card = data.cards.get(st.card_id) if st.card_id else None
         days = (st.valid_through - data.today).days if st.valid_through else None
-        return {
+        out: dict[str, Any] = {
             "kind": self.translation_key,
             "program": st.program,
             "tier": st.tier,
@@ -579,3 +579,20 @@ class StatusSensor(CardPerksEntity, SensorEntity):
             "expiring_soon": days is not None and days <= STATUS_WARNING_DAYS,
             "notes": st.notes,
         }
+        program = data.catalog.programs.get(st.program_id or "")
+        if program is not None:
+            tier = program.tier(st.tier_id)
+            nxt = program.next_tier(st.tier_id)
+            out.update(
+                {
+                    "program_id": program.id,
+                    "program_kind": program.kind,
+                    "tier_rank": tier.rank if tier else None,
+                    "tier_benefits": list(tier.benefits) if tier else [],
+                    "how_earned": tier.qualify if tier else None,
+                    "next_tier": nxt.name if nxt else None,
+                    "next_tier_qualify": nxt.qualify if nxt else None,
+                    "qualification": program.qualification,
+                }
+            )
+        return out

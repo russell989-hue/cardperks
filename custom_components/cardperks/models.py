@@ -180,6 +180,40 @@ class Product:
 
 
 @dataclass(frozen=True, slots=True)
+class Tier:
+    id: str
+    name: str
+    rank: int  # 1 is the lowest tier
+    qualify: str  # how it is earned, in the program's own terms
+    benefits: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class Program:
+    """A loyalty program and its elite tiers, from the program's own page."""
+
+    id: str
+    name: str
+    kind: str  # airline | hotel | car
+    tier_word: str  # "Premier", "Elite", ...
+    source_url: str
+    last_verified: date
+    qualification: str
+    tiers: tuple[Tier, ...]
+
+    def tier(self, tier_id: str | None) -> Tier | None:
+        return next((t for t in self.tiers if t.id == tier_id), None)
+
+    def next_tier(self, tier_id: str | None) -> Tier | None:
+        cur = self.tier(tier_id)
+        if cur is None:
+            return None
+        return next(
+            (t for t in sorted(self.tiers, key=lambda t: t.rank) if t.rank > cur.rank), None
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class CatalogProblem:
     path: str
     message: str
@@ -188,6 +222,7 @@ class CatalogProblem:
 @dataclass(frozen=True, slots=True)
 class Catalog:
     products: Mapping[str, Product]
+    programs: Mapping[str, Program] = field(default_factory=dict)
 
     def by_issuer(self) -> dict[str, list[Product]]:
         out: dict[str, list[Product]] = {}
@@ -268,6 +303,8 @@ class LoyaltyStatus:
     source: str  # "Amex Platinum (Brian | 4003)" or how it was earned
     card_id: str | None = None
     notes: str | None = None
+    program_id: str | None = None  # a program in the catalog, when it is one
+    tier_id: str | None = None
 
 
 # --------------------------------------------------------------------------- state

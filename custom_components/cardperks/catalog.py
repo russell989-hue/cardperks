@@ -18,12 +18,15 @@ from .models import (
     CatalogProblem,
     EarningRate,
     Product,
+    Program,
     StatusGrant,
+    Tier,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 SHIPPED_DIR = Path(__file__).parent / "catalog"
+PROGRAMS_DIR = Path(__file__).parent / "programs"
 
 
 def _iso_date(value: Any) -> date:
@@ -102,6 +105,68 @@ FILE_SCHEMA = vol.Schema(
         vol.Required("products"): [PRODUCT_SCHEMA],
     }
 )
+
+
+TIER_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Match(r"^[a-z0-9_]+$")),
+        vol.Required("name"): str,
+        vol.Required("rank"): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Required("qualify"): str,
+        vol.Optional("benefits", default=list): [str],
+    }
+)
+
+PROGRAM_SCHEMA = vol.Schema(
+    {
+        vol.Required("id"): vol.All(str, vol.Match(r"^[a-z0-9_]+$")),
+        vol.Required("name"): str,
+        vol.Optional("kind", default="airline"): vol.In(["airline", "hotel", "car", "other"]),
+        vol.Optional("tier_word", default="Elite"): str,
+        vol.Required("source_url"): str,
+        vol.Required("last_verified"): _iso_date,
+        vol.Optional("qualification", default=""): str,
+        vol.Required("tiers"): [TIER_SCHEMA],
+    }
+)
+
+PROGRAMS_FILE_SCHEMA = vol.Schema(
+    {
+        vol.Optional("schema_version", default=1): 1,
+        vol.Required("programs"): [PROGRAM_SCHEMA],
+    }
+)
+
+
+def _build_program(raw: dict[str, Any]) -> Program:
+    tiers = tuple(
+        Tier(
+            id=t["id"],
+            name=t["name"],
+            rank=t["rank"],
+            qualify=t["qualify"],
+            benefits=tuple(t["benefits"]),
+        )
+        for t in raw["tiers"]
+    )
+    if len({t.id for t in tiers}) != len(tiers):
+        raise vol.Invalid(f"program {raw['id']}: duplicate tier id")
+    return Program(
+        id=raw["id"],
+        name=raw["name"],
+        kind=raw["kind"],
+        tier_word=raw["tier_word"],
+        source_url=raw["source_url"],
+        last_verified=raw["last_verified"],
+        qualification=raw["qualification"],
+        tiers=tiers,
+    )
+
+
+def _load_programs_file(path: Path) -> list[Program]:
+    with path.open(encoding="utf-8") as fh:
+        raw = json.load(fh)
+    return [_build_program(p) for p in PROGRAMS_FILE_SCHEMA(raw)["programs"]]
 
 
 def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: str) -> Product:
@@ -183,10 +248,17 @@ def _load_file(path: Path, origin: str) -> list[Product]:
 
 
 def load_catalog(
-    shipped_dir: Path | str = SHIPPED_DIR, override_dir: Path | str | None = None
+    shipped_dir: Path | str = SHIPPED_DIR,
+    override_dir: Path | str | None = None,
+    programs_dir: Path | str = PROGRAMS_DIR,
 ) -> tuple[Catalog, list[CatalogProblem]]:
-    """Load shipped catalog files, then apply overrides. Never raises on override errors."""
+    """Load shipped catalog files, then apply overrides. Never raises on override errors.
+
+    Loyalty programs load the same way from `programs_dir`, with overrides from a
+    `programs/` folder beside the catalog override folder.
+    """
     products: dict[str, Product] = {}
+    programs: dict[str, Program] = {}
     problems: list[CatalogProblem] = []
 
     for path in sorted(Path(shipped_dir).glob("*.json")):
@@ -204,4 +276,18 @@ def load_catalog(
                     _LOGGER.warning("Skipping catalog override %s: %s", path, err)
                     problems.append(CatalogProblem(path=str(path), message=str(err)))
 
-    return Catalog(products=products), problems
+    for path in sorted(Path(programs_dir).glob("*.json")):
+        for pr in _load_programs_file(path):
+            programs[pr.id] = pr
+    if override_dir:
+        pdir = Path(override_dir).parent / "programs"
+        if pdir.is_dir():
+            for path in sorted(pdir.glob("*.json")):
+                try:
+                    for pr in _load_programs_file(path):
+                        programs[pr.id] = pr
+                except (OSError, ValueError, vol.Invalid) as err:
+                    _LOGGER.warning("Skipping program override %s: %s", path, err)
+                    problems.append(CatalogProblem(path=str(path), message=str(err)))
+
+    return Catalog(products=products, programs=programs), problems

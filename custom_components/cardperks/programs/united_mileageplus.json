@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "programs": [
+    {
+      "id": "united_mileageplus",
+      "name": "United MileagePlus",
+      "kind": "airline",
+      "tier_word": "Premier",
+      "source_url": "https://www.united.com/en/us/fly/mileageplus/premier.html",
+      "last_verified": "2026-09-06",
+      "qualification": "Earned in a calendar year for the following year (qualify by December 31, 2026, for 2027) on Premier qualifying points (PQP) and Premier qualifying flights (PQF), with at least four United or United Express flights. One million lifetime miles gives Premier status for life. Status earned in a year is valid through January 31 of the year after next.",
+      "tiers": [
+        {
+          "id": "silver",
+          "name": "Premier Silver",
+          "rank": 1,
+          "qualify": "15 PQF and 5,000 PQP, or 6,000 PQP",
+          "benefits": [
+            "1 free checked bag in Economy",
+            "Economy Plus at check-in for you and 1 companion",
+            "Group 2 boarding",
+            "Free day-of-departure upgrades when available",
+            "2 more miles per dollar on United flights",
+            "Star Alliance Silver"
+          ]
+        },
+        {
+          "id": "gold",
+          "name": "Premier Gold",
+          "rank": 2,
+          "qualify": "30 PQF and 10,000 PQP, or 12,000 PQP",
+          "benefits": [
+            "2 free checked bags in Economy",
+            "Economy Plus at booking for you and 1 companion",
+            "Group 1 boarding",
+            "Free upgrades from 48 hours before the flight",
+            "3 more miles per dollar on United flights",
+            "Star Alliance Gold",
+            "United Club All Access authorized-user passes on the United Club card"
+          ]
+        },
+        {
+          "id": "platinum",
+          "name": "Premier Platinum",
+          "rank": 3,
+          "qualify": "45 PQF and 15,000 PQP, or 18,000 PQP",
+          "benefits": [
+            "3 free checked bags in Economy",
+            "Economy Plus at booking for you and 8 companions",
+            "Group 1 boarding",
+            "Free upgrades from 72 hours before the flight",
+            "4 more miles per dollar on United flights",
+            "40 PlusPoints on reaching Platinum",
+            "Star Alliance Gold"
+          ]
+        },
+        {
+          "id": "1k",
+          "name": "Premier 1K",
+          "rank": 4,
+          "qualify": "60 PQF and 22,000 PQP, or 28,000 PQP",
+          "benefits": [
+            "3 free checked bags in Economy",
+            "Economy Plus at booking for you and 8 companions",
+            "Priority pre-boarding",
+            "Free upgrades from 96 hours before the flight",
+            "6 more miles per dollar on United flights",
+            "280 PlusPoints on reaching 1K",
+            "Free drink and snack in Economy",
+            "Star Alliance Gold"
+          ]
+        }
+      ]
+    }
+  ]
+}

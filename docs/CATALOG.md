@@ -160,3 +160,45 @@ you later want the shipped entry back, delete the product from the override file
 Adding a statement parser for a new issuer is a code change in `statements.py`: a
 `detect_issuer` rule for the export's header and a branch that maps its columns to date,
 description, amount and card number.
+
+
+## Loyalty programs
+
+Programs live in `custom_components/cardperks/programs/`, one file per program family,
+with overrides in `config/cardperks/programs/`. Same rules: the program's own page as
+`source_url`, `last_verified` when you checked it, nothing personal.
+
+```json
+{
+  "schema_version": 1,
+  "programs": [
+    {
+      "id": "united_mileageplus",
+      "name": "United MileagePlus",
+      "kind": "airline",
+      "tier_word": "Premier",
+      "source_url": "https://www.united.com/en/us/fly/mileageplus/premier.html",
+      "last_verified": "2026-09-06",
+      "qualification": "How and when status is earned and how long it lasts, in a sentence or two.",
+      "tiers": [
+        {"id": "gold", "name": "Premier Gold", "rank": 2, "qualify": "30 PQF and 10,000 PQP, or 12,000 PQP", "benefits": ["2 free checked bags", "..."]}
+      ]
+    }
+  ]
+}
+```
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Slug, unique across program files. Stable: statuses reference it. |
+| `name` | yes | The program's name. |
+| `kind` | no | `airline`, `hotel`, `car` or `other`. Default `airline`. |
+| `tier_word` | no | What the program calls its tiers ("Premier", "Elite"). |
+| `source_url`, `last_verified` | yes | As for products. |
+| `qualification` | no | How status is earned and how long it lasts. |
+| `tiers[].id`, `name`, `rank` | yes | `rank` 1 is the lowest tier; it orders the pick list and finds the next tier up. |
+| `tiers[].qualify` | yes | How that tier is earned, in the program's own terms. |
+| `tiers[].benefits` | no | Short lines, one per benefit. |
+
+A status entered against a catalog program carries its tier's benefits, how it was earned,
+and the next tier up on its sensor. A program not in the catalog can still be typed in.

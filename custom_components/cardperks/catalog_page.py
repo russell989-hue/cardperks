@@ -165,7 +165,40 @@ def render_catalog(
                 "</section>"
             )
 
+    programs = sorted(catalog.programs.values(), key=lambda p: p.name)
+    if programs:
+        nav.append('<li class="nav-issuer">Loyalty programs</li>')
+    for pr in programs:
+        nav.append(f'<li><a href="#program-{_esc(pr.id)}">{_esc(pr.name)}</a></li>')
+        rows = []
+        for t in sorted(pr.tiers, key=lambda t: t.rank):
+            rows.append(
+                "<tr>"
+                f'<td class="b-name"><div class="b-title">{_esc(t.name)}</div></td>'
+                f"<td>{_esc(t.qualify)}</td>"
+                f'<td><ul class="tier-benefits">'
+                + "".join(f"<li>{_esc(b)}</li>" for b in t.benefits)
+                + "</ul></td></tr>"
+            )
+        sections.append(
+            f'<section class="product program" id="program-{_esc(pr.id)}">'
+            '<header class="p-head">'
+            f'<div><p class="eyebrow">Loyalty program · {_esc(pr.kind)}</p>'
+            f"<h2>{_esc(pr.name)}</h2>"
+            f'<p class="p-meta">{_esc(pr.qualification)} Checked {_esc(pr.last_verified.isoformat())} '
+            f'against <a href="{_esc(pr.source_url)}" target="_blank" rel="noopener">the program page</a>. '
+            f"Catalog id <code>{_esc(pr.id)}</code>.</p></div>"
+            '<dl class="p-figures">'
+            f"<div><dt>{_esc(pr.tier_word)} tiers</dt><dd>{len(pr.tiers)}</dd></div></dl>"
+            "</header>"
+            '<div class="table-wrap"><table>'
+            "<thead><tr><th>Tier</th><th>How to qualify</th><th>What it gives</th></tr></thead>"
+            f"<tbody>{''.join(rows)}</tbody></table></div></section>"
+        )
+
     summary = f"{total_products} products"
+    if programs:
+        summary += f", {len(programs)} loyalty program{'s' if len(programs) != 1 else ''}"
     if owned:
         summary += f", {len(owned)} held"
     if flagged:
@@ -233,6 +266,8 @@ th.num {{ text-align: right; }}
 .b-title {{ font-weight: 500; }}
 .b-notes {{ color: var(--ink-2); font-size: 13px; max-width: 58ch; }}
 .eligible {{ margin: 4px 0 0; color: var(--ink-3); font-size: 12.5px; max-width: 58ch; }}
+.tier-benefits {{ margin: 0; padding-left: 16px; font-size: 13px; color: var(--ink-2); }}
+.tier-benefits li {{ margin: 2px 0; }}
 .match {{ min-width: 160px; }}
 .match code {{ margin-right: 4px; }}
 .type {{ display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; }}
@@ -247,6 +282,7 @@ th.num {{ text-align: right; }}
 .toggle {{ display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; }}
 .toggle input {{ width: auto; margin: 0; accent-color: var(--brass); }}
 body.only-held .not-held {{ display: none; }}
+body.only-held .program {{ display: block; }}
 .chip-over {{ background: var(--brass-soft); color: var(--brass); }}
 .muted {{ color: var(--ink-3); font-size: 12px; }}
 .hidden {{ display: none; }}

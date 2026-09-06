@@ -59,9 +59,11 @@ from .const import (
     CONF_PREVIOUS_LAST4,
     CONF_PRODUCT_ID,
     CONF_PROGRAM,
+    CONF_PROGRAM_ID,
     CONF_ROLE,
     CONF_SOURCE,
     CONF_TIER,
+    CONF_TIER_ID,
     CONF_VALID_THROUGH,
     DATA_IMPORTING,
     DOMAIN,
@@ -172,19 +174,36 @@ class CardPerksConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
 
+OTHER_PROGRAM = "__other__"
+
+
 class StatusSubentryFlow(ConfigSubentryFlow):
     """Elite status earned outright (flights, nights, a match), not from a card.
 
     Card-granted status needs no entry: the catalog says what a card confers, and it
-    shows up by itself while the card is held.
+    shows up by itself while the card is held. Programs in the catalog offer their
+    tiers as a pick list and bring their benefits along; any other program is typed.
     """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._first: dict[str, Any] = {}
+        self._catalog: Catalog | None = None
+
+    async def _catalog_or_load(self) -> Catalog:
+        if self._catalog is None:
+            self._catalog = await async_get_catalog(self.hass)
+        return self._catalog
 
     def _owners(self) -> list[ConfigSubentry]:
         return [
             s for s in self._get_entry().subentries.values() if s.subentry_type == SUBENTRY_OWNER
         ]
 
-    def _schema(self) -> vol.Schema:
+    def _first_schema(self, catalog: Catalog) -> vol.Schema:
+        programs = sorted(catalog.programs.values(), key=lambda p: p.name)
+        options = [SelectOptionDict(value=p.id, label=p.name) for p in programs]
+        options.append(SelectOptionDict(value=OTHER_PROGRAM, label="Another program"))
         return vol.Schema(
             {
                 vol.Required(CONF_OWNER_ID): SelectSelector(
@@ -196,28 +215,59 @@ class StatusSubentryFlow(ConfigSubentryFlow):
                         mode=SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Required(CONF_PROGRAM): TextSelector(),
-                vol.Required(CONF_TIER): TextSelector(),
-                vol.Optional(CONF_VALID_THROUGH): DateSelector(),
-                vol.Optional(CONF_SOURCE): TextSelector(),
-                vol.Optional(CONF_NOTES): TextSelector(TextSelectorConfig(multiline=True)),
+                vol.Required(CONF_PROGRAM_ID): SelectSelector(
+                    SelectSelectorConfig(options=options, mode=SelectSelectorMode.DROPDOWN)
+                ),
             }
         )
 
-    @staticmethod
-    def _clean(user_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
+    def _details_schema(self, program) -> vol.Schema:
+        fields: dict[Any, Any] = {}
+        if program is not None:
+            fields[vol.Required(CONF_TIER_ID)] = SelectSelector(
+                SelectSelectorConfig(
+                    options=[
+                        SelectOptionDict(value=t.id, label=t.name)
+                        for t in sorted(program.tiers, key=lambda t: t.rank)
+                    ],
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            )
+        else:
+            fields[vol.Required(CONF_PROGRAM)] = TextSelector()
+            fields[vol.Required(CONF_TIER)] = TextSelector()
+        fields[vol.Optional(CONF_VALID_THROUGH)] = DateSelector()
+        fields[vol.Optional(CONF_SOURCE)] = TextSelector()
+        fields[vol.Optional(CONF_NOTES)] = TextSelector(TextSelectorConfig(multiline=True))
+        return vol.Schema(fields)
+
+    def _clean(self, program, user_input: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
         errors: dict[str, str] = {}
-        program = (user_input.get(CONF_PROGRAM) or "").strip()
-        tier = (user_input.get(CONF_TIER) or "").strip()
-        if not program:
-            errors[CONF_PROGRAM] = "program_required"
-        if not tier:
-            errors[CONF_TIER] = "tier_required"
+        if program is not None:
+            tier = program.tier(user_input.get(CONF_TIER_ID))
+            if tier is None:
+                errors[CONF_TIER_ID] = "tier_required"
+            program_name, tier_name, tier_id, program_id = (
+                program.name,
+                tier.name if tier else "",
+                tier.id if tier else None,
+                program.id,
+            )
+        else:
+            program_name = (user_input.get(CONF_PROGRAM) or "").strip()
+            tier_name = (user_input.get(CONF_TIER) or "").strip()
+            tier_id = program_id = None
+            if not program_name:
+                errors[CONF_PROGRAM] = "program_required"
+            if not tier_name:
+                errors[CONF_TIER] = "tier_required"
         valid = user_input.get(CONF_VALID_THROUGH)
         data = {
-            CONF_OWNER_ID: user_input[CONF_OWNER_ID],
-            CONF_PROGRAM: program,
-            CONF_TIER: tier,
+            CONF_OWNER_ID: self._first[CONF_OWNER_ID],
+            CONF_PROGRAM_ID: program_id,
+            CONF_PROGRAM: program_name,
+            CONF_TIER_ID: tier_id,
+            CONF_TIER: tier_name,
             CONF_VALID_THROUGH: str(valid) if valid else None,
             CONF_SOURCE: (user_input.get(CONF_SOURCE) or "").strip() or None,
             CONF_NOTES: (user_input.get(CONF_NOTES) or "").strip() or None,
@@ -231,30 +281,55 @@ class StatusSubentryFlow(ConfigSubentryFlow):
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         if not self._owners():
             return self.async_abort(reason="no_owners")
+        catalog = await self._catalog_or_load()
+        if user_input is not None:
+            self._first = dict(user_input)
+            return await self.async_step_details()
+        return self.async_show_form(step_id="user", data_schema=self._first_schema(catalog))
+
+    async def async_step_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        catalog = await self._catalog_or_load()
+        program = catalog.programs.get(self._first.get(CONF_PROGRAM_ID) or "")
         errors: dict[str, str] = {}
         if user_input is not None:
-            data, errors = self._clean(user_input)
+            data, errors = self._clean(program, user_input)
             if not errors:
+                if self.source == "reconfigure":
+                    return self.async_update_and_abort(
+                        self._get_entry(),
+                        self._get_reconfigure_subentry(),
+                        title=self._title(data),
+                        data=data,
+                    )
                 return self.async_create_entry(title=self._title(data), data=data)
-        return self.async_show_form(step_id="user", data_schema=self._schema(), errors=errors)
+        suggested = {k: v for k, v in self._first.items() if v is not None}
+        return self.async_show_form(
+            step_id="details",
+            data_schema=self.add_suggested_values_to_schema(
+                self._details_schema(program), suggested
+            ),
+            errors=errors,
+            description_placeholders={"program": program.name if program else "the program"},
+        )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        entry = self._get_entry()
-        subentry = self._get_reconfigure_subentry()
-        errors: dict[str, str] = {}
+        catalog = await self._catalog_or_load()
+        current = dict(self._get_reconfigure_subentry().data)
         if user_input is not None:
-            data, errors = self._clean(user_input)
-            if not errors:
-                return self.async_update_and_abort(
-                    entry, subentry, title=self._title(data), data=data
-                )
-        current = {k: v for k, v in subentry.data.items() if v is not None}
+            self._first = {**current, **user_input}
+            return await self.async_step_details()
+        suggested = {
+            CONF_OWNER_ID: current.get(CONF_OWNER_ID),
+            CONF_PROGRAM_ID: current.get(CONF_PROGRAM_ID) or OTHER_PROGRAM,
+        }
+        self._first = current
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=self.add_suggested_values_to_schema(self._schema(), current),
-            errors=errors,
+            data_schema=self.add_suggested_values_to_schema(self._first_schema(catalog), suggested),
         )
 
 

@@ -30,6 +30,7 @@ from custom_components.cardperks.const import (
 from custom_components.cardperks.models import Catalog
 
 FIXTURE_CATALOG = Path(__file__).parent / "fixtures" / "catalog"
+FIXTURE_PROGRAMS = Path(__file__).parent / "fixtures" / "programs"
 TODAY = date(2026, 9, 5)
 
 OWNER_ID = "owner_brian"
@@ -44,7 +45,10 @@ def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
 
 @pytest.fixture(autouse=True)
 def fixture_catalog_dir() -> Generator[None]:
-    with patch("custom_components.cardperks.helpers.SHIPPED_DIR", FIXTURE_CATALOG):
+    with (
+        patch("custom_components.cardperks.helpers.SHIPPED_DIR", FIXTURE_CATALOG),
+        patch("custom_components.cardperks.helpers.PROGRAMS_DIR", FIXTURE_PROGRAMS),
+    ):
         yield
 
 
@@ -56,7 +60,7 @@ def frozen_today(freezer):
 
 @pytest.fixture
 def catalog() -> Catalog:
-    cat, problems = load_catalog(FIXTURE_CATALOG)
+    cat, problems = load_catalog(FIXTURE_CATALOG, programs_dir=FIXTURE_PROGRAMS)
     assert not problems
     return cat
 
