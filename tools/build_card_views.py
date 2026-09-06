@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Generate one Lovelace subview per card, plus a navigation section for the overview.
+"""Generate one Lovelace subview per card, plus the Cards section for the overview.
 
-Input is the live entity map from tools/cp_full.py on the HA box, so nothing is
-hardcoded and the layout follows whatever benefits a card actually has.
+Input is the live entity map from tools/cp_full.py on the HA box. Every icon takes
+the card's colour live from the entity attribute, so changing the colour in the card
+form needs no regeneration. Cancelled cards drop out of the overview by themselves.
 
 Reading order is money first, then the things you do, then reference, then settings:
 
@@ -11,8 +12,8 @@ Reading order is money first, then the things you do, then reference, then setti
   Money on hand    credits with a balance, biggest first
   Record spending  the dollar boxes for anything not yet fully used
   Perk values      what lounge access and status are worth to you
-  All benefits     every status and expiry date, including used and n/a
-  Card settings    the colour this card wears everywhere
+  All benefits     every status and expiry date
+  Card settings    status; colour is set in the card form
 
   python3 build_card_views.py cards.json views.json [nav.json]
 """
@@ -24,92 +25,62 @@ import re
 import sys
 import unicodedata
 
-CARD_TILES = (
-    ("unused_value", "Unused right now"),
-    ("fee_due", "Annual fee due"),
-)
-
-YEAR_TILES = (
-    ("annual_value", "A year's worth"),
-    ("captured", "Captured"),
-    ("forfeited", "Forfeited"),
-    ("capture_rate", "Capture rate"),
-    ("net_value", "Net of the fee"),
+from lovelace import (
+    DAYS_UNTIL,
+    DOLLARS,
+    attr,
+    auto_cards,
+    auto_rows,
+    base_filter,
+    coloured_row,
+    heading,
+    note,
+    template_card,
 )
 
 
 def slugify(name: str) -> str:
-    """Stable, URL-safe path for a card. The middot in titles has to go."""
+    """Stable, URL-safe path for a card."""
     ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", ascii_name.lower())).strip("-")
 
 
-def heading(text: str, icon: str) -> dict:
-    return {"type": "heading", "heading": text, "heading_style": "title", "icon": icon}
+def stat(entity: str, label: str, icon: str, value: str = DOLLARS) -> dict:
+    return template_card(label, value, icon, entity=entity)
 
 
-def note(text: str) -> dict:
-    return {"type": "markdown", "text_only": True, "content": text}
-
-
-def auto_entities(
-    title: str,
-    card_id: str,
-    *,
-    pattern: str | None = None,
-    domain: str | None = None,
-    attributes: list[dict] | None = None,
-    state_filter: str | None = None,
-    sort_method: str = "state",
-    numeric: bool = True,
-    reverse: bool = True,
-    show_empty: bool = True,
-) -> dict:
-    # Matching on the card id survives a device rename, which matching on the
-    # device name does not.
-    base: dict = {"integration": "cardperks", "attributes": {"card_id": card_id}}
-    if pattern:
-        base["entity_id"] = pattern
-    if domain:
-        base["domain"] = domain
-    if attributes:
-        include = [{**base, "attributes": {**base["attributes"], **a}} for a in attributes]
-    else:
-        item = dict(base)
-        if state_filter:
-            item["state"] = state_filter
-        include = [item]
-    return {
-        "type": "custom:auto-entities",
-        "card": {"type": "entities", "title": title, "state_color": True},
-        "show_empty": show_empty,
-        "filter": {
-            "include": include,
-            "exclude": [{"state": "unavailable"}, {"state": "unknown"}],
-        },
-        "sort": {"method": sort_method, "numeric": numeric, "reverse": reverse},
-    }
-
-
-def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: list[dict]) -> dict:
-    tint = color or "grey"
+def build_view(card: dict) -> dict:
+    name, card_id, ids, perks = card["title"], card["id"], card["ids"], card["perks"]
+    scope = base_filter(card_id)
 
     at_a_glance = [heading(name, "mdi:credit-card")]
-    at_a_glance += [
-        {"type": "tile", "entity": ids[key], "name": label, "color": tint}
-        for key, label in CARD_TILES
-        if ids.get(key)
-    ]
+    if ids.get("unused_value"):
+        at_a_glance.append(stat(ids["unused_value"], "Unused right now", "mdi:cash-clock"))
+    if ids.get("fee_due"):
+        at_a_glance.append(
+            stat(
+                ids["fee_due"],
+                "Annual fee due",
+                "mdi:calendar-cash",
+                "${{ "
+                + attr("annual_fee")
+                + " | round(0) | int }} on {{ states(entity) }} · "
+                + DAYS_UNTIL
+                + " days",
+            )
+        )
     if ids.get("fee_soon"):
         at_a_glance.append(
             {
                 "type": "conditional",
                 "conditions": [{"condition": "state", "entity": ids["fee_soon"], "state": "on"}],
                 "card": {
-                    "type": "tile",
+                    "type": "custom:mushroom-template-card",
+                    "primary": "Fee due within 45 days",
+                    "secondary": "Decide whether this card still earns its keep.",
+                    "icon": "mdi:alert",
+                    "icon_color": "red",
                     "entity": ids["fee_soon"],
-                    "name": "Fee due soon",
-                    "color": "red",
                 },
             }
         )
@@ -121,11 +92,15 @@ def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: lis
             "using it, which is gone rather than pending."
         ),
     ]
-    this_year += [
-        {"type": "tile", "entity": ids[key], "name": label, "color": tint}
-        for key, label in YEAR_TILES
-        if ids.get(key)
-    ]
+    for key, label, icon, value in (
+        ("annual_value", "A year's worth", "mdi:cash-100", DOLLARS),
+        ("captured", "Captured", "mdi:cash-check", DOLLARS),
+        ("forfeited", "Forfeited", "mdi:cash-remove", DOLLARS),
+        ("capture_rate", "Capture rate", "mdi:percent-outline", "{{ states(entity) }}%"),
+        ("net_value", "Net of the fee", "mdi:scale-balance", DOLLARS),
+    ):
+        if ids.get(key):
+            this_year.append(stat(ids[key], label, icon, value))
 
     sections = [
         {"type": "grid", "cards": at_a_glance},
@@ -134,8 +109,11 @@ def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: lis
             "type": "grid",
             "cards": [
                 heading("Money on hand", "mdi:cash-clock"),
-                auto_entities(
-                    "Credits with a balance", card_id, pattern="*_remaining", state_filter="> 0"
+                auto_cards(
+                    [{**scope, "entity_id": "*_remaining", "state": "> 0"}],
+                    primary="{{ state_attr(entity, 'benefit') }}",
+                    secondary=DOLLARS + " left · expires {{ state_attr(entity, 'period_end') }}",
+                    icon="mdi:cash-clock",
                 ),
             ],
         },
@@ -143,16 +121,17 @@ def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: lis
             "type": "grid",
             "cards": [
                 heading("Record what you spent", "mdi:cash-check"),
-                note("Type the dollars you captured. The status follows from the amount."),
-                auto_entities(
+                note("Type the dollars you captured. Status follows from the amount."),
+                auto_rows(
+                    [
+                        {
+                            **scope,
+                            "domain": "number",
+                            "attributes": {**scope["attributes"], "status": s},
+                        }
+                        for s in ("unused", "partial")
+                    ],
                     "Not yet fully used",
-                    card_id,
-                    domain="number",
-                    attributes=[{"status": "unused"}, {"status": "partial"}],
-                    sort_method="friendly_name",
-                    numeric=False,
-                    reverse=False,
-                    show_empty=False,
                 ),
             ],
         },
@@ -167,7 +146,7 @@ def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: lis
                     note("These carry no issuer amount, so the value is your call."),
                     {
                         "type": "entities",
-                        "entities": [{"entity": p["entity"], "name": p["benefit"]} for p in perks],
+                        "entities": [coloured_row(p["entity"], p["benefit"]) for p in perks],
                     },
                 ],
             }
@@ -178,28 +157,39 @@ def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: lis
             "type": "grid",
             "cards": [
                 heading("All benefits", "mdi:format-list-bulleted"),
-                auto_entities(
-                    "Status",
-                    card_id,
-                    pattern="*_status",
-                    sort_method="friendly_name",
-                    numeric=False,
-                    reverse=False,
-                ),
-                auto_entities(
-                    "Expiry dates",
-                    card_id,
-                    pattern="*_expires",
-                    sort_method="state",
-                    numeric=False,
-                    reverse=False,
+                auto_cards(
+                    [{**scope, "entity_id": "*_status"}],
+                    primary="{{ state_attr(entity, 'benefit') }}",
+                    secondary=(
+                        "{{ states(entity) | replace('_', ' ') | replace('n a', 'not applicable') }}"
+                        "{% if state_attr(entity, 'amount') %} · "
+                        "${{ " + attr("amount_used") + " | round(0) | int }} of "
+                        "${{ " + attr("amount") + " | round(0) | int }}{% endif %}"
+                    ),
+                    icon="mdi:gift-outline",
+                    sort={"method": "friendly_name"},
+                    show_empty=True,
                 ),
             ],
         }
     )
 
-    if ids.get("color"):
-        sections.append(colour_section(ids["color"]))
+    settings = [heading("Card settings", "mdi:credit-card-settings-outline")]
+    if ids.get("status"):
+        settings.append(
+            note(
+                "Frozen keeps the card and its history but stops tracking and drops it "
+                "from every total. Cancelled also hides it from the overview."
+            )
+        )
+        settings.append({"type": "entities", "entities": [coloured_row(ids["status"], "Status")]})
+    settings.append(
+        note(
+            "Colour, open date, fee month, and benefits that do not apply are set under "
+            "Settings > Devices & services > CardPerks > this card > Edit."
+        )
+    )
+    sections.append({"type": "grid", "cards": settings})
 
     return {
         "type": "sections",
@@ -212,50 +202,29 @@ def build_view(name: str, card_id: str, ids: dict, color: str | None, perks: lis
     }
 
 
-def colour_section(entity: str) -> dict:
-    """Compact: a dropdown plus a swatch of the current colour.
-
-    A grid of nineteen swatches was clearer but ate a screen for something set once,
-    so the select stays a dropdown and the dot shows what is currently chosen.
-    """
-    current = (
-        "{% set c = states('" + entity + "') %}"
-        '<span style="color: var(--{{ c }}-color); font-size: 1.4em">&#9679;</span> '
-        "&nbsp;**{{ c | replace('-', ' ') }}** &mdash; identifies this card on every dashboard."
-    )
-    return {
-        "type": "grid",
-        "cards": [
-            heading("Card colour", "mdi:palette"),
-            {"type": "markdown", "content": current},
-            {"type": "entities", "entities": [{"entity": entity, "name": "Colour"}]},
-        ],
-    }
-
-
 def nav_section(cards: list[dict], url_path: str) -> dict:
-    """A section for the overview: one tap-through tile per card, in its own colour."""
-    return {
-        "type": "grid",
-        "cards": [
-            heading("Cards", "mdi:credit-card-multiple"),
-            *[
-                {
-                    "type": "tile",
-                    "entity": c["ids"]["unused_value"],
-                    "name": c["title"],
-                    "icon": "mdi:credit-card",
-                    "color": c["color"] or "grey",
-                    "tap_action": {
-                        "action": "navigate",
-                        "navigation_path": f"/{url_path}/{slugify(c['title'])}",
-                    },
-                }
-                for c in cards
-                if c["ids"].get("unused_value")
-            ],
-        ],
-    }
+    """One tap-through card per held card, in its own colour, hidden once cancelled."""
+    tiles = []
+    for c in cards:
+        if not c["ids"].get("unused_value"):
+            continue
+        tile = template_card(
+            c["title"],
+            DOLLARS + " unused",
+            "mdi:credit-card",
+            entity=c["ids"]["unused_value"],
+            tap={"action": "navigate", "navigation_path": f"/{url_path}/{slugify(c['title'])}"},
+        )
+        if c["ids"].get("status"):
+            tile = {
+                "type": "conditional",
+                "conditions": [
+                    {"condition": "state", "entity": c["ids"]["status"], "state_not": "cancelled"}
+                ],
+                "card": tile,
+            }
+        tiles.append(tile)
+    return {"type": "grid", "cards": [heading("Cards", "mdi:credit-card-multiple"), *tiles]}
 
 
 def load(path: str) -> list[dict]:
@@ -264,17 +233,9 @@ def load(path: str) -> list[dict]:
     out = []
     for key, val in raw.items():
         ids = dict(val.get("card", {}))
-        if val.get("color_entity"):
-            ids["color"] = val["color_entity"]
-        out.append(
-            {
-                "id": key,
-                "title": val["title"],
-                "color": val.get("color"),
-                "ids": ids,
-                "perks": val.get("perks", []),
-            }
-        )
+        if val.get("status_entity"):
+            ids["status"] = val["status_entity"]
+        out.append({"id": key, "title": val["title"], "ids": ids, "perks": val.get("perks", [])})
     return sorted(out, key=lambda c: c["title"] or "")
 
 
@@ -283,18 +244,15 @@ def main() -> int:
         print(__doc__)
         return 2
     cards = load(sys.argv[1])
-    views = [build_view(c["title"], c["id"], c["ids"], c["color"], c["perks"]) for c in cards]
+    views = [build_view(c) for c in cards]
     with open(sys.argv[2], "w", encoding="utf-8") as fh:
-        json.dump(views, fh, indent=2)
+        json.dump(views, fh, indent=2, ensure_ascii=False)
     if len(sys.argv) > 3:
         with open(sys.argv[3], "w", encoding="utf-8") as fh:
-            json.dump(nav_section(cards, "dashboard-cardperks"), fh, indent=2)
+            json.dump(nav_section(cards, "dashboard-cardperks"), fh, indent=2, ensure_ascii=False)
     print(f"{len(views)} subviews")
     for c, v in zip(cards, views, strict=True):
-        print(
-            f"  {c['title']:45s} {c['color'] or '-':12s} "
-            f"sections={len(v['sections'])} perks={len(c['perks'])} ids={len(c['ids'])}"
-        )
+        print(f"  {c['title']:45s} sections={len(v['sections'])} ids={len(c['ids'])}")
     return 0
 
 

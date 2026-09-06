@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """Rebuild the generated CardPerks overview sections.
 
-Each section is a template that walks entities by attribute rather than naming them,
-so adding or removing a card needs no regeneration.
-
-Colour: Home Assistant's markdown card sanitises inline styles away, so a coloured
-`<span>` renders as a plain dot. Emoji survive sanitising, so each card's colour is
-shown as the nearest coloured emoji. Tiles elsewhere use the real colour.
+Every list is driven by auto-entities matching on attributes, so a card added or
+removed later needs no regeneration, and every icon takes its card's colour live.
 
 Push each with tools/append_section.py, which replaces a section by its heading and
 leaves the rest of a hand-edited view alone.
@@ -20,238 +16,152 @@ import json
 import pathlib
 import sys
 
-# Nearest emoji per Home Assistant tile colour. Circles and squares are used to keep
-# neighbouring hues apart, since emoji offer far fewer colours than the palette does.
-EMOJI = {
-    "red": "🔴",
-    "pink": "🟥",
-    "purple": "🟣",
-    "deep-purple": "🟪",
-    "indigo": "🔵",
-    "blue": "🟦",
-    "light-blue": "🩵",
-    "cyan": "🧊",
-    "teal": "🟢",
-    "green": "🟩",
-    "light-green": "🍀",
-    "lime": "🟨",
-    "yellow": "🟡",
-    "amber": "🟧",
-    "orange": "🟠",
-    "deep-orange": "🔶",
-    "brown": "🟤",
-    "grey": "⚪",
-    "blue-grey": "⬜",
-}
+from lovelace import DAYS_UNTIL, DOLLARS, attr, auto_cards, auto_rows, base_filter, heading, note
 
-EMOJI_MAP = "{%- set EMOJI = " + json.dumps(EMOJI, ensure_ascii=False) + " -%}"
-DOT = "{{ EMOJI.get(r.color, '⚪') }}"
-# Card titles contain " | " before the last four, which markdown would read as a
-# new column. Escaping keeps the pipe visible inside the cell.
-ESC = r"| replace('|', '\|')"
-
-# Entities that know a card title and its colour, for lists keyed only by card name.
-TINTED = """
-{%- set tinted = states.sensor
-      | selectattr('attributes.card_id', 'defined')
-      | selectattr('attributes.color', 'defined') | list -%}
-"""
+ACTIVE_ONLY = {"card_status": "active"}
 
 
-def heading(text: str, icon: str) -> dict:
-    return {"type": "heading", "heading": text, "heading_style": "title", "icon": icon}
-
-
-def markdown(content: str) -> dict:
-    return {"type": "markdown", "content": content}
-
-
-def rows_from(suffix: str, fields: str) -> str:
-    """Collect one row per card-level sensor ending in `suffix`."""
-    return f"""
-{{%- set ns = namespace(rows=[]) -%}}
-{{%- for s in states.sensor -%}}
-  {{%- if s.attributes.card_id is defined and s.entity_id.endswith('{suffix}') -%}}
-    {{%- set a = s.attributes -%}}
-    {{%- set ns.rows = ns.rows + [{{'card': a.card, 'color': a.color, {fields}}}] -%}}
-  {{%- endif -%}}
-{{%- endfor -%}}
-"""
+def with_status(f: dict, **extra: str) -> dict:
+    """Restrict a filter to active cards, plus any other attribute matches."""
+    return {**f, "attributes": {**f.get("attributes", {}), **ACTIVE_ONLY, **extra}}
 
 
 def dollars_left() -> dict:
-    body = (
-        EMOJI_MAP
-        + """
-{%- set ns = namespace(rows=[]) -%}
-{%- for s in states.sensor -%}
-  {%- if s.attributes.card_id is defined and s.entity_id.endswith('_remaining') -%}
-    {%- set v = s.state | float(-1) -%}
-    {%- if v > 0 -%}
-      {%- set label = s.name | replace(s.attributes.card ~ ' ', '') | replace(' remaining', '') -%}
-      {%- set ns.rows = ns.rows + [{'amt': v, 'card': s.attributes.card,
-          'color': s.attributes.color, 'name': label}] -%}
-    {%- endif -%}
-  {%- endif -%}
-{%- endfor -%}
-
-| Benefit | Card | Left |
-|---|---|--:|
-{% for r in ns.rows | sort(attribute='amt', reverse=true) -%}
-| {{ r.name ESC }} | DOT {{ r.card ESC }} | ${{ r.amt | round(0) | int }} |
-{% endfor %}
-_{{ ns.rows | count }} credits, ${{ ns.rows | sum(attribute='amt') | round(0) | int }} \
-still on the table._
-""".replace("DOT", DOT).replace("ESC", ESC)
-    )
-    return {
-        "type": "grid",
-        "cards": [heading("Dollars left by benefit", "mdi:cash-clock"), markdown(body)],
-    }
-
-
-def by_card() -> dict:
-    body = (
-        EMOJI_MAP
-        + rows_from(
-            "_capture_rate",
-            "'worth': a.get('annual_value', 0), 'cap': a.get('captured_12m', 0),"
-            " 'forf': a.get('forfeited_12m', 0), 'rate': s.state | float(0)",
-        )
-        + """
-Trailing twelve months. Forfeited is money a period closed without you using it.
-
-| Card | A year's worth | Captured | Forfeited | Rate |
-|---|--:|--:|--:|--:|
-{% for r in ns.rows | sort(attribute='card') -%}
-| DOT {{ r.card ESC }} | ${{ r.worth | round(0) | int }} | ${{ r.cap | round(0) | int }} \
-| ${{ r.forf | round(0) | int }} | {{ r.rate | round(0) | int }}% |
-{% endfor %}
-""".replace("DOT", DOT).replace("ESC", ESC)
-    )
-    return {
-        "type": "grid",
-        "cards": [heading("By card", "mdi:credit-card-multiple"), markdown(body)],
-    }
-
-
-def fees() -> dict:
-    body = (
-        EMOJI_MAP
-        + rows_from(
-            "_annual_fee_due",
-            "'fee': a.get('annual_fee', 0), 'due': s.state",
-        )
-        + """
-| Card | Fee | Due | Days |
-|---|--:|---|--:|
-{% for r in ns.rows | sort(attribute='due') -%}
-{%- if r.due not in ['unknown', 'unavailable'] -%}
-| DOT {{ r.card ESC }} | ${{ r.fee | round(0) | int }} | {{ r.due }} \
-| {{ ((r.due | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }} |
-{% endif -%}
-{% endfor %}
-_${{ ns.rows | sum(attribute='fee') | round(0) | int }} a year across \
-{{ ns.rows | count }} cards._
-""".replace("DOT", DOT).replace("ESC", ESC)
-    )
-    return {
-        "type": "grid",
-        "cards": [heading("Annual fees", "mdi:calendar-cash"), markdown(body)],
-    }
-
-
-def expiring() -> dict:
-    body = (
-        EMOJI_MAP
-        + TINTED
-        + """
-{%- set ns = namespace(rows=[]) -%}
-{%- for s in states.sensor -%}
-  {%- if s.attributes.owner_id is defined and s.entity_id.endswith('_30_days') -%}
-    {%- for i in s.attributes.get('items', []) -%}
-      {%- set ns.rows = ns.rows + [i] -%}
-    {%- endfor -%}
-  {%- endif -%}
-{%- endfor -%}
-{%- if ns.rows | count == 0 %}
-Nothing expires in the next 30 days.
-{%- else %}
-
-| Benefit | Card | Left | Days |
-|---|---|--:|--:|
-{% for i in ns.rows | sort(attribute='expires') -%}
-{%- set m = tinted | selectattr('attributes.card', 'eq', i.card) | list -%}
-{%- set r = {'color': (m | first).attributes.color if m else 'grey'} -%}
-| {{ i.benefit ESC }} | DOT {{ i.card ESC }} | ${{ i.remaining | round(0) | int }} \
-| {{ ((i.expires | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }} |
-{% endfor -%}
-{%- endif -%}
-""".replace("DOT", DOT).replace("ESC", ESC)
-    )
-    return {
-        "type": "grid",
-        "cards": [heading("Expiring within 30 days", "mdi:timer-sand"), markdown(body)],
-    }
-
-
-def coverage() -> dict:
-    body = (
-        EMOJI_MAP
-        # Matched on an attribute rather than an entity id suffix: entity ids come from
-        # the display name, so a rename or a translation change would break a suffix.
-        + """
-{%- set ns = namespace(rows=[]) -%}
-{%- for s in states.sensor -%}
-  {%- if s.attributes.card_id is defined and s.attributes.missing is defined -%}
-    {%- set a = s.attributes -%}
-    {%- set ns.rows = ns.rows + [{'card': a.card, 'color': a.color,
-        'n': s.state | int(0), 'missing': a.get('missing', []),
-        'files': a.get('statements_imported', 0)}] -%}
-  {%- endif -%}
-{%- endfor -%}
-"""
-        + """
-A month with no statement is unknown, not proof a credit went unused.
-
-| Card | Covered | Files | Gaps |
-|---|--:|--:|---|
-{% for r in ns.rows | sort(attribute='card') -%}
-| DOT {{ r.card ESC }} | {{ r.n }}/12 | {{ r.files }} \
-| {% if r.missing | count == 0 %}none{% elif r.missing | count > 4 %}\
-{{ r.missing[:3] | join(', ') }} +{{ (r.missing | count) - 3 }} more\
-{% else %}{{ r.missing | join(', ') }}{% endif %} |
-{% endfor %}
-""".replace("DOT", DOT).replace("ESC", ESC)
-    )
     return {
         "type": "grid",
         "cards": [
-            heading("Statement coverage", "mdi:file-document-check-outline"),
-            markdown(body),
+            heading("Dollars left by benefit", "mdi:cash-clock"),
+            auto_cards(
+                [{**with_status(base_filter()), "entity_id": "*_remaining", "state": "> 0"}],
+                primary="{{ state_attr(entity, 'benefit') }}",
+                secondary=DOLLARS + " left · {{ state_attr(entity, 'card') }}",
+                icon="mdi:cash-clock",
+            ),
         ],
     }
 
 
-def legend() -> dict:
-    """So the emoji in every table can be tied back to a card."""
-    body = (
-        EMOJI_MAP
-        + TINTED
-        + """
-{%- set ns = namespace(seen=[], rows=[]) -%}
-{%- for s in tinted -%}
-  {%- if s.attributes.card not in ns.seen -%}
-    {%- set ns.seen = ns.seen + [s.attributes.card] -%}
-    {%- set ns.rows = ns.rows + [{'card': s.attributes.card, 'color': s.attributes.color}] -%}
-  {%- endif -%}
-{%- endfor -%}
-{% for r in ns.rows | sort(attribute='card') %}DOT {{ r.card }}&nbsp;&nbsp; {% endfor %}
-""".replace("DOT", DOT).replace("ESC", ESC)
-    )
+def checkoff() -> dict:
     return {
         "type": "grid",
-        "cards": [heading("Colour key", "mdi:palette"), markdown(body)],
+        "cards": [
+            heading("Check off", "mdi:cash-check"),
+            note("Type the dollars you captured. Status follows from the amount."),
+            auto_rows(
+                [
+                    {**with_status(base_filter(), status=s), "domain": "number"}
+                    for s in ("unused", "partial")
+                ],
+                "Credits with money left",
+            ),
+        ],
+    }
+
+
+def by_card() -> dict:
+    return {
+        "type": "grid",
+        "cards": [
+            heading("By card", "mdi:credit-card-multiple"),
+            note(
+                "Trailing twelve months. Forfeited is money a period closed without you "
+                "using it, which is gone rather than pending."
+            ),
+            auto_cards(
+                [{**with_status(base_filter()), "entity_id": "*_capture_rate"}],
+                primary="{{ state_attr(entity, 'card') }}",
+                secondary=(
+                    "${{ " + attr("captured_12m") + " | round(0) | int }} of "
+                    "${{ " + attr("annual_value") + " | round(0) | int }} captured · "
+                    "${{ " + attr("forfeited_12m") + " | round(0) | int }} forfeited · "
+                    "{{ states(entity) | float(0) | round(0) | int }}%"
+                ),
+                icon="mdi:cash-100",
+                sort={"method": "friendly_name"},
+            ),
+        ],
+    }
+
+
+def fees() -> dict:
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Annual fees", "mdi:calendar-cash"),
+            auto_cards(
+                [{**with_status(base_filter()), "entity_id": "*_annual_fee_due"}],
+                primary="{{ state_attr(entity, 'card') }}",
+                secondary=(
+                    "${{ " + attr("annual_fee") + " | round(0) | int }} · due "
+                    "{{ states(entity) }} · " + DAYS_UNTIL + " days"
+                ),
+                icon="mdi:calendar-cash",
+                sort={"method": "state", "numeric": False, "reverse": False},
+            ),
+        ],
+    }
+
+
+def expiring() -> dict:
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Expiring within 30 days", "mdi:timer-sand"),
+            auto_cards(
+                [
+                    {
+                        **with_status(base_filter(), status=s, days_left="< 31"),
+                        "entity_id": "*_expires",
+                    }
+                    for s in ("unused", "partial")
+                ],
+                primary="{{ state_attr(entity, 'benefit') }}",
+                secondary=(
+                    "${{ " + attr("remaining") + " | round(0) | int }} left · "
+                    "{{ state_attr(entity, 'card') }} · "
+                    "{{ state_attr(entity, 'days_left') }} days"
+                ),
+                icon="mdi:timer-sand",
+                sort={"method": "state", "numeric": False, "reverse": False},
+            ),
+        ],
+    }
+
+
+def coverage() -> dict:
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Statement coverage", "mdi:file-document-check-outline"),
+            note("A month with no statement is unknown, not proof a credit went unused."),
+            auto_cards(
+                [{**with_status(base_filter()), "entity_id": "*_statement_coverage"}],
+                primary="{{ state_attr(entity, 'card') }}",
+                secondary=(
+                    "{{ states(entity) }}/12 months · "
+                    "{{ " + attr("statements_imported") + " }} files"
+                    "{% set m = state_attr(entity, 'missing') or [] %}"
+                    "{% if m %} · missing {{ m[:3] | join(', ') }}"
+                    "{% if m | count > 3 %} +{{ m | count - 3 }}{% endif %}{% endif %}"
+                ),
+                icon="mdi:file-document-check-outline",
+                sort={"method": "friendly_name"},
+            ),
+        ],
+    }
+
+
+def perk_values() -> dict:
+    return {
+        "type": "grid",
+        "cards": [
+            heading("What perks are worth to you", "mdi:tag-text-outline"),
+            note("Lounge access and status carry no issuer amount, so the value is your call."),
+            auto_rows(
+                [{**with_status(base_filter()), "entity_id": "number.*_value"}],
+                "Perk values",
+            ),
+        ],
     }
 
 
@@ -261,14 +171,16 @@ def main() -> int:
         return 2
     outdir = pathlib.Path(sys.argv[1])
     outdir.mkdir(parents=True, exist_ok=True)
-    for name, section in {
+    sections = {
         "dollars_left": dollars_left(),
+        "checkoff": checkoff(),
         "by_card": by_card(),
         "fees": fees(),
         "expiring": expiring(),
         "coverage": coverage(),
-        "legend": legend(),
-    }.items():
+        "perk_values": perk_values(),
+    }
+    for name, section in sections.items():
         path = outdir / f"{name}.json"
         path.write_text(json.dumps(section, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"wrote {path}")
