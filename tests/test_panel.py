@@ -23,6 +23,11 @@ async def test_catalog_page_is_served(
     assert "you hold this" in body and 'id="only-held" checked' in body
     assert '<section class="product held" id="test_premium"' in body
     assert '<section class="product not-held" id="test_basic"' in body
+    # A My-value box per benefit: credits start at the catalog's yearly amount, perks at
+    # what this household values them at, and the totals live in the header.
+    assert 'data-p="test_premium" data-b="monthly_credit" data-default="120" value="120"' in body
+    assert 'data-p="test_premium" data-b="lounge" data-default="100" value="100"' in body
+    assert "data-my-credits" in body and "data-my-net" in body and 'data-fee="500.0"' in body
 
     css = await client.get("/cardperks/static/fonts.css")
     assert css.status == 200 and "Newsreader" in await css.text()

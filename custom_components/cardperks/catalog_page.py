@@ -11,7 +11,7 @@ import html
 from datetime import date
 
 from .const import BenefitType, Cadence, ResetRule
-from .models import Catalog
+from .models import Benefit, Catalog
 
 CADENCE_WORDS = {
     Cadence.MONTHLY: "monthly",
@@ -46,18 +46,35 @@ GOOGLE_FONTS = (
 )
 
 
+def _my_default(
+    product_id: str, b: Benefit, per_year: float, my_values: dict[str, dict[str, float]]
+) -> str:
+    """What the My-value box starts at: the household's own figure for a perk on a card
+    it holds, else the catalog's yearly amount for a credit, else zero."""
+    mine = my_values.get(product_id, {}).get(b.id)
+    if mine is not None:
+        return f"{mine:g}"
+    if b.type is BenefitType.STATEMENT_CREDIT and per_year:
+        return f"{per_year:g}"
+    return "0"
+
+
 def render_catalog(
     catalog: Catalog,
     *,
     source_note: str = "",
     fonts_href: str = "/cardperks/static/fonts.css",
     owned: frozenset[str] = frozenset(),
+    my_values: dict[str, dict[str, float]] | None = None,
 ) -> str:
     """The whole catalog as an HTML document (title and styles included).
 
     `owned` is the set of product ids the household holds: those products are marked,
-    and the page opens showing only them, with a toggle for the rest.
+    and the page opens showing only them, with a toggle for the rest. `my_values` is
+    {product id: {benefit id: dollars a year}}: what the household already values a
+    perk at, used to prefill the "My value" column; the page keeps edits in the browser.
     """
+    my_values = my_values or {}
     by_issuer = catalog.by_issuer()
     issuer_names = catalog.issuers()
     today = date.today().isoformat()
@@ -131,6 +148,11 @@ def render_catalog(
                     f'<td class="num">{amount}</td>'
                     f"<td>{_esc(cadence)}</td>"
                     f'<td class="num">{_money(per_year) if per_year else ""}</td>'
+                    f'<td class="num"><input class="my" type="number" min="0" step="1" '
+                    f'data-p="{_esc(p.id)}" data-b="{_esc(b.id)}" '
+                    f'data-default="{_my_default(p.id, b, per_year, my_values)}" '
+                    f'value="{_my_default(p.id, b, per_year, my_values)}" '
+                    f'aria-label="My value per year for {_esc(b.name)}"></td>'
                     f'<td class="match">{match}</td>'
                     "</tr>"
                 )
@@ -146,7 +168,8 @@ def render_catalog(
             if p.origin != "shipped":
                 chips += f'<span class="chip chip-over" title="{_esc(p.origin)}">override</span>'
             sections.append(
-                f'<section class="product {"held" if held else "not-held"}" id="{_esc(p.id)}">'
+                f'<section class="product {"held" if held else "not-held"}" id="{_esc(p.id)}" '
+                f'data-fee="{p.annual_fee}">'
                 '<header class="p-head">'
                 f'<div><p class="eyebrow">{_esc(p.issuer_name)}</p>'
                 f"<h2>{_esc(p.name)} {chips}</h2>"
@@ -156,11 +179,15 @@ def render_catalog(
                 '<dl class="p-figures">'
                 f"<div><dt>Annual fee</dt><dd>{_money(p.annual_fee)}</dd></div>"
                 f"<div><dt>Credits per year</dt><dd>{_money(annual)}</dd></div>"
+                '<div class="mine"><dt>My credits per year</dt><dd data-my-credits>$0</dd></div>'
+                '<div class="mine"><dt>My net per year</dt><dd data-my-net>$0</dd></div>'
                 f"<div><dt>Benefits</dt><dd>{len(p.benefits)}</dd></div></dl>"
                 "</header>"
                 '<div class="table-wrap"><table>'
                 '<thead><tr><th>Benefit</th><th>Type</th><th class="num">Per period</th>'
-                '<th>Cadence</th><th class="num">Per year</th><th>Statement match</th></tr></thead>'
+                '<th>Cadence</th><th class="num">Per year</th>'
+                '<th class="num">My value / yr <a href="#" class="reset" title="Back to the defaults">reset</a></th>'
+                "<th>Statement match</th></tr></thead>"
                 f"<tbody>{''.join(rows)}</tbody></table></div>"
                 "</section>"
             )
@@ -285,6 +312,11 @@ body.only-held .not-held {{ display: none; }}
 body.only-held .program {{ display: block; }}
 .chip-over {{ background: var(--brass-soft); color: var(--brass); }}
 .muted {{ color: var(--ink-3); font-size: 12px; }}
+input.my {{ width: 76px; padding: 4px 6px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); color: var(--ink); font: 13.5px "IBM Plex Sans", sans-serif; text-align: right; font-variant-numeric: tabular-nums; }}
+input.my:focus {{ outline: 2px solid var(--brass); outline-offset: 1px; }}
+th .reset {{ font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 6px; font-size: 11px; }}
+.p-figures .mine dd {{ color: var(--brass); }}
+.p-figures .mine dd.negative {{ color: var(--flag); }}
 .hidden {{ display: none; }}
 @media (max-width: 820px) {{ .page {{ grid-template-columns: 1fr; gap: 20px; }} .side {{ position: static; }} .p-figures {{ gap: 18px; }} }}
 @media (prefers-reduced-motion: no-preference) {{ html {{ scroll-behavior: smooth; }} }}
@@ -298,7 +330,7 @@ body.only-held .program {{ display: block; }}
     <ul>{"".join(nav)}</ul>
   </aside>
   <div class="main">
-    <p class="intro">Everything CardPerks knows about each card: the fee, each benefit with what it is worth per period and per year, and the wording that identifies it on a statement. Amounts come from the issuer page linked on each card; "your value" marks perks the holder prices themselves. To correct an entry, drop a file in <code>config/cardperks/catalog/</code>; see docs/CATALOG.md.</p>
+    <p class="intro">Everything CardPerks knows about each card: the fee, each benefit with what it is worth per period and per year, and the wording that identifies it on a statement. Amounts come from the issuer page linked on each card; "your value" marks perks the holder prices themselves. Type what each benefit is worth to you in the last column and the card's "My credits" and "My net" figures follow; those numbers stay in this browser. To correct an entry, drop a file in <code>config/cardperks/catalog/</code>; see docs/CATALOG.md.</p>
     {"".join(sections)}
   </div>
 </div>
@@ -313,6 +345,36 @@ body.only-held .program {{ display: block; }}
     only.addEventListener("change", apply);
     apply();
   }}
+  const money = (v) => (v < 0 ? "-$" : "$") + Math.abs(Math.round(v)).toLocaleString();
+  const keyOf = (i) => "cardperks.my." + i.dataset.p + "." + i.dataset.b;
+  const total = (section) => {{
+    let sum = 0;
+    section.querySelectorAll("input.my").forEach((i) => {{ sum += Number(i.value) || 0; }});
+    const fee = Number(section.dataset.fee) || 0;
+    const credits = section.querySelector("[data-my-credits]");
+    const net = section.querySelector("[data-my-net]");
+    if (credits) credits.textContent = money(sum);
+    if (net) {{ net.textContent = money(sum - fee); net.classList.toggle("negative", sum - fee < 0); }}
+  }};
+  document.querySelectorAll("input.my").forEach((i) => {{
+    try {{ const saved = localStorage.getItem(keyOf(i)); if (saved !== null) i.value = saved; }} catch (e) {{}}
+    i.addEventListener("input", () => {{
+      try {{ localStorage.setItem(keyOf(i), i.value); }} catch (e) {{}}
+      total(i.closest("section"));
+    }});
+  }});
+  document.querySelectorAll("th .reset").forEach((a) => {{
+    a.addEventListener("click", (ev) => {{
+      ev.preventDefault();
+      const section = a.closest("section");
+      section.querySelectorAll("input.my").forEach((i) => {{
+        i.value = i.dataset.default;
+        try {{ localStorage.removeItem(keyOf(i)); }} catch (e) {{}}
+      }});
+      total(section);
+    }});
+  }});
+  document.querySelectorAll("section.product").forEach(total);
   const q = document.getElementById("q");
   q.addEventListener("input", () => {{
     const term = q.value.trim().toLowerCase();

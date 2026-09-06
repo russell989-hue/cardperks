@@ -42,16 +42,29 @@ class CatalogPageView(HomeAssistantView):
         if catalog is None:
             return web.Response(status=503, text="CardPerks is not loaded yet.")
         owned: set[str] = set()
+        my_values: dict[str, dict[str, float]] = {}
         for entry in hass.config_entries.async_loaded_entries(DOMAIN):
-            owned |= {
-                c.product_id for c in entry.runtime_data.cards.values() if c.status != "cancelled"
-            }
+            data = entry.runtime_data.data
+            for c in entry.runtime_data.cards.values():
+                if c.status == "cancelled":
+                    continue
+                owned.add(c.product_id)
+                product = catalog.get(c.product_id)
+                if product is None:
+                    continue
+                # A perk's yearly value is what this household set for it (shared perks
+                # are already split); the first held card of a product speaks for it.
+                mine = my_values.setdefault(c.product_id, {})
+                for b in product.benefits_for(c):
+                    if b.type.value in ("perk", "insurance") and b.id not in mine:
+                        mine[b.id] = b.annual_value(data.perk_values.get(c.id, {}).get(b.id))
         body = await hass.async_add_executor_job(
             partial(
                 render_catalog,
                 catalog,
                 source_note="Live from Home Assistant, overrides included.",
                 owned=frozenset(owned),
+                my_values=my_values,
             )
         )
         return web.Response(text=body, content_type="text/html", charset="utf-8")
