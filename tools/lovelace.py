@@ -156,26 +156,45 @@ def auto_rows(
     }
 
 
-def gauge_grid(kind: str, *, columns: int = 2, unit_max: int = 100) -> dict:
-    """auto-entities feeding a grid of gauge cards, one per active card.
+def gauge_grid(
+    kind: str,
+    *,
+    name: str = "s.attributes.card",
+    maximum: str = "100",
+    where: str = "",
+    by_value: bool = False,
+    columns: int = 2,
+) -> dict:
+    """auto-entities feeding a grid of gauge cards, one per matching entity.
 
-    Built by a template so a new card appears by itself and each gauge takes its
-    card's colour live. The gauge card colours its arc with --gauge-color, which it
-    sets inline to --info-color when no severity is configured, so both are overridden.
+    Built by a template so new cards and benefits appear by themselves and each
+    gauge takes its card's colour live. `name` and `maximum` are Jinja expressions
+    over the state object `s`; `where` is an extra condition. Sorted by name, or by
+    value (largest first) when `by_value` is set.
+
+    The gauge card colours its arc with --gauge-color, which it sets inline to
+    --info-color when no severity is configured, so both are overridden.
     """
-    where = f"s.attributes.kind == '{kind}' and s.attributes.card_status == 'active'"
+    cond = f"s.attributes.kind == '{kind}' and s.attributes.card_status == 'active'"
+    if where:
+        cond += f" and ({where})"
     style = (
         "'ha-card { --info-color: var(--' ~ c ~ '-color); } "
         "ha-gauge { --gauge-color: var(--' ~ c ~ '-color) !important; }'"
     )
     template = (
-        "{% set ns = namespace(cards=[]) %}"
-        f"{{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and {where} %}}"
+        "{% set ns = namespace(items=[]) %}"
+        f"{{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and {cond} %}}"
         "{% set c = s.attributes.color or 'grey' %}"
-        "{% set ns.cards = ns.cards + [{'type': 'gauge', 'entity': s.entity_id, "
-        f"'name': s.attributes.card, 'min': 0, 'max': {unit_max}, "
-        "'card_mod': {'style': " + style + "}}] %}"
-        "{% endfor %}{{ ns.cards | sort(attribute='name') }}"
+        "{% set ns.items = ns.items + [[s.state | float(0), {'type': 'gauge', "
+        f"'entity': s.entity_id, 'name': {name}, 'min': 0, 'max': {maximum}, "
+        "'card_mod': {'style': " + style + "}}]] %}"
+        "{% endfor %}"
+        + (
+            "{{ ns.items | sort(attribute='0', reverse=true) | map(attribute='1') | list }}"
+            if by_value
+            else "{{ ns.items | map(attribute='1') | sort(attribute='name') | list }}"
+        )
     )
     return {
         "type": "custom:auto-entities",

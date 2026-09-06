@@ -18,7 +18,6 @@ import sys
 
 from lovelace import (
     DAYS_UNTIL,
-    DOLLARS,
     attr,
     auto_cards,
     auto_rows,
@@ -41,11 +40,13 @@ def dollars_left() -> dict:
         "type": "grid",
         "cards": [
             heading("Dollars left by benefit", "mdi:cash-clock"),
-            auto_cards(
-                [{**with_status(base_filter(kind="benefit_remaining")), "state": "> 0"}],
-                primary="{{ state_attr(entity, 'benefit') }}",
-                secondary=DOLLARS + " left · {{ state_attr(entity, 'card') }}",
-                icon="mdi:cash-clock",
+            note("Each arc is what is left of that credit, in its card's colour. Tap for detail."),
+            gauge_grid(
+                "benefit_remaining",
+                name="s.attributes.benefit",
+                maximum="(s.attributes.amount or (s.state | float(0)))",
+                where="(s.state | float(0)) > 0",
+                by_value=True,
             ),
         ],
     }
