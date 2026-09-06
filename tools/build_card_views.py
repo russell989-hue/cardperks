@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """Generate one Lovelace subview per card, plus the Cards section for the overview.
 
-Input is the live entity map from tools/cp_full.py on the HA box. Every icon takes
-the card's colour live from the entity attribute, so changing the colour in the card
-form needs no regeneration. Cancelled cards drop out of the overview by themselves.
+Input is the live entity map from tools/cp_full.py on the HA box. Every graph, list
+and icon takes the card's colour live from the entity attribute, so changing the
+colour in the card form needs no regeneration. Cancelled cards drop out of the
+overview by themselves.
 
 Reading order is money first, then the things you do, then reference, then settings:
 
-  At a glance      what is unused right now, and when the fee lands
-  This year        a year's worth, captured, forfeited, capture rate
-  Money on hand    credits with a balance, biggest first
-  Log a credit     the dollar boxes for anything not yet fully used
+  Ring             this card's credits left to use, beside the money-on-hand list
+  This year        a stacked bar of where the year's dollars went, then gauges for
+                   capture rate, net value and statement coverage, then the fee
+  Log a credit     the dollar boxes for anything not yet fully used, three peeking
   Perk values      what lounge access and status are worth to you
-  All benefits     every status and expiry date
-  Card settings    status; colour is set in the card form
+  All benefits     every status, folded
+  Card settings    status; colour is set in the card form; folded
 
   python3 build_card_views.py cards.json views.json [nav.json]
 """
@@ -28,14 +29,24 @@ import unicodedata
 from lovelace import (
     DAYS_UNTIL,
     DOLLARS,
+    NET_MAX,
+    NET_MIN,
+    ONLY_CARD,
     attr,
     auto_cards,
-    auto_rows,
     base_filter,
     coloured_row,
+    donut_by_card,
+    expander,
+    gauge_grid,
+    half,
     heading,
+    money_bars,
     note,
+    peek_rows,
     template_card,
+    third,
+    wide_section,
 )
 
 
@@ -45,32 +56,56 @@ def slugify(name: str) -> str:
     return re.sub(r"-+", "-", re.sub(r"[^a-z0-9]+", "-", ascii_name.lower())).strip("-")
 
 
-def stat(entity: str, label: str, icon: str, value: str = DOLLARS) -> dict:
-    return template_card(label, value, icon, entity=entity)
+def gauge(card_id: str, kind: str, label: str, **kw: str) -> dict:
+    """One gauge for one card, coloured live, a third of a wide section."""
+    return third(gauge_grid(kind, name=f"'{label}'", where=ONLY_CARD.format(card_id=card_id), **kw))
 
 
 def build_view(card: dict) -> dict:
     name, card_id, ids, perks = card["title"], card["id"], card["ids"], card["perks"]
     scope = base_filter(card_id)
 
-    at_a_glance = [heading(name, "mdi:credit-card")]
-    if ids.get("unused_value"):
-        at_a_glance.append(stat(ids["unused_value"], "Unused right now", "mdi:cash-clock"))
+    ring = wide_section(
+        [
+            heading(name, "mdi:credit-card"),
+            half(donut_by_card(220, card_id=card_id)),
+            half(
+                auto_cards(
+                    [{**base_filter(card_id, kind="benefit_remaining"), "state": "> 0"}],
+                    primary="{{ state_attr(entity, 'benefit') }}",
+                    secondary=DOLLARS + " left · until {{ state_attr(entity, 'period_end') }}",
+                    icon="mdi:cash-clock",
+                )
+            ),
+        ]
+    )
+
+    year = [
+        heading("This year", "mdi:cash-100"),
+        note(
+            "Trailing twelve months. Green is captured, red forfeited, grey unknown "
+            "(months with no statement), and the card's colour is still open to capture."
+        ),
+        money_bars(card_id=card_id, with_name=False),
+        gauge(card_id, "capture_rate", "Capture rate"),
+        gauge(card_id, "net_value_12m", "Net of the fee", minimum=NET_MIN, maximum=NET_MAX),
+        gauge(card_id, "coverage_12m", "Months with a statement", maximum="12"),
+    ]
     if ids.get("fee_due"):
-        at_a_glance.append(
-            stat(
-                ids["fee_due"],
-                "Annual fee due",
-                "mdi:calendar-cash",
+        year.append(
+            template_card(
+                "Annual fee",
                 "${{ "
                 + attr("annual_fee")
-                + " | round(0) | int }} on {{ states(entity) }} · "
+                + " | round(0) | int }} due {{ states(entity) }} · "
                 + DAYS_UNTIL
                 + " days",
+                "mdi:calendar-cash",
+                entity=ids["fee_due"],
             )
         )
     if ids.get("fee_soon"):
-        at_a_glance.append(
+        year.append(
             {
                 "type": "conditional",
                 "conditions": [{"condition": "state", "entity": ids["fee_soon"], "state": "on"}],
@@ -85,58 +120,26 @@ def build_view(card: dict) -> dict:
             }
         )
 
-    this_year = [
-        heading("This year", "mdi:cash-100"),
-        note(
-            "Trailing twelve months. Forfeited is money a period closed without you "
-            "using it, which is gone rather than pending."
-        ),
-    ]
-    for key, label, icon, value in (
-        ("annual_value", "A year's worth", "mdi:cash-100", DOLLARS),
-        ("captured", "Captured", "mdi:cash-check", DOLLARS),
-        ("forfeited", "Forfeited", "mdi:cash-remove", DOLLARS),
-        ("capture_rate", "Capture rate", "mdi:percent-outline", "{{ states(entity) }}%"),
-        ("net_value", "Net of the fee", "mdi:scale-balance", DOLLARS),
-    ):
-        if ids.get(key):
-            this_year.append(stat(ids[key], label, icon, value))
+    log = wide_section(
+        [
+            heading("Log a credit", "mdi:cash-check"),
+            note("Type the dollars you captured. Status follows from the amount."),
+            *peek_rows(
+                [
+                    {
+                        **scope,
+                        "domain": "number",
+                        "attributes": {**scope["attributes"], "status": s},
+                    }
+                    for s in ("unused", "partial")
+                ],
+                "Not yet fully used",
+                suffix="used",
+            ),
+        ]
+    )
 
-    sections = [
-        {"type": "grid", "cards": at_a_glance},
-        {"type": "grid", "cards": this_year},
-        {
-            "type": "grid",
-            "cards": [
-                heading("Money on hand", "mdi:cash-clock"),
-                auto_cards(
-                    [{**base_filter(card_id, kind="benefit_remaining"), "state": "> 0"}],
-                    primary="{{ state_attr(entity, 'benefit') }}",
-                    secondary=DOLLARS + " left · expires {{ state_attr(entity, 'period_end') }}",
-                    icon="mdi:cash-clock",
-                ),
-            ],
-        },
-        {
-            "type": "grid",
-            "cards": [
-                heading("Log a credit", "mdi:cash-check"),
-                note("Type the dollars you captured. Status follows from the amount."),
-                auto_rows(
-                    [
-                        {
-                            **scope,
-                            "domain": "number",
-                            "attributes": {**scope["attributes"], "status": s},
-                        }
-                        for s in ("unused", "partial")
-                    ],
-                    "Not yet fully used",
-                    suffix="used",
-                ),
-            ],
-        },
-    ]
+    sections = [ring, wide_section(year), log]
 
     if perks:
         sections.append(
@@ -154,30 +157,34 @@ def build_view(card: dict) -> dict:
         )
 
     sections.append(
-        {
-            "type": "grid",
-            "cards": [
-                heading("All benefits", "mdi:format-list-bulleted"),
-                auto_cards(
-                    [base_filter(card_id, kind="benefit_status")],
-                    primary="{{ state_attr(entity, 'benefit') }}",
-                    secondary=(
-                        "{{ states(entity) | replace('_', ' ') | replace('n a', 'not applicable') }}"
-                        "{% if state_attr(entity, 'amount') %} · "
-                        "${{ " + attr("amount_used") + " | round(0) | int }} of "
-                        "${{ " + attr("amount") + " | round(0) | int }}"
-                        "{% elif state_attr(entity, 'amount_used') %} · "
-                        "${{ " + attr("amount_used") + " | round(2) }} back{% endif %}"
-                    ),
-                    icon="mdi:gift-outline",
-                    sort={"method": "friendly_name"},
-                    show_empty=True,
-                ),
-            ],
-        }
+        wide_section(
+            [
+                expander(
+                    heading("All benefits", "mdi:format-list-bulleted"),
+                    [
+                        auto_cards(
+                            [base_filter(card_id, kind="benefit_status")],
+                            primary="{{ state_attr(entity, 'benefit') }}",
+                            secondary=(
+                                "{{ states(entity) | replace('_', ' ') "
+                                "| replace('n a', 'not applicable') }}"
+                                "{% if state_attr(entity, 'amount') %} · "
+                                "${{ " + attr("amount_used") + " | round(0) | int }} of "
+                                "${{ " + attr("amount") + " | round(0) | int }}"
+                                "{% elif state_attr(entity, 'amount_used') %} · "
+                                "${{ " + attr("amount_used") + " | round(2) }} back{% endif %}"
+                            ),
+                            icon="mdi:gift-outline",
+                            sort={"method": "friendly_name"},
+                            show_empty=True,
+                        )
+                    ],
+                )
+            ]
+        )
     )
 
-    settings = [heading("Card settings", "mdi:credit-card-settings-outline")]
+    settings = []
     if ids.get("status"):
         settings.append(
             note(
@@ -192,7 +199,14 @@ def build_view(card: dict) -> dict:
             "Settings > Devices & services > CardPerks > this card > Edit."
         )
     )
-    sections.append({"type": "grid", "cards": settings})
+    sections.append(
+        {
+            "type": "grid",
+            "cards": [
+                expander(heading("Card settings", "mdi:credit-card-settings-outline"), settings)
+            ],
+        }
+    )
 
     return {
         "type": "sections",
@@ -200,7 +214,7 @@ def build_view(card: dict) -> dict:
         "path": slugify(name),
         "icon": "mdi:credit-card",
         "subview": True,
-        "max_columns": 3,
+        "max_columns": 4,
         "sections": sections,
     }
 

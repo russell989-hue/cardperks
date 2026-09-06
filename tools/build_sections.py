@@ -25,6 +25,7 @@ from lovelace import (
     donut_by_card,
     gauge_grid,
     heading,
+    money_bars,
     note,
     peek_rows,
     wide_section,
@@ -71,28 +72,17 @@ def checkoff() -> dict:
 
 
 def by_card() -> dict:
-    return {
-        "type": "grid",
-        "cards": [
+    return wide_section(
+        [
             heading("By card", "mdi:credit-card-multiple"),
             note(
-                "Trailing twelve months. Forfeited is money a period closed without you "
-                "using it, which is gone rather than pending."
+                "Where each card's credit dollars went over the trailing twelve months. "
+                "Green is captured, red forfeited, grey unknown (months with no statement), "
+                "and the card's colour is still open to capture."
             ),
-            auto_cards(
-                [with_status(base_filter(kind="capture_rate"))],
-                primary="{{ state_attr(entity, 'card') }}",
-                secondary=(
-                    "${{ " + attr("captured_12m") + " | round(0) | int }} of "
-                    "${{ " + attr("annual_value") + " | round(0) | int }} captured · "
-                    "${{ " + attr("forfeited_12m") + " | round(0) | int }} forfeited · "
-                    "{{ states(entity) | float(0) | round(0) | int }}%"
-                ),
-                icon="mdi:cash-100",
-                sort={"method": "friendly_name"},
-            ),
-        ],
-    }
+            money_bars(),
+        ]
+    )
 
 
 def fees() -> dict:

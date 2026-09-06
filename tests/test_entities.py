@@ -53,6 +53,8 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
 
     unused = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_unused_value"))
     assert float(unused.state) == 10 + 150 + 300 + 100  # sub has no dollar amount
+    rate = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_capture_rate"))
+    assert rate.attributes["open_remaining"] == 560.0 and rate.attributes["unknown_12m"] == 0.0
     net = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_net_value_12m"))
     assert float(net.state) == -500
 

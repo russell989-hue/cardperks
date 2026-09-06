@@ -386,6 +386,8 @@ class CardCaptureRateSensor(CardEntity, SensorEntity):
             "annual_value": s.totals.annual_value,
             "captured_12m": s.totals.captured,
             "forfeited_12m": s.totals.forfeited,
+            "unknown_12m": s.totals.unknown,
+            "open_remaining": s.totals.open_remaining,
             "worst_forfeited": [
                 {"benefit": name, "forfeited": amt} for amt, name in reversed(worst[-5:])
             ],
