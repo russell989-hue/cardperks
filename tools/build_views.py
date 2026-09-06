@@ -30,6 +30,7 @@ from build_sections import (
     net_value,
     outstanding,
     perk_values,
+    shared_perks,
     where_big_dollars_went,
 )
 from lovelace import ONLY_ACTIVE, _template_cards, auto_cards, full_width, heading, note
@@ -291,6 +292,7 @@ def upkeep() -> dict:
         "sections": [
             statements(),
             span(checkoff(), 2),
+            span(shared_perks(), 1),
             span(perk_values(), 2),
         ],
     }

@@ -195,6 +195,36 @@ def big_ticket() -> dict:
     return {"type": "grid", "cards": top["cards"] + bottom["cards"][1:]}
 
 
+def shared_perks() -> dict:
+    """Every perk valued once for the household: what it is worth, each card's share,
+    and which cards carry it. Tapping a row edits the household number."""
+    return {
+        "type": "grid",
+        "cards": [
+            heading("Shared across cards", "mdi:tag-multiple-outline"),
+            note(
+                "One membership, several cards. Each of these is one number for the household, "
+                "split equally between the cards that carry it."
+            ),
+            auto_cards(
+                [{"domain": "number", "attributes": {"kind": "shared_value"}}],
+                primary=(
+                    "${{ states(entity) | float(0) | round(0) | int }} · "
+                    "{{ state_attr(entity, 'benefit') }}"
+                ),
+                secondary=(
+                    "${{ " + attr("per_card") + " | round(0) | int }} each on "
+                    "{{ (state_attr(entity, 'cards') or []) | count }} cards: "
+                    "{{ (state_attr(entity, 'cards') or []) | join(', ') }}"
+                ),
+                icon="mdi:tag-multiple-outline",
+                sort={"method": "state", "numeric": True, "reverse": True},
+                show_empty=True,
+            ),
+        ],
+    }
+
+
 def coverage() -> dict:
     return {
         "type": "grid",
