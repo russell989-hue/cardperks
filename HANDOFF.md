@@ -74,15 +74,28 @@ git-filter-repo to enforce this, so do not merge anything from an old clone.
 
 ## Dev loop
 
-Home Assistant only runs on Linux; tests run in WSL2 Ubuntu 24.04:
+Home Assistant only supports Linux, but the tests run natively on Windows with
+three shims. One-time setup from the repo root (`uv` and Python 3.14 are on the
+Office machine; any 3.13+ works):
 
 ```bash
-wsl.exe -d Ubuntu-24.04 -- bash -lc 'cd /mnt/c/Users/BrianRussell/dev/cardperks && source ~/venvs/cardperks/bin/activate && pytest -q -p no:sugar tests'
+uv venv -p 3.14 .venv-win
+uv pip install -p .venv-win/Scripts/python.exe -r requirements_test.txt
+.venv-win/Scripts/python.exe tools/setup_windows_tests.py .venv-win
 ```
 
-The venv pins `pytest-homeassistant-custom-component==0.13.363` (HA 2026.9.0). Ruff
-runs from the Windows scratch venv: `.venv-win/Scripts/ruff.exe check .` and
-`format .`. `pytest-sugar` must be disabled (`-p no:sugar`).
+`tools/setup_windows_tests.py` writes `fcntl`, `resource` and a `sitecustomize`
+socketpair shim into the venv (see its docstring). They never ship; CI on Linux runs
+the real harness. Then:
+
+```bash
+.venv-win/Scripts/python.exe -m pytest -q -p no:sugar tests
+.venv-win/Scripts/ruff.exe check . && .venv-win/Scripts/ruff.exe format .
+```
+
+The venv pins `pytest-homeassistant-custom-component==0.13.363` (HA 2026.9.0).
+`pytest-sugar` must be disabled (`-p no:sugar`). WSL2 with the same requirements works
+too if you have it; nothing depends on it.
 
 ## Deploy
 
