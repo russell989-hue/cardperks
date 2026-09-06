@@ -58,7 +58,11 @@ def slugify(name: str) -> str:
 
 def gauge(card_id: str, kind: str, label: str, **kw: str) -> dict:
     """One gauge for one card, coloured live, a third of a wide section."""
-    return third(gauge_grid(kind, name=f"'{label}'", where=ONLY_CARD.format(card_id=card_id), **kw))
+    return third(
+        gauge_grid(
+            kind, name=f"'{label}'", where=ONLY_CARD.format(card_id=card_id), columns=1, **kw
+        )
+    )
 
 
 def build_view(card: dict) -> dict:
@@ -84,7 +88,7 @@ def build_view(card: dict) -> dict:
         heading("This year", "mdi:cash-100"),
         note(
             "Trailing twelve months. Green is captured, red forfeited, grey unknown "
-            "(months with no statement), and the card's colour is still open to capture."
+            "(months with no statement); the dim remainder is still open to capture."
         ),
         money_bars(card_id=card_id, with_name=False),
         gauge(card_id, "capture_rate", "Capture rate"),

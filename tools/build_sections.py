@@ -77,8 +77,8 @@ def by_card() -> dict:
             heading("By card", "mdi:credit-card-multiple"),
             note(
                 "Where each card's credit dollars went over the trailing twelve months. "
-                "Green is captured, red forfeited, grey unknown (months with no statement), "
-                "and the card's colour is still open to capture."
+                "Green is captured, red forfeited, grey unknown (months with no statement); "
+                "the dim remainder is still open to capture."
             ),
             money_bars(),
         ]

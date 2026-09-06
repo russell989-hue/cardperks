@@ -442,9 +442,11 @@ def donut_by_card(size: int = 240, *, card_id: str | None = None) -> dict:
 def money_bars(*, card_id: str | None = None, with_name: bool = True) -> dict:
     """A stacked bar per card: where the trailing year's credit dollars went.
 
-    Green captured, red forfeited, grey unknown (months with no statement), and the
-    card's own colour for money still open to capture. Built by a template over the
-    capture-rate sensors, so cards come and go by themselves.
+    One scheme for every card so the bars read the same everywhere: green captured,
+    red forfeited, grey unknown (months with no statement), and a dim track for what
+    is still open to capture, like a progress bar. Card colours stay on the rings and
+    gauges. Built by a template over the capture-rate sensors, so cards come and go by
+    themselves.
     """
     scope = f" and {ONLY_CARD.format(card_id=card_id)}" if card_id else ""
     bar_css = 'content: ""; display: block; height: 12px; border-radius: 6px; margin: 2px 0 10px;'
@@ -452,8 +454,7 @@ def money_bars(*, card_id: str | None = None, with_name: bool = True) -> dict:
         "'ha-markdown::before { " + bar_css + " background: linear-gradient(to right, "
         "var(--green-color) 0% ' ~ a ~ '%, var(--red-color) ' ~ a ~ '% ' ~ b ~ '%, "
         "var(--grey-color) ' ~ b ~ '% ' ~ c ~ '%, "
-        "color-mix(in srgb, var(--' ~ col ~ '-color) 55%, var(--card-background-color)) "
-        "' ~ c ~ '% 100%); }'"
+        "var(--divider-color) ' ~ c ~ '% 100%); }'"
     )
     empty = "'ha-markdown::before { " + bar_css + " background: var(--divider-color); }'"
     head = (
@@ -471,7 +472,6 @@ def money_bars(*, card_id: str | None = None, with_name: bool = True) -> dict:
         "{% set unk = s.attributes.get('unknown_12m') or 0 %}"
         "{% set open = s.attributes.get('open_remaining') or 0 %}"
         "{% set tot = cap + forf + unk + open %}"
-        "{% set col = s.attributes.get('color') or 'grey' %}"
         "{% if tot > 0 %}"
         "{% set a = (cap / tot * 100) | round(2) %}"
         "{% set b = ((cap + forf) / tot * 100) | round(2) %}"
