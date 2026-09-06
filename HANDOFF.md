@@ -31,6 +31,7 @@ month. Manual dollar boxes exist as the fallback, not the main flow.
 | `custom_components/cardperks/panel.py` | serves the catalog page at `/cardperks/catalog` (rendered live by `catalog_page.py`, overrides included, no auth: catalog data only) and the fonts at `/cardperks/static/`; the dashboard's Catalog view is an iframe over it |
 | `TODO.md` | one list of what is next and why |
 | `docs/CATALOG-LOG.md` | dated record of catalog changes |
+| `blueprints/automation/cardperks/` | the statement drop-folder blueprint; deploy.sh ships it. On Brian's box Folder Watcher watches `/config/cardperks/statements` and the automation `cardperks_statement_drop_folder` runs the import |
 | `README.md` | user-facing install and usage |
 
 The repo is `C:\Users\BrianRussell\dev\cardperks`, branch `main`, with a private
