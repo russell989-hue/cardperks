@@ -462,7 +462,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                             held_card_id=card.id,
                             card_title=card.title,
                             benefit_id=inst.benefit_id,
-                            benefit_name=benefit.name if benefit else inst.benefit_id,
+                            benefit_name=benefit.label if benefit else inst.benefit_id,
                             period_end=date.fromisoformat(inst.period_end),
                             remaining=remaining,
                         )

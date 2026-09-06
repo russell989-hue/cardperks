@@ -106,7 +106,7 @@ class BenefitRemainingSensor(BenefitEntity, SensorEntity):
         pct = round(inst.amount_used / total * 100, 1) if total else None
         return {
             **self.card_attributes,
-            "benefit": self.benefit.name,
+            "benefit": self.benefit.label,
             "status": str(inst.status),
             "amount": total,
             "amount_used": inst.amount_used,
@@ -142,7 +142,7 @@ class BenefitStatusSensor(BenefitEntity, SensorEntity):
             return {}
         return {
             **self.card_attributes,
-            "benefit": self.benefit.name,
+            "benefit": self.benefit.label,
             "benefit_id": self.benefit_id,
             "amount": inst.amount,
             "amount_used": inst.amount_used,
@@ -177,7 +177,7 @@ class BenefitExpiresSensor(BenefitEntity, SensorEntity):
             days = (date.fromisoformat(inst.period_end) - self.coordinator.data.today).days
         return {
             **self.card_attributes,
-            "benefit": self.benefit.name,
+            "benefit": self.benefit.label,
             "status": str(inst.status),
             "amount": inst.amount,
             "amount_used": inst.amount_used,
@@ -377,7 +377,7 @@ class CardCaptureRateSensor(CardEntity, SensorEntity):
         if s is None:
             return {}
         product = self.coordinator.catalog.get(s and self.card.product_id) if self.card else None
-        names = {b.id: b.name for b in product.benefits} if product else {}
+        names = {b.id: b.label for b in product.benefits} if product else {}
         worst = sorted(
             (t.forfeited, names.get(bid, bid)) for bid, t in s.benefit_totals.items() if t.forfeited
         )

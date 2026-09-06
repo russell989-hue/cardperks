@@ -63,7 +63,7 @@ class BenefitEntity(CardEntity):
         super().__init__(coordinator, card)
         self.benefit_id = benefit.id
         self.benefit = benefit
-        self._attr_translation_placeholders = {"benefit": benefit.name}
+        self._attr_translation_placeholders = {"benefit": benefit.label}
 
     @property
     def instance(self) -> BenefitInstance | None:

@@ -43,7 +43,7 @@ class BenefitMarkUsedButton(BenefitEntity, ButtonEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        return {**self.card_attributes, "benefit": self.benefit.name}
+        return {**self.card_attributes, "benefit": self.benefit.label}
 
     _attr_icon = "mdi:check-circle-outline"
 

@@ -83,7 +83,7 @@ async def test_entities_created(hass, setup_integration: MockConfigEntry):
     )
     exp30 = hass.states.get(_eid(hass, "sensor", f"owner_{OWNER_ID}_expiring_30d"))
     assert exp30.state == "1"  # September monthly credit
-    assert exp30.attributes["items"][0]["benefit"] == "Monthly credit"
+    assert exp30.attributes["items"][0]["benefit"] == "Monthly credit (monthly)"
     assert hass.states.get(_eid(hass, "sensor", f"owner_{OWNER_ID}_expiring_7d")).state == "0"
     five = hass.states.get(_eid(hass, "sensor", f"owner_{OWNER_ID}_5_24"))
     assert five.state == "1" and five.attributes["under_5_24"] is True

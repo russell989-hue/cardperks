@@ -334,14 +334,16 @@ class HeldCardSubentryFlow(ConfigSubentryFlow):
         if product is None:
             return []
         return [
-            SelectOptionDict(value=b.id, label=b.name) for b in product.conditional_benefits(role)
+            SelectOptionDict(value=b.id, label=b.label) for b in product.conditional_benefits(role)
         ]
 
     def _benefit_options(self, product_id: str, role: Role) -> list[SelectOptionDict]:
         product = self._catalog.get(product_id) if self._catalog else None
         if product is None:
             return []
-        return [SelectOptionDict(value=b.id, label=b.name) for b in product.benefits_for_role(role)]
+        return [
+            SelectOptionDict(value=b.id, label=b.label) for b in product.benefits_for_role(role)
+        ]
 
     def _details_schema(
         self,

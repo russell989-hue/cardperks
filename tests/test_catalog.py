@@ -94,3 +94,11 @@ async def test_repair_issues(hass, catalog):
     assert registry.async_get_issue(DOMAIN, "stale_catalog_test_premium") is None
     assert registry.async_get_issue(DOMAIN, "catalog_needs_verification") is None
     assert any(i.issue_id.startswith("invalid_override_") for i in registry.issues.values())
+
+
+def test_benefit_label_carries_the_cadence(catalog):
+    p = catalog.products["test_premium"]
+    assert p.benefit("monthly_credit").label == "Monthly credit (monthly)"
+    assert p.benefit("dining_credit").label == "Dining credit (every 6 months)"
+    assert p.benefit("travel_credit").label == "Travel credit"  # yearly is the default
+    assert p.benefit("sub").label == "Sign-up bonus (one-time)"

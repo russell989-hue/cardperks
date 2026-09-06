@@ -20,6 +20,14 @@ from .const import (
 
 # --------------------------------------------------------------------------- catalog
 
+CADENCE_TAGS: dict[Cadence, str] = {
+    Cadence.MONTHLY: "monthly",
+    Cadence.QUARTERLY: "quarterly",
+    Cadence.SEMIANNUAL: "every 6 months",
+    Cadence.ONE_TIME: "one-time",
+    Cadence.PER_ANNIVERSARY: "each anniversary",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class Benefit:
@@ -44,6 +52,17 @@ class Benefit:
         if role is Role.PRIMARY:
             return True
         return self.applies_to in (AppliesTo.PRIMARY_AND_AU, AppliesTo.AU_OWN_ALLOTMENT)
+
+    @property
+    def label(self) -> str:
+        """The name, with how often it comes round when that is not yearly.
+
+        "Uber One membership credit (monthly)" tells you at a glance how long you have
+        to use it; yearly benefits carry no tag, since that is the default expectation.
+        This is the name entities and dashboards show.
+        """
+        tag = CADENCE_TAGS.get(self.cadence)
+        return f"{self.name} ({tag})" if tag else self.name
 
     @property
     def is_one_time(self) -> bool:
