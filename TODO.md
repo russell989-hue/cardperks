@@ -31,6 +31,10 @@ is based on: captured, forfeited, unknown, still open.
 
 ## Next
 
+- [ ] **An every-four-years cadence** anchored on the open date, so Global Entry can be a
+      real $120 credit with a four-year period instead of a $30-a-year shared perk. Needs
+      `compute_period` to build multi-year blocks from the open date, not the last anniversary.
+
 ### Historical backfill: was this card ever worth it?
 
 Upload several years of statements and answer the question the fee actually poses. The

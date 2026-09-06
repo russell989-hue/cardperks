@@ -6,6 +6,9 @@ what was available when, since issuer pages do not publish theirs.
 
 ## 2026-09-06
 
+- **Global Entry / TSA PreCheck** on every product: was a $120 statement credit per card per
+  year; now a shared perk (`global_entry`) valued at $30 a year for the household. One fee
+  every four years, claimable once, is what the issuers actually give.
 Every shipped product checked against its issuer page; `needs_verification` cleared and
 `last_verified` set. Verified from statements earlier: Chase fee months and amounts for
 every Chase card, the Amex Platinum fee date and the Resy credit's quarterly cadence,

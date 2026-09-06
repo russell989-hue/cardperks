@@ -174,17 +174,19 @@
         {
           "id": "global_entry",
           "name": "Global Entry / TSA PreCheck credit",
-          "type": "statement_credit",
+          "type": "perk",
           "cadence": "annual",
-          "amount": 120,
+          "amount": null,
           "unit": "USD",
-          "reset": "calendar",
+          "reset": "cardmember_year",
           "applies_to": "primary",
-          "notes": "Once every four years",
+          "notes": "Up to $120 once every four years, and one Global Entry fee is all a person pays, however many cards offer it: valued at $30 a year for the household and split between the cards that carry it. A fee reimbursed on a statement still counts as captured.",
           "statement_match": [
             "Global Entry",
             "TSA Pre"
-          ]
+          ],
+          "default_value": 30,
+          "shared_key": "global_entry"
         },
         {
           "id": "centurion_lounge",
@@ -526,9 +528,9 @@
         {
           "id": "global_entry",
           "name": "Global Entry / TSA PreCheck credit",
-          "type": "statement_credit",
+          "type": "perk",
           "cadence": "annual",
-          "amount": 120,
+          "amount": null,
           "unit": "USD",
           "reset": "cardmember_year",
           "enrollment_required": false,
@@ -537,7 +539,9 @@
             "Global Entry",
             "TSA Pre"
           ],
-          "notes": "Once every four years."
+          "notes": "Up to $120 once every four years, and one Global Entry fee is all a person pays, however many cards offer it: valued at $30 a year for the household and split between the cards that carry it. A fee reimbursed on a statement still counts as captured.",
+          "default_value": 30,
+          "shared_key": "global_entry"
         },
         {
           "id": "centurion_lounge",
