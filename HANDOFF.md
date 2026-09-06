@@ -188,5 +188,5 @@ installed but unused: apexcharts-card, mini-graph-card, button-card, layout-card
 ## Known rough edges
 
 - Gauge titles can clip at three per row on narrower screens.
-- The shipped catalog is drafted from general knowledge and flagged
-  `needs_verification`; Repairs lists it. Verified so far is noted in the backlog.
+- The shipped catalog (15 products) was checked against issuer pages on 2026-09-06; only the
+  two Amex business cards remain `needs_verification`. Details in the backlog.
