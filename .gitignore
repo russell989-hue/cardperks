@@ -18,3 +18,4 @@ config/
 .storage/
 statements/
 data/
+tools/secrets.env

@@ -9,7 +9,12 @@
 #              first install.
 set -euo pipefail
 
-HOST="${CARDPERKS_HA_HOST:-brianrussell@homeassistant.local}"
+# The box address and key live in tools/secrets.env (untracked); see secrets.env.example.
+if [[ -f "$(dirname "$0")/secrets.env" ]]; then
+  # shellcheck disable=SC1091
+  source "$(dirname "$0")/secrets.env"
+fi
+HOST="${CARDPERKS_HA_HOST:?set CARDPERKS_HA_HOST in tools/secrets.env, e.g. user@homeassistant.local}"
 KEY="${CARDPERKS_SSH_KEY:-$HOME/.ssh/id_ed25519}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 SSH=(ssh -i "$KEY" -o BatchMode=yes "$HOST")

@@ -7,7 +7,7 @@ can pick it up without the conversation that built it. Read this, then `BACKLOG.
 
 A Home Assistant custom integration (domain `cardperks`, HACS-shaped) that tracks
 credit-card benefits so none go unused, plus a generated Lovelace dashboard. It runs
-on Brian's HA OS box (Proxmox VM, homeassistant.local, HA 2026.9.1, Python 3.14) and is
+on Brian's HA OS box (Proxmox VM, address in `tools/secrets.env`, HA 2026.9.1, Python 3.14) and is
 in daily use with nine cards across two owners.
 
 The one idea everything else follows: **everything is dollars over a trailing twelve
@@ -74,8 +74,8 @@ runs from the Windows scratch venv: `.venv-win/Scripts/ruff.exe check .` and
 
 ## Deploy
 
-`bash tools/deploy.sh` tars the integration over SSH (key `~/.ssh/id_ed25519`,
-user `brianrussell`, no scp on HA OS) and reloads the config entry.
+`bash tools/deploy.sh` tars the integration over SSH (host and key from `tools/secrets.env`,
+no scp on HA OS) and reloads the config entry.
 
 **Any change to a `.py` file needs `bash tools/deploy.sh --restart`.** A reload reuses
 the modules already imported, so new code silently is not running and setup can fail

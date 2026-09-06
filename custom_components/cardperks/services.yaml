@@ -92,7 +92,7 @@ import_cards:
       example: |
         owner,issuer,product,role,parent_last4,open_date,fee_month,last4,nickname
         Brian,Chase,Sapphire Reserve,primary,,2021-03-15,,1234,
-        Nick,Chase,United Club,au,5678,,,,
+        Nick,Chase,United Club,au,1234,,,,
       selector:
         text:
           multiline: true

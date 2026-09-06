@@ -107,7 +107,7 @@ Open: which programs ship versus user-defined; whether qualifying-activity track
 ## Catalog verification
 
 Every shipped product is flagged `needs_verification` and listed in Repairs. Verified
-from statements so far: Chase fee months and amounts for 1001, 1111, 1002, 1003,
-5678, 1234; Amex Platinum fee date and the Resy credit's quarterly cadence; Capital
+from statements so far: Chase fee months and amounts for all six Chase cards;
+Amex Platinum fee date and the Resy credit's quarterly cadence; Capital
 One Venture X fee month and amount; United inflight/club 25% rebate lines on the Club
 card. United Club authorized users confirmed to get no club access of their own.
