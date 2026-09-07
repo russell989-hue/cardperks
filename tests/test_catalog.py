@@ -120,3 +120,27 @@ def test_benefit_label_carries_the_cadence(catalog):
     assert p.benefit("dining_credit").label == "Dining credit (every 6 months)"
     assert p.benefit("travel_credit").label == "Travel credit"  # yearly is the default
     assert p.benefit("sub").label == "Sign-up bonus (one-time)"
+
+
+def test_best_rate_falls_back_to_the_base_rate(catalog):
+    """A card pays its category rate where it has one, else its base rate, else nothing."""
+    from custom_components.cardperks.const import SpendCategory
+
+    p = catalog.products["test_premium"]
+    assert p.currency_name == "Test points"
+    assert p.best_rate(SpendCategory.DINING).multiplier == 3
+    assert p.best_rate(SpendCategory.GAS).multiplier == 1
+    assert catalog.products["test_basic"].best_rate(SpendCategory.GAS) is None
+
+
+def test_shipped_rates_use_the_taxonomy_and_carry_a_base_rate():
+    """Every shipped product names its currency and has an `other` row for the lookup."""
+    from custom_components.cardperks.catalog import SHIPPED_DIR, load_catalog
+    from custom_components.cardperks.const import SpendCategory
+
+    cat, problems = load_catalog(SHIPPED_DIR)
+    assert not problems
+    for p in cat.products.values():
+        assert p.currency_name != p.currency, p.id
+        assert p.earning_rates, p.id
+        assert any(r.category is SpendCategory.OTHER for r in p.earning_rates), p.id

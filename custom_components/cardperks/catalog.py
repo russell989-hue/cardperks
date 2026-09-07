@@ -10,7 +10,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from .const import AppliesTo, BenefitType, Cadence, ResetRule
+from .const import AppliesTo, BenefitType, Cadence, ResetRule, SpendCategory
 from .models import (
     AuTerms,
     Benefit,
@@ -76,7 +76,7 @@ BENEFIT_SCHEMA = vol.Schema(
 
 EARNING_SCHEMA = vol.Schema(
     {
-        vol.Required("category"): str,
+        vol.Required("category"): vol.Coerce(SpendCategory),
         vol.Required("multiplier"): vol.Coerce(float),
         vol.Optional("notes"): vol.Any(None, str),
     }
@@ -96,6 +96,7 @@ PRODUCT_SCHEMA = vol.Schema(
         vol.Required("name"): str,
         vol.Required("annual_fee"): vol.Coerce(float),
         vol.Optional("currency", default="points"): str,
+        vol.Optional("currency_name"): vol.Any(None, str),
         vol.Optional("default_point_value", default=0.01): vol.Coerce(float),
         vol.Optional("reports_to_personal_credit", default=True): bool,
         vol.Required("last_verified"): _iso_date,
@@ -240,6 +241,7 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
         name=raw["name"],
         annual_fee=raw["annual_fee"],
         currency=raw["currency"],
+        currency_name=raw.get("currency_name") or raw["currency"],
         default_point_value=raw["default_point_value"],
         reports_to_personal_credit=raw["reports_to_personal_credit"],
         last_verified=raw["last_verified"],

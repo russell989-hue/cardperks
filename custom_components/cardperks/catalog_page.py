@@ -8,9 +8,10 @@ without a login (see panel.py).
 from __future__ import annotations
 
 import html
+import json
 from datetime import date
 
-from .const import BenefitType, Cadence, ResetRule
+from .const import BenefitType, Cadence, ResetRule, SpendCategory
 from .models import Benefit, Catalog
 
 CADENCE_WORDS = {
@@ -21,6 +22,27 @@ CADENCE_WORDS = {
     Cadence.PER_ANNIVERSARY: "each anniversary",
     Cadence.EVERY_FOUR_YEARS: "every 4 years",
     Cadence.ONE_TIME: "one-time",
+}
+CATEGORY_WORDS = {
+    SpendCategory.DINING: "Dining",
+    SpendCategory.GROCERIES: "Groceries",
+    SpendCategory.GAS: "Gas and EV charging",
+    SpendCategory.FLIGHTS: "Flights, booked with the airline",
+    SpendCategory.HOTELS: "Hotels, booked with the hotel",
+    SpendCategory.CAR_RENTAL: "Car rental",
+    SpendCategory.TRAVEL: "Other travel",
+    SpendCategory.ISSUER_TRAVEL_PORTAL: "Travel booked through the issuer's portal",
+    SpendCategory.BRAND_AIRLINE: "The card's own airline",
+    SpendCategory.TRANSIT: "Transit, rideshare, tolls, parking",
+    SpendCategory.STREAMING: "Streaming",
+    SpendCategory.WIRELESS: "Wireless phone service",
+    SpendCategory.INTERNET_CABLE_PHONE: "Internet, cable and phone",
+    SpendCategory.SHIPPING: "Shipping",
+    SpendCategory.ADVERTISING: "Advertising",
+    SpendCategory.ELECTRONICS_SOFTWARE: "Electronics, software and cloud",
+    SpendCategory.ENTERTAINMENT: "Event tickets through the issuer",
+    SpendCategory.LARGE_PURCHASE: "Single purchases of $5,000 or more",
+    SpendCategory.OTHER: "Everything else",
 }
 TYPE_WORDS = {
     BenefitType.STATEMENT_CREDIT: "credit",
@@ -82,6 +104,7 @@ def render_catalog(
 
     nav: list[str] = []
     sections: list[str] = []
+    lookup: list[dict] = []
     total_products = 0
     flagged = 0
     overridden = 0
@@ -92,6 +115,20 @@ def render_catalog(
             flagged += p.needs_verification
             overridden += p.origin != "shipped"
             held = p.id in owned
+            lookup.append(
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "issuer": p.issuer_name,
+                    "held": held,
+                    "currency": p.currency_name,
+                    "cents": round(p.default_point_value * 100, 2),
+                    "rates": [
+                        {"c": str(r.category), "x": r.multiplier, "n": r.notes or ""}
+                        for r in p.earning_rates
+                    ],
+                }
+            )
             nav.append(
                 f'<li class="{"held" if held else "not-held"}"><a href="#{_esc(p.id)}">'
                 f"{_esc(p.name)}</a></li>"
@@ -161,6 +198,14 @@ def render_catalog(
             au_text = f"Additional card {_money(au.fee)}" if au.fee else "Additional cards free"
             if au.notes:
                 au_text += f". {au.notes}"
+            earns = " · ".join(
+                f'<span title="{_esc(r.notes or "")}">{r.multiplier:g}&times; '
+                f"{_esc(CATEGORY_WORDS[r.category].lower())}</span>"
+                for r in sorted(p.earning_rates, key=lambda r: -r.multiplier)
+            )
+            earns_line = (
+                f'<p class="p-earns">Earns {_esc(p.currency_name)}: {earns}.</p>' if earns else ""
+            )
             chips = ""
             if held:
                 chips += '<span class="chip chip-held">you hold this</span>'
@@ -176,7 +221,7 @@ def render_catalog(
                 f"<h2>{_esc(p.name)} {chips}</h2>"
                 f'<p class="p-meta">{_esc(au_text)}. Checked {_esc(p.last_verified.isoformat())} '
                 f'against <a href="{_esc(p.source_url)}" target="_blank" rel="noopener">the issuer '
-                f"page</a>. Catalog id <code>{_esc(p.id)}</code>.</p></div>"
+                f"page</a>. Catalog id <code>{_esc(p.id)}</code>.</p>{earns_line}</div>"
                 '<dl class="p-figures">'
                 f"<div><dt>Annual fee</dt><dd>{_money(p.annual_fee)}</dd></div>"
                 f"<div><dt>Credits per year</dt><dd>{_money(annual)}</dd></div>"
@@ -223,6 +268,38 @@ def render_catalog(
             "<thead><tr><th>Tier</th><th>How to qualify</th><th>What it gives</th></tr></thead>"
             f"<tbody>{''.join(rows)}</tbody></table></div></section>"
         )
+
+    category_options = "".join(
+        f'<option value="{_esc(c)}"{" selected" if c is SpendCategory.DINING else ""}>'
+        f"{_esc(CATEGORY_WORDS[c])}</option>"
+        for c in SpendCategory
+    )
+    currencies = sorted({(d["currency"], d["cents"]) for d in lookup})
+    cents_inputs = "".join(
+        f'<label><span>{_esc(name)}</span><input class="cents" type="text" inputmode="decimal" '
+        f'data-currency="{_esc(name)}" data-default="{cents:g}" value="{cents:g}" '
+        f'aria-label="Cents per point for {_esc(name)}">¢</label>'
+        for name, cents in currencies
+    )
+    best_card = (
+        '<section class="product lookup" id="best-card">'
+        '<header class="p-head"><div><p class="eyebrow">Before you pay</p>'
+        "<h2>Best card for this purchase</h2>"
+        '<p class="p-meta">Pick where the money is going and the cards rank by what they earn '
+        "there, from each issuer's own page. Points and miles are not worth the same, so the "
+        "ranking uses your cents-per-point figures below; they start at one cent and stay in "
+        "this browser. Hover a rate for the issuer's fine print (caps, portal-only, promo dates)."
+        "</p></div></header>"
+        '<div class="lookup-body">'
+        '<label class="lookup-pick">Spending on '
+        f'<select id="lookup-category" aria-label="Spend category">{category_options}</select></label>'
+        '<ol class="ranking" id="lookup-ranking"></ol>'
+        f'<div class="cents-row"><span class="cents-title">Cents per point</span>{cents_inputs}'
+        '<a href="#" class="reset" id="cents-reset">reset</a></div>'
+        "</div></section>"
+    )
+    sections.insert(0, best_card)
+    lookup_json = json.dumps(lookup).replace("</", "<\\/")
 
     summary = f"{total_products} products"
     if programs:
@@ -320,9 +397,33 @@ th .reset {{ font-weight: 400; text-transform: none; letter-spacing: 0; margin-l
 .p-figures .mine dd {{ color: var(--brass); }}
 .p-figures .mine dd.negative {{ color: var(--flag); }}
 .hidden {{ display: none; }}
+.p-earns {{ margin: 6px 0 0; color: var(--ink-2); font-size: 13px; max-width: 72ch; }}
+.p-earns span {{ white-space: nowrap; }}
+.lookup {{ border-color: var(--brass); }}
+.lookup-body {{ display: grid; gap: 14px; padding: 14px 0 12px; }}
+.lookup-pick {{ font-size: 14px; color: var(--ink-2); }}
+.lookup-pick select {{ margin-left: 6px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); color: var(--ink); font: inherit; max-width: 100%; }}
+.ranking {{ margin: 0; padding-left: 0; list-style: none; display: grid; gap: 6px; }}
+.ranking li {{ display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--rule); }}
+.ranking li:last-child {{ border-bottom: 0; }}
+.ranking .rank {{ font: 500 18px/1 "Newsreader", Georgia, serif; color: var(--ink-3); }}
+.ranking li.top .rank {{ color: var(--brass); }}
+.ranking .who {{ min-width: 0; }}
+.ranking .who small {{ display: block; color: var(--ink-3); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+.ranking .rate {{ font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }}
+.ranking .rate small {{ display: block; color: var(--ink-3); font-size: 12px; }}
+.ranking li.not-held {{ display: none; }}
+body:not(.only-held) .ranking li.not-held {{ display: grid; opacity: 0.6; }}
+.ranking .empty {{ color: var(--ink-3); font-size: 13.5px; display: block; }}
+.cents-row {{ display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 13px; color: var(--ink-2); }}
+.cents-title {{ font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }}
+.cents-row label {{ display: inline-flex; gap: 6px; align-items: center; }}
+.cents-row input.cents {{ width: 52px; padding: 3px 5px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); color: var(--ink); font: 13px "IBM Plex Sans", sans-serif; text-align: right; }}
+.cents-row .reset {{ font-size: 11px; }}
 @media (max-width: 820px) {{ .page {{ grid-template-columns: 1fr; gap: 20px; }} .side {{ position: static; }} .p-figures {{ gap: 18px; }} }}
 @media (prefers-reduced-motion: no-preference) {{ html {{ scroll-behavior: smooth; }} }}
 </style></head><body>
+<script id="cp-data" type="application/json">{lookup_json}</script>
 <div class="page">
   <aside class="side">
     <h1>CardPerks Catalog</h1>
@@ -378,10 +479,65 @@ th .reset {{ font-weight: 400; text-transform: none; letter-spacing: 0; margin-l
     }});
   }});
   document.querySelectorAll("section.product").forEach(total);
+  // Best card for a purchase: rank by multiplier times the viewer's cents per point.
+  const data = JSON.parse(document.getElementById("cp-data").textContent);
+  const centsFor = {{}};
+  document.querySelectorAll("input.cents").forEach((i) => {{
+    try {{ const saved = localStorage.getItem("cardperks.cents." + i.dataset.currency); if (saved !== null) i.value = saved; }} catch (e) {{}}
+    centsFor[i.dataset.currency] = Number(i.value) || 0;
+    i.addEventListener("input", () => {{
+      i.value = i.value.replace(/[^0-9.]/g, "");
+      centsFor[i.dataset.currency] = Number(i.value) || 0;
+      try {{ localStorage.setItem("cardperks.cents." + i.dataset.currency, i.value); }} catch (e) {{}}
+      rank();
+    }});
+  }});
+  const pick = document.getElementById("lookup-category");
+  const list = document.getElementById("lookup-ranking");
+  const rank = () => {{
+    const cat = pick.value;
+    const rows = [];
+    data.forEach((p) => {{
+      let hits = p.rates.filter((r) => r.c === cat);
+      if (!hits.length && cat !== "other") hits = p.rates.filter((r) => r.c === "other");
+      if (!hits.length) return;
+      const best = hits.reduce((a, b) => (b.x > a.x ? b : a));
+      const cents = centsFor[p.currency] ?? p.cents;
+      rows.push({{ p, best, value: best.x * cents, base: !hits.some((r) => r.c === cat) }});
+    }});
+    rows.sort((a, b) => b.value - a.value || (b.p.held - a.p.held));
+    list.innerHTML = "";
+    if (!rows.length) {{ list.innerHTML = '<li><span class="empty">No card in the catalog lists a rate here.</span></li>'; return; }}
+    let n = 0;
+    rows.forEach((r) => {{
+      const li = document.createElement("li");
+      li.className = r.p.held ? "held" : "not-held";
+      if (r.p.held) {{ n += 1; if (n === 1) li.classList.add("top"); }}
+      const rate = document.createElement("span");
+      rate.className = "rate";
+      rate.title = r.best.n;
+      rate.innerHTML = `${{r.best.x}}&times; ${{r.p.currency}}<small>≈ ${{r.value.toFixed(1)}}¢ per $${{r.base ? " · base rate" : ""}}</small>`;
+      li.innerHTML = `<span class="rank">${{r.p.held ? n : "·"}}</span><span class="who"><a href="#${{r.p.id}}">${{r.p.name}}</a><small>${{r.p.issuer}}${{r.best.n ? " · " + r.best.n : ""}}</small></span>`;
+      li.appendChild(rate);
+      list.appendChild(li);
+    }});
+  }};
+  try {{ const savedCat = localStorage.getItem("cardperks.lookupCategory"); if (savedCat && [...pick.options].some((o) => o.value === savedCat)) pick.value = savedCat; }} catch (e) {{}}
+  pick.addEventListener("change", () => {{ try {{ localStorage.setItem("cardperks.lookupCategory", pick.value); }} catch (e) {{}} rank(); }});
+  document.getElementById("cents-reset").addEventListener("click", (ev) => {{
+    ev.preventDefault();
+    document.querySelectorAll("input.cents").forEach((i) => {{
+      i.value = i.dataset.default; centsFor[i.dataset.currency] = Number(i.value) || 0;
+      try {{ localStorage.removeItem("cardperks.cents." + i.dataset.currency); }} catch (e) {{}}
+    }});
+    rank();
+  }});
+  if (only) only.addEventListener("change", rank);
+  rank();
   const q = document.getElementById("q");
   q.addEventListener("input", () => {{
     const term = q.value.trim().toLowerCase();
-    document.querySelectorAll(".product").forEach((section) => {{
+    document.querySelectorAll(".product:not(.lookup)").forEach((section) => {{
       let any = false;
       const name = section.querySelector("h2").textContent.toLowerCase();
       section.querySelectorAll("tbody tr").forEach((tr) => {{

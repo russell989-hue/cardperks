@@ -61,6 +61,7 @@ def product_to_dict(p: Product) -> dict[str, Any]:
         "name": p.name,
         "annual_fee": p.annual_fee,
         "currency": p.currency,
+        "currency_name": p.currency_name,
         "default_point_value": p.default_point_value,
         "reports_to_personal_credit": p.reports_to_personal_credit,
         "last_verified": p.last_verified.isoformat(),
@@ -68,9 +69,9 @@ def product_to_dict(p: Product) -> dict[str, Any]:
         "needs_verification": p.needs_verification,
         "benefits": [benefit_to_dict(b) for b in p.benefits],
         "earning_rates": [
-            {"category": e.category, "multiplier": e.multiplier, "notes": e.notes}
+            {"category": str(e.category), "multiplier": e.multiplier, "notes": e.notes}
             if e.notes
-            else {"category": e.category, "multiplier": e.multiplier}
+            else {"category": str(e.category), "multiplier": e.multiplier}
             for e in p.earning_rates
         ],
         "au_terms": {

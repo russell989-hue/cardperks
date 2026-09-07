@@ -8,6 +8,7 @@
       "name": "Premium Card",
       "annual_fee": 500,
       "currency": "points",
+      "currency_name": "Test points",
       "default_point_value": 0.01,
       "reports_to_personal_credit": true,
       "last_verified": "2026-08-01",
@@ -123,6 +124,11 @@
         }
       ],
       "earning_rates": [
+        {
+          "category": "dining",
+          "multiplier": 3,
+          "notes": "Restaurants worldwide"
+        },
         {
           "category": "other",
           "multiplier": 1

@@ -51,14 +51,43 @@ This page is the field reference and the contribution rules. The schema itself l
 | `name` | yes | | Card name as the issuer writes it, without the issuer ("Sapphire Reserve"). |
 | `annual_fee` | yes | | Current fee in dollars. First-year waivers go in a benefit note, not here. |
 | `currency` | no | `points` | What the card earns: `points`, `miles`, `cash`. |
+| `currency_name` | no | `currency` | What a multiplier is in, as the program names it ("Ultimate Rewards points", "United miles"). Shown next to every rate and used to group the cents-per-point figures in the best-card lookup. |
 | `default_point_value` | no | `0.01` | Dollars per point, used only for the sign-up bonus. |
 | `reports_to_personal_credit` | no | `true` | Whether the card counts toward Chase's 5/24. Business cards from most issuers are `false`. |
 | `last_verified` | yes | | ISO date of the last check against `source_url`. |
 | `source_url` | yes | | The issuer's page for the card. |
 | `needs_verification` | no | `false` | `true` while the entry is a draft. Listed in Repairs. |
 | `benefits` | no | `[]` | List of benefits, below. |
-| `earning_rates` | no | `[]` | `{category, multiplier, notes?}`; informational for now. |
+| `earning_rates` | no | `[]` | `{category, multiplier, notes?}`. `category` is one of the spend categories below; `notes` carries the issuer's wording for caps, exclusions and portal-only rules. A category may appear more than once (a portal that pays 10X on hotels and 5X on flights); the lookup takes the highest. Always include an `other` row for the base rate. |
 | `au_terms` | no | | `{fee, own_lounge_access, notes?}` for authorized users. |
+
+### Spend categories
+
+The best-card lookup on the catalog page ranks cards by these. Issuers each draw their
+own lines, so pick the bucket a shopper would reach for and put the issuer's exact
+wording in `notes`.
+
+| `category` | Covers |
+| --- | --- |
+| `dining` | Restaurants, takeout, delivery. |
+| `groceries` | Supermarkets and grocery stores; note when it is online-only or U.S.-only. |
+| `gas` | Gas stations and EV charging. |
+| `flights` | Flights booked directly with the airline. |
+| `hotels` | Hotels booked directly with the hotel. |
+| `car_rental` | Car rentals. |
+| `travel` | The issuer's general travel category (trains, cruises, tolls, rideshare and so on). |
+| `issuer_travel_portal` | Bookings through Chase Travel, American Express Travel or Capital One Travel. |
+| `brand_airline` | Purchases with the co-brand airline itself. For airline cards give the card's own share, and say in `notes` what the airline adds. |
+| `transit` | Trains, taxis, rideshare, tolls, parking. Time-limited rideshare promotions go here with their end date in `notes`. |
+| `streaming` | Streaming services. |
+| `wireless` | Wireless phone service. |
+| `internet_cable_phone` | Internet, cable and phone services. |
+| `shipping` | Shipping. |
+| `advertising` | Advertising. |
+| `electronics_software` | Electronics retailers, software and cloud providers. |
+| `entertainment` | Event tickets through the issuer's own platform. |
+| `large_purchase` | Single purchases above a threshold named in `notes`. |
+| `other` | The base rate on everything else. |
 
 ## Benefit
 

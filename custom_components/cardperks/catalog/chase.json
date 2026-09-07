@@ -8,6 +8,7 @@
       "name": "Sapphire Reserve",
       "annual_fee": 795,
       "currency": "ultimate_rewards",
+      "currency_name": "Ultimate Rewards points",
       "default_point_value": 0.015,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -216,16 +217,29 @@
       ],
       "earning_rates": [
         {
-          "category": "chase_travel",
-          "multiplier": 8
+          "category": "issuer_travel_portal",
+          "multiplier": 8,
+          "notes": "All purchases through Chase Travel, including The Edit; purchases covered by the travel or Edit credits earn nothing"
         },
         {
-          "category": "flights_hotels_direct",
-          "multiplier": 4
+          "category": "flights",
+          "multiplier": 4,
+          "notes": "Flights booked direct"
+        },
+        {
+          "category": "hotels",
+          "multiplier": 4,
+          "notes": "Hotels booked direct"
         },
         {
           "category": "dining",
-          "multiplier": 3
+          "multiplier": 3,
+          "notes": "Dining worldwide"
+        },
+        {
+          "category": "transit",
+          "multiplier": 5,
+          "notes": "Lyft rides only, through September 30, 2027"
         },
         {
           "category": "other",
@@ -243,6 +257,7 @@
       "name": "Ink Business Preferred",
       "annual_fee": 95,
       "currency": "ultimate_rewards",
+      "currency_name": "Ultimate Rewards points",
       "default_point_value": 0.015,
       "reports_to_personal_credit": false,
       "last_verified": "2026-09-06",
@@ -292,9 +307,29 @@
       ],
       "earning_rates": [
         {
-          "category": "travel_shipping_ads_telecom",
+          "category": "shipping",
           "multiplier": 3,
-          "notes": "On first $150k combined per cardmember year"
+          "notes": "First $150,000 combined across shipping, advertising, internet/cable/phone and travel each account anniversary year, then 1X"
+        },
+        {
+          "category": "advertising",
+          "multiplier": 3,
+          "notes": "Social media and search engine advertising; same $150,000 combined cap each account anniversary year"
+        },
+        {
+          "category": "internet_cable_phone",
+          "multiplier": 3,
+          "notes": "Same $150,000 combined cap each account anniversary year"
+        },
+        {
+          "category": "travel",
+          "multiplier": 3,
+          "notes": "Same $150,000 combined cap each account anniversary year"
+        },
+        {
+          "category": "transit",
+          "multiplier": 5,
+          "notes": "Lyft rides only, through September 30, 2027"
         },
         {
           "category": "other",
@@ -312,6 +347,7 @@
       "name": "Southwest Rapid Rewards Plus",
       "annual_fee": 99,
       "currency": "rapid_rewards",
+      "currency_name": "Rapid Rewards points",
       "default_point_value": 0.014,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -435,16 +471,24 @@
       ],
       "earning_rates": [
         {
-          "category": "southwest",
-          "multiplier": 2
+          "category": "brand_airline",
+          "multiplier": 2,
+          "notes": "Purchases made directly with Southwest Airlines: flights, inflight, gift cards and Getaways by Southwest packages"
         },
         {
-          "category": "rapid_rewards_hotels_car",
-          "multiplier": 2
+          "category": "gas",
+          "multiplier": 2,
+          "notes": "First $5,000 combined at gas stations and grocery stores each account anniversary year, then 1X"
         },
         {
-          "category": "streaming_transit_internet",
-          "multiplier": 2
+          "category": "groceries",
+          "multiplier": 2,
+          "notes": "First $5,000 combined at gas stations and grocery stores each account anniversary year, then 1X"
+        },
+        {
+          "category": "transit",
+          "multiplier": 2,
+          "notes": "Lyft purchases through the Lyft app only, through December 31, 2027"
         },
         {
           "category": "other",
@@ -461,6 +505,7 @@
       "name": "United Explorer",
       "annual_fee": 150,
       "currency": "mileageplus",
+      "currency_name": "United miles",
       "default_point_value": 0.012,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -631,16 +676,19 @@
       ],
       "earning_rates": [
         {
-          "category": "united",
-          "multiplier": 2
+          "category": "brand_airline",
+          "multiplier": 3,
+          "notes": "The card's share on United flights (9X total with the 6X MileagePlus members earn; less on Basic Economy) and on all other eligible United purchases"
+        },
+        {
+          "category": "hotels",
+          "multiplier": 2,
+          "notes": "Hotel stays booked with the hotel"
         },
         {
           "category": "dining",
-          "multiplier": 2
-        },
-        {
-          "category": "hotels_direct",
-          "multiplier": 2
+          "multiplier": 2,
+          "notes": "Including eligible delivery services"
         },
         {
           "category": "other",
@@ -657,6 +705,7 @@
       "name": "United Club",
       "annual_fee": 695,
       "currency": "mileageplus",
+      "currency_name": "United miles",
       "default_point_value": 0.012,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -838,16 +887,24 @@
       ],
       "earning_rates": [
         {
-          "category": "united",
-          "multiplier": 4
+          "category": "brand_airline",
+          "multiplier": 5,
+          "notes": "The card's share on United flights (11X total with the 6X MileagePlus members earn) and on all other eligible United purchases"
+        },
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Hotel stays booked through Renowned Hotels and Resorts"
         },
         {
           "category": "travel",
-          "multiplier": 2
+          "multiplier": 2,
+          "notes": "All other travel: airfare, trains, transit, cruises, hotels, car rentals, rideshare and tolls"
         },
         {
           "category": "dining",
-          "multiplier": 2
+          "multiplier": 2,
+          "notes": "Including eligible delivery services"
         },
         {
           "category": "other",
@@ -865,6 +922,7 @@
       "name": "Sapphire Preferred",
       "annual_fee": 95,
       "currency": "points",
+      "currency_name": "Ultimate Rewards points",
       "default_point_value": 0.01,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -957,7 +1015,47 @@
           "expires_days_after_open": 90
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Purchases through Chase Travel; the first $100 of Chase Travel hotel purchases each year is covered by the hotel credit and earns nothing"
+        },
+        {
+          "category": "dining",
+          "multiplier": 3,
+          "notes": "Restaurants, takeout and eligible delivery services"
+        },
+        {
+          "category": "gas",
+          "multiplier": 3,
+          "notes": "Gas stations and electric vehicle charging"
+        },
+        {
+          "category": "streaming",
+          "multiplier": 3,
+          "notes": "Select streaming services"
+        },
+        {
+          "category": "groceries",
+          "multiplier": 3,
+          "notes": "Online grocery only, excluding Target, Walmart and wholesale clubs"
+        },
+        {
+          "category": "travel",
+          "multiplier": 2,
+          "notes": "The travel category, other than Chase Travel purchases"
+        },
+        {
+          "category": "transit",
+          "multiplier": 5,
+          "notes": "Lyft rides only, through September 30, 2027"
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
+      ],
       "au_terms": {
         "fee": 0.0,
         "own_lounge_access": false
@@ -968,6 +1066,7 @@
       "name": "United Quest",
       "annual_fee": 350,
       "currency": "miles",
+      "currency_name": "United miles",
       "default_point_value": 0.012,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -1167,7 +1266,37 @@
           "notes": "60,000 miles plus 500 PQP after $4,000 in three months, and 10,000 miles for adding an authorized user."
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "brand_airline",
+          "multiplier": 4,
+          "notes": "The card's share on United flights (10X total with the 6X MileagePlus members earn) and on all other eligible United purchases"
+        },
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Hotel stays prepaid through Renowned Hotels and Resorts via Chase Travel"
+        },
+        {
+          "category": "travel",
+          "multiplier": 2,
+          "notes": "All other travel: airfare, trains, transit, cruises, hotels, car rentals, rideshare and tolls"
+        },
+        {
+          "category": "dining",
+          "multiplier": 2,
+          "notes": "Including eligible delivery services"
+        },
+        {
+          "category": "streaming",
+          "multiplier": 2,
+          "notes": "Select streaming services"
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
+      ],
       "au_terms": {
         "fee": 0.0,
         "own_lounge_access": false
@@ -1178,6 +1307,7 @@
       "name": "Southwest Rapid Rewards Priority",
       "annual_fee": 229,
       "currency": "points",
+      "currency_name": "Rapid Rewards points",
       "default_point_value": 0.014,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -1302,7 +1432,32 @@
           "expires_days_after_open": 90
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "brand_airline",
+          "multiplier": 4,
+          "notes": "Southwest Airlines purchases: flights, inflight, gift cards and Getaways packages; cruises and cargo excluded"
+        },
+        {
+          "category": "gas",
+          "multiplier": 2,
+          "notes": "Gas stations"
+        },
+        {
+          "category": "dining",
+          "multiplier": 2,
+          "notes": "Restaurants"
+        },
+        {
+          "category": "transit",
+          "multiplier": 5,
+          "notes": "Lyft purchases only, through December 31, 2027"
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
+      ],
       "au_terms": {
         "fee": 0.0,
         "own_lounge_access": false

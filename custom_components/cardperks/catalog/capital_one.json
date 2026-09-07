@@ -8,6 +8,7 @@
       "name": "Venture X",
       "annual_fee": 395,
       "currency": "capital_one_miles",
+      "currency_name": "Capital One miles",
       "default_point_value": 0.0125,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -127,16 +128,24 @@
       ],
       "earning_rates": [
         {
-          "category": "capital_one_travel_hotels_cars",
-          "multiplier": 10
+          "category": "issuer_travel_portal",
+          "multiplier": 10,
+          "notes": "Hotels and rental cars booked through Capital One Travel"
         },
         {
-          "category": "capital_one_travel_flights",
-          "multiplier": 5
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Flights and vacation rentals booked through Capital One Travel"
+        },
+        {
+          "category": "entertainment",
+          "multiplier": 5,
+          "notes": "Tickets bought on the Capital One Entertainment platform; presale and venue-specific tickets excluded"
         },
         {
           "category": "other",
-          "multiplier": 2
+          "multiplier": 2,
+          "notes": "Every purchase, every day"
         }
       ],
       "au_terms": {
@@ -150,6 +159,7 @@
       "name": "Venture Rewards",
       "annual_fee": 95,
       "currency": "miles",
+      "currency_name": "Capital One miles",
       "default_point_value": 0.01,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -218,7 +228,23 @@
           "expires_days_after_open": 90
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Hotels, vacation rentals and rental cars booked through Capital One Travel"
+        },
+        {
+          "category": "entertainment",
+          "multiplier": 5,
+          "notes": "Tickets bought on the Capital One Entertainment platform"
+        },
+        {
+          "category": "other",
+          "multiplier": 2,
+          "notes": "Every purchase, every day"
+        }
+      ],
       "au_terms": {
         "fee": 0.0,
         "own_lounge_access": false
@@ -229,6 +255,7 @@
       "name": "Venture X Business",
       "annual_fee": 395,
       "currency": "miles",
+      "currency_name": "Capital One miles",
       "default_point_value": 0.01,
       "reports_to_personal_credit": false,
       "last_verified": "2026-09-06",
@@ -335,7 +362,23 @@
           "expires_days_after_open": 90
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 10,
+          "notes": "Hotels and rental cars booked through Capital One Business Travel"
+        },
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Flights and vacation rentals booked through Capital One Business Travel"
+        },
+        {
+          "category": "other",
+          "multiplier": 2,
+          "notes": "Every purchase, everywhere, no limits or category restrictions"
+        }
+      ],
       "au_terms": {
         "fee": 0.0,
         "own_lounge_access": false,

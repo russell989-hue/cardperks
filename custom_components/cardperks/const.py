@@ -135,6 +135,32 @@ class Cadence(StrEnum):
     EVERY_FOUR_YEARS = "every_four_years"  # Global Entry: one credit per four-year block
 
 
+class SpendCategory(StrEnum):
+    """Where a purchase happens, for the best-card lookup. Issuers each draw their own
+    lines; these are the buckets a shopper actually thinks in. The issuer's exact
+    wording (caps, exclusions, portal-only) rides along in the rate's notes."""
+
+    DINING = "dining"
+    GROCERIES = "groceries"
+    GAS = "gas"
+    FLIGHTS = "flights"  # booked directly with the airline
+    HOTELS = "hotels"  # booked directly with the hotel
+    CAR_RENTAL = "car_rental"
+    TRAVEL = "travel"  # the issuer's general travel category
+    ISSUER_TRAVEL_PORTAL = "issuer_travel_portal"  # Chase Travel, Amex Travel, Capital One Travel
+    BRAND_AIRLINE = "brand_airline"  # purchases with the co-brand airline itself
+    TRANSIT = "transit"  # trains, taxis, rideshare, tolls, parking
+    STREAMING = "streaming"
+    WIRELESS = "wireless"
+    INTERNET_CABLE_PHONE = "internet_cable_phone"
+    SHIPPING = "shipping"
+    ADVERTISING = "advertising"
+    ELECTRONICS_SOFTWARE = "electronics_software"
+    ENTERTAINMENT = "entertainment"
+    LARGE_PURCHASE = "large_purchase"
+    OTHER = "other"
+
+
 class ResetRule(StrEnum):
     CALENDAR = "calendar"
     CARDMEMBER_YEAR = "cardmember_year"

@@ -8,6 +8,7 @@
       "name": "Platinum Card",
       "annual_fee": 895,
       "currency": "membership_rewards",
+      "currency_name": "Membership Rewards points",
       "default_point_value": 0.015,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -274,13 +275,14 @@
       ],
       "earning_rates": [
         {
-          "category": "flights_direct_or_amex_travel",
+          "category": "flights",
           "multiplier": 5,
-          "notes": "Up to $500k per calendar year"
+          "notes": "Booked directly with airlines or through American Express Travel, on up to $500,000 of these purchases per calendar year"
         },
         {
-          "category": "prepaid_hotels_amex_travel",
-          "multiplier": 5
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Prepaid hotels booked on American Express Travel"
         },
         {
           "category": "other",
@@ -298,6 +300,7 @@
       "name": "Gold Card",
       "annual_fee": 325,
       "currency": "points",
+      "currency_name": "Membership Rewards points",
       "default_point_value": 0.01,
       "reports_to_personal_credit": true,
       "last_verified": "2026-09-06",
@@ -389,7 +392,37 @@
           "notes": "Offers vary; 100,000 points after $8,000 in six months was current in 2026."
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "dining",
+          "multiplier": 4,
+          "notes": "Restaurants worldwide, on up to $50,000 in purchases per calendar year"
+        },
+        {
+          "category": "groceries",
+          "multiplier": 4,
+          "notes": "U.S. supermarkets, on up to $25,000 in purchases per calendar year"
+        },
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Prepaid hotels booked through AmexTravel.com or the Amex Travel app"
+        },
+        {
+          "category": "flights",
+          "multiplier": 3,
+          "notes": "Booked through AmexTravel.com, the Amex Travel app, or directly with airlines"
+        },
+        {
+          "category": "car_rental",
+          "multiplier": 2,
+          "notes": "Prepaid car rentals booked through AmexTravel.com or the Amex Travel app, and cruises booked and paid through AmexTravel.com"
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
+      ],
       "au_terms": {
         "fee": 0.0,
         "own_lounge_access": false,
@@ -401,6 +434,7 @@
       "name": "Business Platinum Card",
       "annual_fee": 895,
       "currency": "points",
+      "currency_name": "Membership Rewards points",
       "default_point_value": 0.01,
       "reports_to_personal_credit": false,
       "last_verified": "2026-09-06",
@@ -696,7 +730,22 @@
           "notes": "Offers vary; as high as 300,000 points after $20,000 in three months was shown on 2026-09-06."
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 5,
+          "notes": "Flights and prepaid hotels booked on AmexTravel.com"
+        },
+        {
+          "category": "large_purchase",
+          "multiplier": 2,
+          "notes": "Eligible purchases in key business categories, or single purchases of $5,000 or more; up to $2 million of these purchases per calendar year. The page does not list the categories"
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
+      ],
       "au_terms": {
         "fee": 350.0,
         "own_lounge_access": true,
@@ -708,6 +757,7 @@
       "name": "Business Gold Card",
       "annual_fee": 375,
       "currency": "points",
+      "currency_name": "Membership Rewards points",
       "default_point_value": 0.01,
       "reports_to_personal_credit": false,
       "last_verified": "2026-09-06",
@@ -790,7 +840,47 @@
           "notes": "Offers vary; as high as 200,000 points after $15,000 in three months was shown on 2026-09-06."
         }
       ],
-      "earning_rates": [],
+      "earning_rates": [
+        {
+          "category": "advertising",
+          "multiplier": 4,
+          "notes": "Top 2 of 6 categories each billing cycle, first $150,000 combined per calendar year, then 1X: U.S. media providers for advertising in select media (online, TV, radio)"
+        },
+        {
+          "category": "electronics_software",
+          "multiplier": 4,
+          "notes": "Top 2 of 6 categories each billing cycle, first $150,000 combined per calendar year, then 1X: U.S. electronic goods retailers and software and cloud system providers"
+        },
+        {
+          "category": "dining",
+          "multiplier": 4,
+          "notes": "Top 2 of 6 categories each billing cycle, first $150,000 combined per calendar year, then 1X: U.S. restaurants, including takeout and delivery"
+        },
+        {
+          "category": "gas",
+          "multiplier": 4,
+          "notes": "Top 2 of 6 categories each billing cycle, first $150,000 combined per calendar year, then 1X: U.S. gas stations"
+        },
+        {
+          "category": "transit",
+          "multiplier": 4,
+          "notes": "Top 2 of 6 categories each billing cycle, first $150,000 combined per calendar year, then 1X: trains, taxicabs, rideshare, ferries, tolls, parking, buses and subways"
+        },
+        {
+          "category": "wireless",
+          "multiplier": 4,
+          "notes": "Top 2 of 6 categories each billing cycle, first $150,000 combined per calendar year, then 1X: monthly wireless telephone service charges made directly with a U.S. provider"
+        },
+        {
+          "category": "issuer_travel_portal",
+          "multiplier": 3,
+          "notes": "Flights and prepaid hotels booked on AmexTravel.com"
+        },
+        {
+          "category": "other",
+          "multiplier": 1
+        }
+      ],
       "au_terms": {
         "fee": 0.0,
         "own_lounge_access": false

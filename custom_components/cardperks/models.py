@@ -16,6 +16,7 @@ from .const import (
     CardStatus,
     ResetRule,
     Role,
+    SpendCategory,
 )
 
 # --------------------------------------------------------------------------- catalog
@@ -143,7 +144,9 @@ class Benefit:
 
 @dataclass(frozen=True, slots=True)
 class EarningRate:
-    category: str
+    """Points or miles per dollar in one spend category, in the issuer's own terms."""
+
+    category: SpendCategory
     multiplier: float
     notes: str | None = None
 
@@ -164,6 +167,7 @@ class Product:
     annual_fee: float
     currency: str
     default_point_value: float
+    currency_name: str  # "Ultimate Rewards points", "United miles": what a multiplier is in
     reports_to_personal_credit: bool
     last_verified: date
     source_url: str
@@ -172,6 +176,13 @@ class Product:
     au_terms: AuTerms
     needs_verification: bool = False
     origin: str = "shipped"
+
+    def best_rate(self, category: SpendCategory) -> EarningRate | None:
+        """The highest rate this card pays in a category, falling back to its base rate."""
+        hits = [r for r in self.earning_rates if r.category is category]
+        if not hits and category is not SpendCategory.OTHER:
+            hits = [r for r in self.earning_rates if r.category is SpendCategory.OTHER]
+        return max(hits, key=lambda r: r.multiplier) if hits else None
 
     def benefit(self, benefit_id: str) -> Benefit | None:
         for b in self.benefits:

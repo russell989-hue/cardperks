@@ -28,6 +28,11 @@ async def test_catalog_page_is_served(
     assert 'data-p="test_premium" data-b="monthly_credit" data-default="120" value="120"' in body
     assert 'data-p="test_premium" data-b="lounge" data-default="100" value="100"' in body
     assert "data-my-credits" in body and "data-my-net" in body and 'data-fee="500.0"' in body
+    # The best-card lookup: category picker, per-currency cents, and the rates as data.
+    assert 'id="lookup-category"' in body and 'data-currency="Test points"' in body
+    assert '"rates": [{"c": "dining", "x": 3.0, "n": "Restaurants worldwide"}' in body
+    assert "Earns Test points: <span" in body and "3&times; dining</span>" in body
+    assert "1&times; everything else</span>." in body
 
     css = await client.get("/cardperks/static/fonts.css")
     assert css.status == 200 and "Newsreader" in await css.text()

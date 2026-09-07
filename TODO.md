@@ -76,12 +76,14 @@ makes the Club All Access authorized-user passes real, and that link is a note t
 
 ### Money views
 
-- [ ] Best-card lookup for a purchase, from earning rates and rotating categories
-      (activations are already stored).
+- [x] Best-card lookup for a purchase (2026-09-06): on the catalog page, over the
+      shared spend categories, ranked by multiplier times the viewer's cents per point.
+      Rotating categories (activations are stored) are not in the ranking yet.
 - [ ] Sign-up bonus tracker and 5/24 view (the entities exist).
 - [ ] Authorized-user comparison view.
 - [ ] Default point valuations (MR, UR, Capital One, United, Southwest) or "use community
-      rates"; only the sign-up bonus tracker needs them.
+      rates". The best-card lookup starts every currency at one cent and lets the viewer
+      change it; the sign-up bonus tracker would need the same figures.
 
 ## Later
 
