@@ -604,6 +604,21 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         note: str | None = None,
     ) -> None:
         inst = self._require_instance(held_card_id, benefit_id)
+        if on is not None and not (
+            inst.period_start <= on.isoformat()
+            and (inst.period_end is None or on.isoformat() <= inst.period_end)
+        ):
+            # A date outside the open period: log it into the period it belongs to
+            # (an Uber Cash month statements cannot see, marked used after the fact).
+            if amount is None:
+                card = self.card(held_card_id)
+                benefit = self.benefit(card, benefit_id)
+                amount = benefit.value(
+                    self.effective_perk_values(today_local()).get(held_card_id, {}).get(benefit_id)
+                )
+            self._record_usage(held_card_id, benefit_id, on, amount, note, source="manual")
+            self._commit()
+            return
         total = inst.amount
         if amount is None:
             amount = max((total or 0.0) - inst.amount_used, 0.0) if total else 0.0
@@ -768,6 +783,23 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         ref = f"{held_card_id}:{benefit_id}:{on.isoformat()}:{amount:.2f}:{note or ''}"
         if ref in self.doc.imported_refs:
             return False
+        if not self._record_usage(held_card_id, benefit_id, on, amount, note, source="statement"):
+            return False
+        self.doc.imported_refs.add(ref)
+        return True
+
+    def _record_usage(
+        self,
+        held_card_id: str,
+        benefit_id: str,
+        on: date,
+        amount: float,
+        note: str | None,
+        *,
+        source: str,
+    ) -> bool:
+        """Add usage to whichever period `on` falls in: the open instance, or a closed
+        (or not yet tracked) period in history. Logs the ledger line. Does not commit."""
         card = self.card(held_card_id)
         benefit = self.benefit(card, benefit_id)
         period = compute_period(
@@ -814,7 +846,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                     amount=total or None,
                     amount_used=0.0,
                     closed_at=now_iso(),
-                    closed_by="statement",
+                    closed_by=source,
                 )
                 self.doc.history.append(rec)
             rec.amount_used = round(rec.amount_used + amount, 2)
@@ -823,8 +855,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 if not total or rec.amount_used >= total
                 else BenefitStatus.PARTIAL
             )
-        self.doc.imported_refs.add(ref)
-        self._log(held_card_id, benefit_id, amount, "statement", on, note)
+        self._log(held_card_id, benefit_id, amount, source, on, note)
         return True
 
     def commit(self) -> None:

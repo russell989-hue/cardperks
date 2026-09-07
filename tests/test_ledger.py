@@ -89,3 +89,26 @@ async def test_ledger_windows(hass, setup_integration: MockConfigEntry):
     assert hass.states.get(picker).attributes["from"] == "2025-01-01"
     st = hass.states.get(reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_ledger"))
     assert st.attributes["window"] == "prior_year"
+
+
+async def test_mark_used_with_a_past_date_lands_in_that_period(hass, setup_integration):
+    """Uber Cash never shows on a statement: marking a past month used after the fact
+    goes into that month's record, not the current one, and the ledger says manual."""
+    coord = setup_integration.runtime_data
+    coord.mark_used(CARD_ID, "monthly_credit", None, date(2026, 6, 10), "Uber rides that month")
+    await hass.async_block_till_done()
+    rec = next(
+        h
+        for h in coord.doc.history
+        if h.benefit_id == "monthly_credit" and h.period_start == "2026-06-01"
+    )
+    assert rec.amount_used == 10.0 and rec.final_status == "used" and rec.closed_by == "manual"
+    inst = coord.instance(CARD_ID, "monthly_credit")
+    assert inst.amount_used == 0.0  # the current month is untouched
+    line = coord.ledger_for(CARD_ID)[0]
+    assert line["on"] == "2026-06-10" and line["source"] == "manual" and line["amount"] == 10.0
+    reg = er.async_get(hass)
+    ps = hass.states.get(
+        reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_monthly_credit_status")
+    ).attributes["periods"]
+    assert ps[5]["outcome"] == "captured"
