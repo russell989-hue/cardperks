@@ -639,3 +639,71 @@ def missed_list(*, min_amount: float) -> dict:
             "reverse": True,
         },
     )
+
+
+# ------------------------------------------------------------------ credits by period
+
+OUTCOME_COLORS = {
+    "captured": "var(--cardperks-captured, var(--green-color))",
+    "partial": "var(--cardperks-partial, var(--amber-color))",
+    "forfeited": "var(--cardperks-forfeited, var(--red-color))",
+    "unknown": "var(--cardperks-unknown, var(--grey-color))",
+    "open": "var(--cardperks-open, var(--blue-grey-color))",
+    "future": "var(--divider-color)",
+    "untracked": "var(--divider-color)",
+    "na": "var(--divider-color)",
+}
+
+
+def period_rings(card_id: str | None = None, *, size: int = 118, columns: int = 4) -> dict:
+    """One small ring per benefit: a slice per period this year, coloured by outcome.
+
+    Every benefit status sensor carries `periods`, a list the coordinator builds, so
+    this is one short template for any card and any cadence: twelve slices for a
+    monthly credit, two for a half-yearly one, one for a yearly. Green captured, amber
+    partial, red forfeited, grey unknown, blue-grey in progress, dim for periods still
+    to come or before tracking began. The centre counts captured periods over the
+    periods already decided; the card title names the benefit.
+    """
+    colours = "{" + ", ".join(f"'{k}': '{v}'" for k, v in OUTCOME_COLORS.items()) + "}"
+    where = f"s.attributes.get('card_id') == '{card_id}' and " if card_id else ""
+    style = (
+        "ha-card { padding: 0 0 8px; }"
+        " .card-header { font-size: 12.5px; line-height: 1.25; padding: 8px 8px 6px; "
+        "text-align: center; min-height: 0; }"
+        f" ha-markdown {{ width: {size}px !important; height: {size}px !important; "
+        "border-radius: 50%; margin: 0 auto !important; padding: 0 !important; "
+        "box-sizing: border-box; display: flex !important; align-items: center; "
+        "justify-content: center; text-align: center; font-size: 1em; line-height: 1.3; "
+        "background: radial-gradient(circle closest-side, "
+        "var(--ha-card-background, var(--card-background-color)) 66%, transparent 67%), "
+        "conic-gradient(' ~ (seg.out | join(', ')) ~ '); }"
+    )
+    template = (
+        "{% set ns = namespace(cards=[]) %}"
+        f"{{% set colours = {colours} %}}"
+        "{% for s in states.sensor if s.attributes.get('kind') == 'benefit_status' "
+        f"and {where}{ONLY_ACTIVE} and (s.attributes.get('periods') or []) | count > 0 %}}"
+        "{% set ps = s.attributes.get('periods') %}{% set n = ps | count %}"
+        "{% set gap = 0.7 if n > 1 else 0 %}"
+        "{% set seg = namespace(out=[], got=0, done=0) %}"
+        "{% for p in ps %}"
+        "{% set c = colours.get(p.outcome, 'var(--divider-color)') %}"
+        "{% set a = loop.index0 * 100 / n %}{% set b = loop.index * 100 / n %}"
+        "{% set seg.out = seg.out + [c ~ ' ' ~ ((a + gap) | round(2)) ~ '% ' ~ ((b - gap) | round(2)) ~ '%'] %}"
+        "{% if gap %}{% set seg.out = seg.out + ['var(--ha-card-background, var(--card-background-color)) ' "
+        "~ ((b - gap) | round(2)) ~ '% ' ~ ((b + gap) | round(2)) ~ '%'] %}{% endif %}"
+        "{% if p.outcome == 'captured' %}{% set seg.got = seg.got + 1 %}{% endif %}"
+        "{% if p.outcome in ['captured', 'partial', 'forfeited', 'unknown'] %}"
+        "{% set seg.done = seg.done + 1 %}{% endif %}"
+        "{% endfor %}"
+        "{% set ns.cards = ns.cards + [{'type': 'markdown', "
+        "'title': s.attributes.get('benefit'), "
+        "'content': '**' ~ seg.got ~ '/' ~ n ~ '**<br><span style='font-size: 0.8em; "
+        "color: var(--secondary-text-color)'>' ~ seg.done ~ ' decided</span>', "
+        f"'card_mod': {{'style': '{style}'}}, "
+        "'sort': (0 if ps[0].outcome else 1) ~ s.attributes.get('benefit')}] %}"
+        "{% endfor %}"
+        "{{ ns.cards | sort(attribute='sort') }}"
+    )
+    return _template_cards(template, columns=columns, show_empty=True)

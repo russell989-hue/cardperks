@@ -520,7 +520,7 @@
       "message": "{pattern} is not a valid pattern: {error}"
     },
     "shared_perk": {
-      "message": "{benefit_id} is shared between cards as '{key}'. Set its value once on the household's '{key}' number; it is split equally between the cards that carry it."
+      "message": "{benefit_id} is shared between cards as {key}. Set its value once on the household's {key} number; it is split equally between the cards that carry it."
     },
     "unknown_shared": {
       "message": "No active card carries a shared perk called {key}."

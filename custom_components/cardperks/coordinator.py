@@ -22,8 +22,10 @@ from .const import (
     STATEMENT_GRACE_MONTHS,
     BenefitStatus,
     BenefitType,
+    Cadence,
     CardStatus,
     LedgerWindow,
+    ResetRule,
     Role,
 )
 from .helpers import (
@@ -54,7 +56,15 @@ from .models import (
     YearRecord,
     instance_key,
 )
-from .periods import add_months, compute_period, months_spanned, next_fee_date
+from .periods import (
+    add_months,
+    anniversary_anchor,
+    anniversary_on_or_before,
+    compute_period,
+    months_spanned,
+    next_fee_date,
+    period_after,
+)
 from .rollover import RolloverResult, rollover
 from .store import CardPerksStore
 
@@ -384,6 +394,88 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                         source=card.title,
                         card_id=card.id,
                     )
+        return out
+
+    # ------------------------------------------------------------------ periods this year
+
+    def benefit_periods(self, card: HeldCard, benefit: Benefit, today: date) -> list[dict]:
+        """This year's periods for one benefit, each with what became of it.
+
+        The year is the calendar year for calendar-reset benefits and the current
+        cardmember year otherwise. Outcomes: captured, partial, forfeited, unknown (a
+        closed period no statement vouched for), open (the current period), future,
+        untracked (before tracking began), na. One-time benefits have no ring.
+        """
+        if benefit.cadence is Cadence.ONE_TIME:
+            return []
+        if benefit.reset is ResetRule.CALENDAR and benefit.cadence is not Cadence.PER_ANNIVERSARY:
+            year_start, year_end = date(today.year, 1, 1), date(today.year, 12, 31)
+        else:
+            try:
+                month, day = anniversary_anchor(card.open_date, card.fee_month)
+            except ValueError:
+                return []
+            year_start = anniversary_on_or_before(today, month, day)
+            year_end = add_months(year_start, 12) - timedelta(days=1)
+        p = compute_period(
+            year_start, benefit.cadence, benefit.reset, card.open_date, card.fee_month
+        )
+        periods = []
+        while p is not None and p.start <= year_end and len(periods) < 24:
+            periods.append(p)
+            if p.end is None:
+                break
+            p = period_after(p.end, benefit.cadence, benefit.reset, card.open_date, card.fee_month)
+
+        covered = self.coverage_months(card.id)
+        by_start = {
+            h.period_start: h
+            for h in self.doc.history
+            if h.held_card_id == card.id and h.benefit_id == benefit.id
+        }
+        inst = self.doc.instances.get(f"{card.id}:{benefit.id}")
+        out = []
+        for p in periods:
+            start = p.start.isoformat()
+            end = p.end.isoformat() if p.end else None
+            amount = benefit.value(
+                self.effective_perk_values(today).get(card.id, {}).get(benefit.id)
+            )
+            used = 0.0
+            h = by_start.get(start)
+            if h is not None:
+                used = h.amount_used
+                cap = h.amount if h.amount is not None else amount
+                if h.final_status == str(BenefitStatus.NA):
+                    outcome = "na"
+                elif cap and used >= cap:
+                    outcome = "captured"
+                elif used > 0:
+                    outcome = "partial"
+                elif h.final_status == "unknown" or (
+                    covered
+                    and benefit.type is BenefitType.STATEMENT_CREDIT
+                    and not all(m in covered for m in months_spanned(p.start, p.end))
+                ):
+                    outcome = "unknown"
+                else:
+                    outcome = "forfeited"
+            elif inst is not None and inst.period_start == start:
+                used = inst.amount_used
+                cap = inst.amount if inst.amount is not None else amount
+                if inst.status is BenefitStatus.NA:
+                    outcome = "na"
+                elif inst.status is BenefitStatus.USED or (cap and used >= cap):
+                    outcome = "captured"
+                elif used > 0:
+                    outcome = "partial"
+                else:
+                    outcome = "open"
+            elif p.start > today:
+                outcome = "future"
+            else:
+                outcome = "untracked"
+            out.append({"start": start, "end": end, "outcome": outcome, "used": round(used, 2)})
         return out
 
     # ------------------------------------------------------------------ shared perks

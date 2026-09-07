@@ -670,3 +670,31 @@ async def test_sign_up_bonus_attributes(hass, setup_integration: MockConfigEntry
     assert a["cadence"] == "one_time" and a["spend_required"] == 4000
     assert a["spend_window_days"] == 90 and a["bonus"]
     assert a["period_end"] == "2026-09-29" and a["days_left"] == 24
+
+
+async def test_periods_this_year(hass, setup_integration: MockConfigEntry):
+    """Every benefit status carries this year's periods with an outcome each."""
+    entry = setup_integration
+    coord = entry.runtime_data
+    # Monthly, calendar reset: twelve slices; tracking began this month.
+    st = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_monthly_credit_status"))
+    ps = st.attributes["periods"]
+    assert len(ps) == 12 and ps[0]["start"] == "2026-01-01" and ps[-1]["end"] == "2026-12-31"
+    assert [p["outcome"] for p in ps] == ["untracked"] * 8 + ["open"] + ["future"] * 3
+    # Log the month and it turns green; a past period closed by hand shows its outcome.
+    coord.mark_used(CARD_ID, "monthly_credit", 10)
+    coord.record_statement_usage(CARD_ID, "monthly_credit", date(2026, 6, 3), 0.0, "X")
+    coord.commit()
+    await hass.async_block_till_done()
+    ps = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_monthly_credit_status")).attributes[
+        "periods"
+    ]
+    assert ps[8]["outcome"] == "captured" and ps[8]["used"] == 10.0
+    # Annual, cardmember year from the 2026-07-01 open date: one slice.
+    st = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
+    ps = st.attributes["periods"]
+    assert len(ps) == 1 and ps[0]["start"] == "2026-07-01" and ps[0]["outcome"] == "open"
+    # One-time: no ring.
+    assert (
+        hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_sub_status")).attributes["periods"] == []
+    )

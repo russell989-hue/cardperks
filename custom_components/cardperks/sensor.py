@@ -179,6 +179,10 @@ class BenefitStatusSensor(BenefitEntity, SensorEntity):
             else None,
             "spend_required": b.spend_required,
             "spend_window_days": b.expires_days_after_open,
+            # This year's periods and what became of each: the rings on the card page.
+            "periods": self.coordinator.benefit_periods(self.card, b, self.coordinator.data.today)
+            if self.card
+            else [],
         }
 
 

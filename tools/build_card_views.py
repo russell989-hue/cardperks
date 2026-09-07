@@ -45,6 +45,7 @@ from lovelace import (
     money_bars,
     note,
     peek_rows,
+    period_rings,
     perk_rows_for_card,
     template_card,
     third,
@@ -159,7 +160,20 @@ def build_view(card: dict) -> dict:
         perk_rows_for_card(card_id),
     ]
 
-    sections = [ring, wide_section(year), log]
+    by_period = wide_section(
+        [
+            heading("Credits by period", "mdi:chart-donut"),
+            note(
+                "One ring per benefit, a slice per period this year (the calendar year, or "
+                "the cardmember year for anniversary credits). Green captured, amber partly "
+                "used, red forfeited, grey unknown (no statement for that month), blue-grey "
+                "in progress; dim slices are still to come or before tracking began."
+            ),
+            period_rings(card_id),
+        ]
+    )
+
+    sections = [ring, by_period, wide_section(year), log]
 
     sections.append(
         wide_section(
