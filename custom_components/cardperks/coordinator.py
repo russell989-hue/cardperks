@@ -442,6 +442,7 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 self.effective_perk_values(today).get(card.id, {}).get(benefit.id)
             )
             used = 0.0
+            cap = amount
             h = by_start.get(start)
             if h is not None:
                 used = h.amount_used
@@ -478,7 +479,15 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
                 # (2026-09-06) is that a credit nobody claimed was forfeited, even before
                 # tracking started.
                 outcome = "forfeited"
-            out.append({"start": start, "end": end, "outcome": outcome, "used": round(used, 2)})
+            out.append(
+                {
+                    "start": start,
+                    "end": end,
+                    "outcome": outcome,
+                    "used": round(used, 2),
+                    "amount": round(cap or 0.0, 2),
+                }
+            )
         return out
 
     # ------------------------------------------------------------------ shared perks

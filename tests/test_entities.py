@@ -690,6 +690,7 @@ async def test_periods_this_year(hass, setup_integration: MockConfigEntry):
         "periods"
     ]
     assert ps[8]["outcome"] == "captured" and ps[8]["used"] == 10.0
+    assert all(p["amount"] == 10.0 for p in ps)  # what the year offers, period by period
     # Annual, cardmember year from the 2026-07-01 open date: one slice.
     st = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_travel_credit_status"))
     ps = st.attributes["periods"]

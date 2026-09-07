@@ -701,29 +701,48 @@ OUTCOME_COLORS = {
 }
 
 
-def period_rings(card_id: str | None = None, *, size: int = 118, columns: int = 4) -> dict:
+def period_rings(card_id: str | None = None, *, size: int = 112, columns: int = 4) -> dict:
     """One small ring per benefit: a slice per period this year, coloured by outcome.
 
     Every benefit status sensor carries `periods`, a list the coordinator builds, so
     this is one short template for any card and any cadence: twelve slices for a
     monthly credit, two for a half-yearly one, one for a yearly. Green captured, blue-grey
     partly used, red forfeited, grey unknown, dim for the period in progress with
-    nothing used yet and for periods still to come. The centre counts captured periods over the periods that have started;
-    the card title names the benefit. A past period with nothing recorded is forfeited.
+    nothing used yet and for periods still to come. The centre counts captured periods
+    over the periods that have started; under the ring, the dollars credited so far
+    against the dollars the year offers. Titles drop the cadence tag and are held to
+    two lines so the cards line up.
     """
     colours = "{" + ", ".join(f"'{k}': '{v}'" for k, v in OUTCOME_COLORS.items()) + "}"
     where = f"s.attributes.get('card_id') == '{card_id}' and " if card_id else ""
-    style = (
-        "ha-card { padding: 0 0 8px; }"
-        " .card-header { font-size: 12.5px; line-height: 1.25; padding: 8px 8px 6px; "
-        "text-align: center; min-height: 0; }"
+    ring_style = (
+        "ha-card { padding: 6px 0 2px; background: none; border: 0; box-shadow: none; }"
         f" ha-markdown {{ width: {size}px !important; height: {size}px !important; "
         "border-radius: 50%; margin: 0 auto !important; padding: 0 !important; "
         "box-sizing: border-box; display: flex !important; align-items: center; "
-        "justify-content: center; text-align: center; font-size: 1em; line-height: 1.3; "
+        "justify-content: center; text-align: center; font-size: 0.95em; line-height: 1.25; "
         "background: radial-gradient(circle closest-side, "
         "var(--ha-card-background, var(--card-background-color)) 66%, transparent 67%), "
         "conic-gradient(' ~ (seg.out | join(', ')) ~ '); }"
+    )
+    stack_style = (
+        "ha-card {{ padding: 0 0 6px; }}"
+        " .card-header {{ font-size: 12px; line-height: 1.2; padding: 8px 8px 2px; "
+        "text-align: center; min-height: 0; height: 2.4em; box-sizing: content-box; "
+        "overflow: hidden; }}"
+    )
+    footer_style = (
+        "ha-card {{ background: none; border: 0; box-shadow: none; padding: 0; }}"
+        " ha-markdown {{ padding: 0 6px !important; text-align: center; font-size: 12px; "
+        "line-height: 1.25; color: var(--secondary-text-color); }}"
+    )
+    # "Digital entertainment credit (monthly)" -> "Digital entertainment credit";
+    # "Hotel credit (FHR, every 6 months)" -> "Hotel credit (FHR)".
+    tags = "monthly|quarterly|every 6 months|each anniversary|every 4 years|one-time"
+    short = (
+        "s.attributes.get('benefit') "
+        f"| regex_replace(',\\s*({tags})\\)$', ')') "
+        f"| regex_replace('\\s*\\(({tags})\\)$', '')"
     )
     template = (
         "{% set ns = namespace(cards=[]) %}"
@@ -742,11 +761,18 @@ def period_rings(card_id: str | None = None, *, size: int = 118, columns: int = 
         "{% if p.outcome == 'captured' %}{% set seg.got = seg.got + 1 %}{% endif %}"
         "{% if p.outcome != 'future' %}{% set seg.done = seg.done + 1 %}{% endif %}"
         "{% endfor %}"
-        "{% set ns.cards = ns.cards + [{'type': 'markdown', "
-        "'title': s.attributes.get('benefit'), "
+        "{% set got = ps | map(attribute='used') | sum %}"
+        "{% set possible = ps | map(attribute='amount') | sum %}"
+        "{% set ns.cards = ns.cards + [{'type': 'vertical-stack', "
+        f"'title': {short}, "
+        f"'card_mod': {{'style': '{stack_style}'}}, "
+        "'cards': [{'type': 'markdown', "
         "'content': '**' ~ seg.got ~ '/' ~ n ~ '**<br><span style=\"font-size: 0.8em; "
         "color: var(--secondary-text-color)\">of ' ~ seg.done ~ ' so far</span>', "
-        f"'card_mod': {{'style': '{style}'}}, "
+        f"'card_mod': {{'style': '{ring_style}'}}}}, "
+        "{'type': 'markdown', 'text_only': true, "
+        "'content': '**$' ~ (got | round(0) | int) ~ '** of $' ~ (possible | round(0) | int), "
+        f"'card_mod': {{'style': '{footer_style}'}}}}], "
         "'sort': (0 if ps[0].outcome else 1) ~ s.attributes.get('benefit')}] %}"
         "{% endfor %}"
         "{{ ns.cards | sort(attribute='sort') }}"

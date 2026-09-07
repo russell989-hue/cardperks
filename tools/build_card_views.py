@@ -27,6 +27,7 @@ import re
 import sys
 import unicodedata
 
+from build_sections import BIG_TICKET_MIN
 from lovelace import (
     DAYS_UNTIL,
     DOLLARS,
@@ -75,17 +76,47 @@ def build_view(card: dict) -> dict:
     name, card_id, ids = card["title"], card["id"], card["ids"]
     scope = base_filter(card_id)
 
+    big_open = auto_cards(
+        [
+            base_filter(
+                card_id, kind="benefit_expires", status=st, remaining=f">= {BIG_TICKET_MIN}"
+            )
+            for st in ("unused", "partial")
+        ],
+        primary="${{ "
+        + attr("remaining")
+        + " | round(0) | int }} · {{ state_attr(entity, 'benefit') }}",
+        secondary=(
+            "Still open · closes {{ states(entity) }} · {{ state_attr(entity, 'days_left') }} days"
+        ),
+        icon="mdi:star-circle-outline",
+        sort={"method": "attribute", "attribute": "days_left", "numeric": True},
+    )
+    # The star list only colours by card; make the big ones stand out in the card's colour
+    # but with a warning tint once fewer than 30 days remain.
+    big_open["filter"]["template"] = big_open["filter"]["template"].replace(
+        "'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}'",
+        '\'icon_color\': \'{{ "red" if (state_attr(entity, "days_left") or 999) < 30 '
+        'else (state_attr(entity, "color") or "grey") }}\'',
+    )
     ring = wide_section(
         [
             heading(name, "mdi:credit-card"),
             half(donut_by_card(220, card_id=card_id)),
             half(
-                auto_cards(
-                    [{**base_filter(card_id, kind="benefit_remaining"), "state": "> 0"}],
-                    primary="{{ state_attr(entity, 'benefit') }}",
-                    secondary=DOLLARS + " left · until {{ state_attr(entity, 'period_end') }}",
-                    icon="mdi:cash-clock",
-                )
+                {
+                    "type": "vertical-stack",
+                    "cards": [
+                        big_open,
+                        auto_cards(
+                            [{**base_filter(card_id, kind="benefit_remaining"), "state": "> 0"}],
+                            primary="{{ state_attr(entity, 'benefit') }}",
+                            secondary=DOLLARS
+                            + " left · until {{ state_attr(entity, 'period_end') }}",
+                            icon="mdi:cash-clock",
+                        ),
+                    ],
+                }
             ),
         ]
     )
