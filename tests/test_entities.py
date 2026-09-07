@@ -680,7 +680,7 @@ async def test_periods_this_year(hass, setup_integration: MockConfigEntry):
     st = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_monthly_credit_status"))
     ps = st.attributes["periods"]
     assert len(ps) == 12 and ps[0]["start"] == "2026-01-01" and ps[-1]["end"] == "2026-12-31"
-    assert [p["outcome"] for p in ps] == ["untracked"] * 8 + ["open"] + ["future"] * 3
+    assert [p["outcome"] for p in ps] == ["forfeited"] * 8 + ["open"] + ["future"] * 3
     # Log the month and it turns green; a past period closed by hand shows its outcome.
     coord.mark_used(CARD_ID, "monthly_credit", 10)
     coord.record_statement_usage(CARD_ID, "monthly_credit", date(2026, 6, 3), 0.0, "X")

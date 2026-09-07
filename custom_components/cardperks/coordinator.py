@@ -403,8 +403,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
 
         The year is the calendar year for calendar-reset benefits and the current
         cardmember year otherwise. Outcomes: captured, partial, forfeited, unknown (a
-        closed period no statement vouched for), open (the current period), future,
-        untracked (before tracking began), na. One-time benefits have no ring.
+        closed period no statement vouched for), open (the current period), future, na. A past period with nothing
+        recorded counts as forfeited. One-time benefits have no ring.
         """
         if benefit.cadence is Cadence.ONE_TIME:
             return []
@@ -474,7 +474,10 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             elif p.start > today:
                 outcome = "future"
             else:
-                outcome = "untracked"
+                # Nothing was recorded for a period that has already begun: Brian's rule
+                # (2026-09-06) is that a credit nobody claimed was forfeited, even before
+                # tracking started.
+                outcome = "forfeited"
             out.append({"start": start, "end": end, "outcome": outcome, "used": round(used, 2)})
         return out
 

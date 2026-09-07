@@ -697,7 +697,6 @@ OUTCOME_COLORS = {
     "unknown": "var(--cardperks-unknown, var(--grey-color))",
     "open": "var(--cardperks-open, var(--blue-grey-color))",
     "future": "var(--divider-color)",
-    "untracked": "var(--divider-color)",
     "na": "var(--divider-color)",
 }
 
@@ -709,8 +708,8 @@ def period_rings(card_id: str | None = None, *, size: int = 118, columns: int = 
     this is one short template for any card and any cadence: twelve slices for a
     monthly credit, two for a half-yearly one, one for a yearly. Green captured, amber
     partial, red forfeited, grey unknown, blue-grey in progress, dim for periods still
-    to come or before tracking began. The centre counts captured periods over the
-    periods already decided; the card title names the benefit.
+    to come. The centre counts captured periods over the periods that have started;
+    the card title names the benefit. A past period with nothing recorded is forfeited.
     """
     colours = "{" + ", ".join(f"'{k}': '{v}'" for k, v in OUTCOME_COLORS.items()) + "}"
     where = f"s.attributes.get('card_id') == '{card_id}' and " if card_id else ""
@@ -741,13 +740,12 @@ def period_rings(card_id: str | None = None, *, size: int = 118, columns: int = 
         "{% if gap %}{% set seg.out = seg.out + ['var(--ha-card-background, var(--card-background-color)) ' "
         "~ ((b - gap) | round(2)) ~ '% ' ~ ((b + gap) | round(2)) ~ '%'] %}{% endif %}"
         "{% if p.outcome == 'captured' %}{% set seg.got = seg.got + 1 %}{% endif %}"
-        "{% if p.outcome in ['captured', 'partial', 'forfeited', 'unknown'] %}"
-        "{% set seg.done = seg.done + 1 %}{% endif %}"
+        "{% if p.outcome != 'future' %}{% set seg.done = seg.done + 1 %}{% endif %}"
         "{% endfor %}"
         "{% set ns.cards = ns.cards + [{'type': 'markdown', "
         "'title': s.attributes.get('benefit'), "
         "'content': '**' ~ seg.got ~ '/' ~ n ~ '**<br><span style=\"font-size: 0.8em; "
-        "color: var(--secondary-text-color)\">' ~ seg.done ~ ' decided</span>', "
+        "color: var(--secondary-text-color)\">of ' ~ seg.done ~ ' so far</span>', "
         f"'card_mod': {{'style': '{style}'}}, "
         "'sort': (0 if ps[0].outcome else 1) ~ s.attributes.get('benefit')}] %}"
         "{% endfor %}"

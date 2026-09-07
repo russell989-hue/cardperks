@@ -167,7 +167,7 @@ def build_view(card: dict) -> dict:
                 "One ring per benefit, a slice per period this year (the calendar year, or "
                 "the cardmember year for anniversary credits). Green captured, amber partly "
                 "used, red forfeited, grey unknown (no statement for that month), blue-grey "
-                "in progress; dim slices are still to come or before tracking began."
+                "in progress; dim slices are still to come. A past period nobody claimed counts as forfeited."
             ),
             period_rings(card_id),
             {
