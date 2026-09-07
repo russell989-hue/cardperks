@@ -91,7 +91,11 @@
           "applies_to": "primary",
           "default_value": 200,
           "conditional": true,
-          "condition": "Elite status required"
+          "condition": "Elite status required",
+          "requires_status": {
+            "program_id": "test_air",
+            "tier_id": "gold"
+          }
         },
         {
           "id": "inflight_rebate",

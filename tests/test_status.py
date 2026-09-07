@@ -101,3 +101,70 @@ async def test_status_from_a_catalog_program(hass, setup_integration: MockConfig
     assert a["how_earned"] == "10,000 points"
     assert a["next_tier"] == "Elite Platinum" and a["next_tier_qualify"] == "15,000 points"
     assert a["source"] == "entered by hand"
+
+
+async def test_status_unlocks_a_conditional_benefit(hass, setup_integration: MockConfigEntry):
+    """A benefit with `requires_status` turns on by itself once the holder has the tier."""
+    entry = setup_integration
+    reg = er.async_get(hass)
+    # Nobody holds Test Air Gold yet: the status bonus stays off.
+    assert reg.async_get_entity_id("sensor", DOMAIN, f"{CARD_ID}_status_bonus_status") is None
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "status"), context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"owner_id": OWNER_ID, "program_id": "test_air"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"tier_id": "platinum", "valid_through": "2027-01-31"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    # Platinum outranks the Gold the benefit asks for, so it is on for Brian's card...
+    coord = entry.runtime_data
+    assert "status_bonus" in coord.cards[CARD_ID].enabled_conditional
+    assert hass.states.get(_eid(hass, f"{CARD_ID}_status_bonus_status")).state == "unused"
+    # ...and not for Nick's, who holds no status (and is an authorized user anyway).
+    assert "status_bonus" not in coord.cards[AU_CARD_ID].enabled_conditional
+
+
+async def test_lapsed_status_does_not_qualify(hass, setup_integration: MockConfigEntry):
+    """A status past its valid-through date no longer unlocks anything."""
+    entry = setup_integration
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "status"), context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"owner_id": OWNER_ID, "program_id": "test_air"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"tier_id": "gold", "valid_through": "2026-01-31"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert "status_bonus" not in entry.runtime_data.cards[CARD_ID].enabled_conditional
+
+
+async def test_status_by_name_qualifies(hass, setup_integration: MockConfigEntry):
+    """A status typed in by hand matches the program and tier by name."""
+    entry = setup_integration
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "status"), context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"owner_id": OWNER_ID, "program_id": "__other__"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "program": "Test Air Miles",
+            "tier": "elite gold",
+            "valid_through": "2027-06-01",
+            "source": "flown",
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert "status_bonus" in entry.runtime_data.cards[CARD_ID].enabled_conditional

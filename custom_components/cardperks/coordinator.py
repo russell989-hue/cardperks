@@ -47,6 +47,7 @@ from .models import (
     OwnerSummary,
     SharedPerk,
     StateDocument,
+    StatusRequirement,
     SubTracker,
     Totals,
     UsageEvent,
@@ -141,8 +142,8 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         self.store = store
         self.doc = doc
         self.owners = owners_from_entry(entry)
-        self.cards = self._cards_with_status(cards_from_entry(entry))
         self.user_statuses = statuses_from_entry(entry)
+        self.cards = self._cards_with_status(cards_from_entry(entry))
         if seed_shared_values(self.doc, self.shared_members(today_local())):
             self.store.async_schedule_save(self.doc)
         if seed_ledger(self.doc):
@@ -157,7 +158,57 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
             except ValueError:
                 status = CardStatus.ACTIVE
             out[card_id] = replace(card, status=status)
-        return out
+        # Status the household holds can qualify a conditional benefit by itself.
+        today = today_local()
+        held = self._statuses_for(out, today)
+        return {cid: self._with_status_unlocks(card, held, today) for cid, card in out.items()}
+
+    def _with_status_unlocks(
+        self, card: HeldCard, held: Mapping[str, LoyaltyStatus], today: date
+    ) -> HeldCard:
+        product = self.catalog.get(card.product_id)
+        if product is None:
+            return card
+        unlocked = tuple(
+            b.id
+            for b in product.benefits_for_role(card.role)
+            if b.requires_status
+            and b.id not in card.enabled_conditional
+            and self.status_met(b.requires_status, card.owner_id, held, today)
+        )
+        if not unlocked:
+            return card
+        return replace(card, enabled_conditional=card.enabled_conditional + unlocked)
+
+    def status_met(
+        self,
+        req: StatusRequirement,
+        owner_id: str,
+        held: Mapping[str, LoyaltyStatus],
+        today: date,
+    ) -> bool:
+        """Whether this owner holds the program's tier, or a higher one, today.
+
+        A status from a catalog program matches by ids; one typed in by hand or granted
+        by a card matches on the program and tier names instead.
+        """
+        program = self.catalog.programs.get(req.program_id)
+        need = program.tier(req.tier_id) if program else None
+        if program is None or need is None:
+            return False
+        for s in held.values():
+            if s.owner_id != owner_id or (s.valid_through and s.valid_through < today):
+                continue
+            if s.program_id == program.id:
+                tier = program.tier(s.tier_id)
+            elif s.program.strip().lower() == program.name.strip().lower():
+                want = s.tier.strip().lower()
+                tier = next((t for t in program.tiers if want in (t.name.lower(), t.id)), None)
+            else:
+                tier = None
+            if tier is not None and tier.rank >= need.rank:
+                return True
+        return False
 
     def set_card_status(self, held_card_id: str, status: str) -> None:
         """Active, frozen or cancelled. Freezing closes the open periods."""
@@ -308,8 +359,11 @@ class CardPerksCoordinator(DataUpdateCoordinator[CardPerksData]):
         card's next anniversary and it disappears when the card is frozen, cancelled or
         the benefit marked not applicable.
         """
+        return self._statuses_for(self.cards, today)
+
+    def _statuses_for(self, cards: Mapping[str, HeldCard], today: date) -> dict[str, LoyaltyStatus]:
         out: dict[str, LoyaltyStatus] = dict(self.user_statuses)
-        for card in self.cards.values():
+        for card in cards.values():
             if not card.is_active(today):
                 continue
             product = self.catalog.get(card.product_id)

@@ -47,6 +47,11 @@ def benefit_to_dict(b: Benefit) -> dict[str, Any]:
         out["eligible"] = list(b.eligible)
     if b.grants_status:
         out["grants_status"] = [{"program": g.program, "tier": g.tier} for g in b.grants_status]
+    if b.requires_status:
+        out["requires_status"] = {
+            "program_id": b.requires_status.program_id,
+            "tier_id": b.requires_status.tier_id,
+        }
     return out
 
 

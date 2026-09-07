@@ -132,6 +132,7 @@ class Cadence(StrEnum):
     ANNUAL = "annual"
     ONE_TIME = "one_time"
     PER_ANNIVERSARY = "per_anniversary"
+    EVERY_FOUR_YEARS = "every_four_years"  # Global Entry: one credit per four-year block
 
 
 class ResetRule(StrEnum):
@@ -171,12 +172,13 @@ class Role(StrEnum):
     AUTHORIZED_USER = "authorized_user"
 
 
-PERIODS_PER_YEAR: dict[Cadence, int] = {
+PERIODS_PER_YEAR: dict[Cadence, float] = {
     Cadence.MONTHLY: 12,
     Cadence.QUARTERLY: 4,
     Cadence.SEMIANNUAL: 2,
     Cadence.ANNUAL: 1,
     Cadence.PER_ANNIVERSARY: 1,
+    Cadence.EVERY_FOUR_YEARS: 0.25,
     Cadence.ONE_TIME: 0,
 }
 
@@ -186,4 +188,5 @@ CADENCE_MONTHS: dict[Cadence, int] = {
     Cadence.SEMIANNUAL: 6,
     Cadence.ANNUAL: 12,
     Cadence.PER_ANNIVERSARY: 12,
+    Cadence.EVERY_FOUR_YEARS: 48,
 }

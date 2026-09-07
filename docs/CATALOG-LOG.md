@@ -57,3 +57,8 @@ card. United Club authorized users confirmed to get no club access of their own.
 - Still open: statement wording for the new credits is guessed until a statement shows the
   real line; Southwest sign-up bonus not restated on the page; Equinox credit on the
   Platinum not listed on the Amex page this pass and left in place.
+
+## 2026-09-06 (later)
+
+- Chase United Club Infinite: the All Access authorized-user passes now carry `requires_status` (United MileagePlus Premier Gold or higher), so a household with that status has the benefit on without touching the toggle. Wording unchanged, from the same official page.
+- Schema: `every_four_years` cadence and `requires_status` field added; see docs/CATALOG.md. Global Entry stays a $30-a-year shared perk for now.

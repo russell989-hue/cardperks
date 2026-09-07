@@ -24,7 +24,7 @@ async def async_setup_entry(
     for sub in entry.subentries.values():
         if sub.subentry_type != SUBENTRY_CARD:
             continue
-        card = card_from_subentry(sub)
+        card = coordinator.cards.get(sub.subentry_id) or card_from_subentry(sub)
         product = coordinator.catalog.get(card.product_id)
         if product is None:
             continue

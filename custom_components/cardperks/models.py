@@ -26,6 +26,7 @@ CADENCE_TAGS: dict[Cadence, str] = {
     Cadence.SEMIANNUAL: "every 6 months",
     Cadence.ONE_TIME: "one-time",
     Cadence.PER_ANNIVERSARY: "each anniversary",
+    Cadence.EVERY_FOUR_YEARS: "every 4 years",
 }
 
 
@@ -35,6 +36,15 @@ class StatusGrant:
 
     program: str
     tier: str
+
+
+@dataclass(frozen=True, slots=True)
+class StatusRequirement:
+    """Elite status that unlocks a conditional benefit: this catalog program, this tier
+    or any higher one (United Club All Access passes need Premier Gold or better)."""
+
+    program_id: str
+    tier_id: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +75,10 @@ class Benefit:
     eligible: tuple[str, ...] = ()
     # Status this benefit confers while the card is held; tracked as a status of its own.
     grants_status: tuple[StatusGrant, ...] = ()
+    # Conditional benefits only: status that qualifies the holder by itself. Met from the
+    # statuses the household holds, so nobody has to remember to flip the toggle; the
+    # toggle still works for the other routes in (spend thresholds).
+    requires_status: StatusRequirement | None = None
 
     def applies_to_role(self, role: Role) -> bool:
         if role is Role.PRIMARY:
@@ -109,7 +123,7 @@ class Benefit:
         return self.type is BenefitType.REBATE
 
     @property
-    def periods_per_year(self) -> int:
+    def periods_per_year(self) -> float:
         return PERIODS_PER_YEAR.get(self.cadence, 0)
 
     def annual_value(self, perk_override: float | None = None) -> float:

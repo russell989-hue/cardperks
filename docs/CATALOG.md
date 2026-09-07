@@ -67,7 +67,7 @@ This page is the field reference and the contribution rules. The schema itself l
 | `id` | yes | | Slug, unique within the product. Stable: renaming one closes every holder's open period for it. |
 | `name` | yes | | Shown on every entity. The cadence is appended automatically when it is not yearly ("Uber Cash (monthly)"), so do not put it in the name. |
 | `type` | yes | | See types below. |
-| `cadence` | yes | | `monthly`, `quarterly`, `semiannual`, `annual`, `per_anniversary`, `one_time`. |
+| `cadence` | yes | | `monthly`, `quarterly`, `semiannual`, `annual`, `per_anniversary`, `every_four_years`, `one_time`. |
 | `amount` | yes | | Dollars per period for a statement credit; points for an earning; `null` for perk, insurance and rebate. |
 | `unit` | no | `USD` | `USD`, or `points` / `miles` for earnings. |
 | `reset` | no | `calendar` | `calendar` (January, quarters, halves) or `cardmember_year` (anchored on the account anniversary). `per_anniversary` implies `cardmember_year`. |
@@ -80,6 +80,7 @@ This page is the field reference and the contribution rules. The schema itself l
 | `statement_match` | no | `[]` | Regular expressions, case-insensitive, matched against the description of credit lines. See below. |
 | `conditional` | no | `false` | Only some holders qualify; off until enabled on the card. |
 | `condition` | no | | Plain-language qualification, shown next to the toggle in the card form. |
+| `requires_status` | no | | `{program_id, tier_id}` from a program in `programs/`. The benefit is on for a holder whose statuses include that tier or a higher one (`{"program_id": "united_mileageplus", "tier_id": "gold"}`), with no toggle to remember; the toggle still covers other routes in, such as a spend threshold. Needs `conditional: true`. |
 | `eligible` | no | `[]` | Where a credit can be spent: the merchant or partner names, nothing more (`["Disney+", "Hulu"]`). Rules go in `notes`. Shown on the catalog page; these lists change often and a diff should show it. |
 | `grants_status` | no | `[]` | Elite status holding the card confers, as `{program, tier}` pairs (`[{"program": "Hilton Honors", "tier": "Gold"}]`). Each becomes a status sensor for the cardholder while the card is held, renewing on the anniversary. |
 | `shared_key` | no | | Perks and insurance only. The same thing on several cards (Priority Pass, Centurion Lounge, cell phone protection) is one membership, so give each copy the same key: the household values it once and the value is split equally between the active cards that carry it. Keys are catalog-wide, so `priority_pass` on an Amex and a Chase card share. |
@@ -107,6 +108,7 @@ This page is the field reference and the contribution rules. The schema itself l
 | $200 per calendar year | `annual` | `calendar` |
 | $300 each account anniversary year | `annual` | `cardmember_year` |
 | 10,000 miles on each anniversary | `per_anniversary` | (implied) |
+| $120 once every four years (Global Entry) | `every_four_years` | (implied: four-year blocks from the open date; unanchored without one) |
 | Sign-up bonus | `one_time` | with `spend_required` and `expires_days_after_open` |
 
 A credit worth more in one month than the others (Uber Cash's December bonus) is entered

@@ -76,6 +76,18 @@ def compute_period(
         return Period(open_date, end)
 
     n = CADENCE_MONTHS[cadence]
+    if cadence is Cadence.EVERY_FOUR_YEARS:
+        # Blocks of four years counted from the day the account opened, whatever the
+        # reset rule says: the issuer's "once every four years" runs from the open date,
+        # and the last anniversary alone cannot say which year of the block this is.
+        if open_date is None:
+            return None
+        i = 0
+        while add_months(open_date, (i + 1) * n) <= today:
+            i += 1
+        return Period(
+            add_months(open_date, i * n), add_months(open_date, (i + 1) * n) - timedelta(days=1)
+        )
     if cadence is Cadence.PER_ANNIVERSARY:
         reset = ResetRule.CARDMEMBER_YEAR
 

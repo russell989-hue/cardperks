@@ -19,6 +19,7 @@ CADENCE_WORDS = {
     Cadence.SEMIANNUAL: "every 6 months",
     Cadence.ANNUAL: "yearly",
     Cadence.PER_ANNIVERSARY: "each anniversary",
+    Cadence.EVERY_FOUR_YEARS: "every 4 years",
     Cadence.ONE_TIME: "one-time",
 }
 TYPE_WORDS = {

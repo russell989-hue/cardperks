@@ -20,6 +20,7 @@ from .models import (
     Product,
     Program,
     StatusGrant,
+    StatusRequirement,
     Tier,
 )
 
@@ -61,6 +62,15 @@ BENEFIT_SCHEMA = vol.Schema(
         vol.Optional("grants_status", default=list): [
             vol.Schema({vol.Required("program"): str, vol.Required("tier"): str})
         ],
+        vol.Optional("requires_status"): vol.Any(
+            None,
+            vol.Schema(
+                {
+                    vol.Required("program_id"): vol.Match(r"^[a-z0-9_]+$"),
+                    vol.Required("tier_id"): vol.Match(r"^[a-z0-9_]+$"),
+                }
+            ),
+        ),
     }
 )
 
@@ -194,9 +204,20 @@ def _build_product(raw: dict[str, Any], issuer: str, issuer_name: str, origin: s
                 StatusGrant(program=g["program"], tier=g["tier"])
                 for g in b.get("grants_status", [])
             ),
+            requires_status=(
+                StatusRequirement(
+                    program_id=b["requires_status"]["program_id"],
+                    tier_id=b["requires_status"]["tier_id"],
+                )
+                if b.get("requires_status")
+                else None
+            ),
         )
         for b in raw["benefits"]
     )
+    for b in benefits:
+        if b.requires_status and not b.conditional:
+            raise vol.Invalid(f"benefit {b.id}: requires_status needs conditional: true")
     seen: set[str] = set()
     for b in benefits:
         if b.shared_key and b.type not in (BenefitType.PERK, BenefitType.INSURANCE):

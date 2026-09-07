@@ -230,3 +230,36 @@ def test_next_fee_date(today, open_date, fee_month, expected):
 )
 def test_months_spanned(start, end, expected):
     assert months_spanned(start, end) == expected
+
+
+@pytest.mark.parametrize(
+    ("today", "expected"),
+    [
+        (date(2026, 9, 6), Period(date(2024, 3, 15), date(2028, 3, 14))),
+        (date(2028, 3, 14), Period(date(2024, 3, 15), date(2028, 3, 14))),
+        (date(2028, 3, 15), Period(date(2028, 3, 15), date(2032, 3, 14))),
+        (date(2024, 3, 15), Period(date(2024, 3, 15), date(2028, 3, 14))),
+    ],
+)
+def test_every_four_years_runs_from_the_open_date(today, expected):
+    """Four-year blocks counted from the day the account opened, not the last anniversary."""
+    assert (
+        compute_period(
+            today, Cadence.EVERY_FOUR_YEARS, ResetRule.CARDMEMBER_YEAR, date(2024, 3, 15), None
+        )
+        == expected
+    )
+    # The reset rule cannot change that: the issuer's clock runs from the open date.
+    assert (
+        compute_period(today, Cadence.EVERY_FOUR_YEARS, ResetRule.CALENDAR, date(2024, 3, 15), 11)
+        == expected
+    )
+
+
+def test_every_four_years_needs_an_open_date():
+    assert (
+        compute_period(
+            date(2026, 9, 6), Cadence.EVERY_FOUR_YEARS, ResetRule.CARDMEMBER_YEAR, None, 3
+        )
+        is None
+    )

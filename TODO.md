@@ -34,9 +34,11 @@ is based on: captured, forfeited, unknown, still open.
       (credits plus perks marked used, against the fee that year), at the top of the Money
       tab (2026-09-06). Fees are estimated from today's fee until statements covering the
       fee month are dropped in again; perks count only once marked used.
-- [ ] **An every-four-years cadence** anchored on the open date, so Global Entry can be a
-      real $120 credit with a four-year period instead of a $30-a-year shared perk. Needs
-      `compute_period` to build multi-year blocks from the open date, not the last anniversary.
+- [~] **An every-four-years cadence** anchored on the open date (2026-09-06): `every_four_years`
+      builds four-year blocks from the open date and counts a quarter of the amount per year.
+      Global Entry is still the $30-a-year shared perk, because a $120 credit on each of five
+      cards would count five fees the household only pays once; switching it needs shared
+      credits, or a household-level credit, first.
 
 ### Historical backfill: was this card ever worth it?
 
@@ -65,10 +67,10 @@ makes the Club All Access authorized-user passes real, and that link is a note t
       catalog and needs no entry.
 - [x] A status sensor each: tier as state, source, valid through, days left, expiring-soon
       flag; listed on the Upkeep tab soonest to lapse first.
-- [ ] `requires_status` on a conditional benefit, so qualification is evaluated from the
-      statuses held instead of hand-toggled (United Club All Access passes need Premier Gold
-      or better). Renewal reminders for entered statuses are on the calendar; a repair could
-      follow the 45-day fee pattern.
+- [x] `requires_status` on a conditional benefit (2026-09-06): the benefit is on when the
+      card's owner holds that tier or higher, valid today; the toggle still covers the spend
+      route. United Club All Access passes carry it. Renewal reminders for entered statuses
+      are on the calendar; a repair could follow the 45-day fee pattern.
 - [ ] Progress toward the next tier where thresholds are public, and whether tracking
       qualifying activity (segments, nights, dollars) is worth the data entry.
 
