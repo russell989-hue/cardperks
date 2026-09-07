@@ -89,6 +89,24 @@ git-filter-repo to enforce this, so do not merge anything from an old clone.
 - **Elite status**: `grants_status` on a catalog benefit makes a status sensor per cardholder
   while the card is held; the `status` subentry is for status earned outright, picking a
   program and tier from `programs/*.json` when the program is in the catalog.
+- **Status unlocks benefits**: a conditional benefit with `requires_status`
+  (`{program_id, tier_id}`) is on for a card whose owner holds that tier or higher, valid
+  today (`coordinator.status_met`); the coordinator folds it into the card's
+  `enabled_conditional`, and every platform enumerates benefits from `coordinator.cards`,
+  never from the raw subentry. The hand toggle still covers spend routes.
+- **Cadences**: `every_four_years` builds four-year blocks from the open date (Global Entry
+  stays a $30-a-year shared perk until a shared-credit concept exists).
+- **Earning rates and the best-card lookup**: `EarningRate.category` is a `SpendCategory`
+  (docs/CATALOG.md lists them); every product has `currency_name`; `Product.best_rate`.
+  The catalog page ranks cards for a category by multiplier times the viewer's cents per
+  point (localStorage, one cent to start) and shows an "Adding an authorized user" table.
+- **Periods this year**: every `benefit_status` sensor carries `periods`, from
+  `coordinator.benefit_periods`: this year's periods with an outcome each (captured,
+  partial, forfeited, unknown, open, future, untracked, na). The dashboard rings read it.
+- **Sign-up bonuses**: `benefit_status` also carries `cadence`, `bonus`, `spend_required`,
+  `spend_window_days`, `days_left`; without an open date there is no deadline.
+- **Icon**: `custom_components/cardperks/brand/icon*.png`, served by HA 2026.3+ itself; no
+  brands PR needed for Brian's box.
 - **Card status** picklist: active, frozen (kept but excluded from totals), cancelled
   (also hidden from the overview).
 - **Entities per benefit**: `_used` number (the dollar box), `_remaining`, `_status`,
@@ -148,10 +166,17 @@ integration and wired in via `extra_module_url` in configuration.yaml):
   30 days, the Left-to-use ring.
 - **Analysis** (path `money`): Was it worth it? (a verdict per card from its newest complete cardmember year),
   By card money bars, Net value gauges, Annual fees, Where the big dollars went (ring plus
-  the forfeited list), By year (a table per card).
+  the forfeited list), By year (a table per card), Sign-up bonuses, 5/24.
 - **Upkeep**: Statements (overdue, then coverage), Log a credit, What perks are worth to you.
 - **Catalog**: an iframe over the page the integration serves.
-- One subview per card, reached from the tiles.
+- One subview per card, reached from the tiles: the card's ring and open credits, Credits
+  by period (one small ring per benefit, a slice per period this year, `period_rings` in
+  lovelace.py, with a legend), This year (bars, gauges, fee, perks), Log a credit, the
+  ledger with its window picker, settings, and the bottom navbar.
+- **Tapping anything card-bound opens that card's subview** (Brian's rule, 2026-09-06).
+  `auto_cards` and `auto_rows` are template-built so each card or row carries a navigate
+  action to `/dashboard-cardperks/<title slug>`; Mushroom templates inside them use double
+  quotes (`_inner`). `dashboards/views_main.json` is the generic copy of the three tabs.
 
 Everything is generated; nothing on the dashboard is hand-built any more (Brian's original
 first section is in the 2026-09-06 backup under `/config/cardperks/backups/` and the
@@ -219,8 +244,11 @@ installed but unused: apexcharts-card, mini-graph-card, button-card, layout-card
 - Amex Platinum is light grey on purpose (the card is silver). Do not flag it.
 - He edits the dashboard by hand between pushes. Never replace his first section;
   keep layout he sets.
-- The in-app browser cannot reach his LAN. Verify with the strict template check and
-  the dump tool, then ask him for a screenshot.
+- The in-app browser can reach his LAN (it loaded the catalog page at
+  `http://192.168.68.78:8123/cardperks/catalog` on 2026-09-06) but not the HA UI, which
+  needs a login. Verify dashboards with the strict template check and the dump tool, then
+  ask him for a screenshot. `verify_templates.py` finds the "This year" section by heading;
+  never chain a push after it with `&&` on a `tail`, check for "strict errors: 0".
 - "Don't make any edits yet" means exactly that.
 - The catalog page (`/cardperks/catalog`) is served without a login and marks which
   products the household holds. Brian decided (2026-09-06) that LAN access is an acceptable
@@ -231,5 +259,9 @@ installed but unused: apexcharts-card, mini-graph-card, button-card, layout-card
 ## Known rough edges
 
 - Gauge titles can clip at three per row on narrower screens.
-- The shipped catalog (15 products) was checked against issuer pages on 2026-09-06; only the
-  two Amex business cards remain `needs_verification`. Details in the backlog.
+- The shipped catalog (15 products) was checked against issuer pages on 2026-09-06, earning
+  rates included; nothing is flagged `needs_verification`.
+- Sign-up bonus deadlines and 5/24 counts are empty until cards have open dates; most of
+  Brian's do not yet.
+- The `hacs` CI job is advisory (`continue-on-error`) until the repo is public; hacs/action
+  reads files through the GitHub API and gets nothing from a private repo.
