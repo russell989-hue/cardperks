@@ -100,12 +100,17 @@ makes the Club All Access authorized-user passes real, and that link is a note t
 ## Publish
 
 - [ ] HACS validation job in CI (needs the brands assets merged and a public repo).
-- [ ] Open the home-assistant/brands PR; assets are ready in `brands/cardperks/`.
+- [x] Integration icon: shipped in `custom_components/cardperks/brand/` (2026-09-06), which
+      Home Assistant 2026.3+ serves itself. The home-assistant/brands PR is only needed for
+      installs older than that; assets stay ready in `brands/cardperks/`.
 - [ ] README with screenshots and a privacy statement; a `dashboards/` folder with the
       generated JSON so other installs can import the layout.
 - [x] Notification blueprint: the daily digest (big credits closing unused, statements
       overdue, today's fee, review, status and reminder events) (2026-09-06).
-- [ ] Re-run the privacy audit on the whole history before flipping the repo public.
+- [ ] Re-run the privacy audit on the whole history before flipping the repo public. Run on
+      2026-09-06: no card numbers, tokens or personal data in any file version; the only
+      finding is a work email as the git author on the earliest commits, which a public
+      flip would need a history rewrite (or acceptance) to remove.
 - [ ] Tag a release; test a clean install as a custom HACS repository.
 - [ ] Branch protection on `main` if CI should gate merges.
 

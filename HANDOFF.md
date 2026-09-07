@@ -26,7 +26,7 @@ month. Manual dollar boxes exist as the fallback, not the main flow.
 | `tools/` | deploy script, dashboard generators, and the live push tools |
 | `tools/secrets.env` | untracked: the HA box address and SSH key for deploys |
 | `.github/workflows/validate.yml` | hassfest on every push |
-| `brands/` | icon and logo PNGs for the home-assistant/brands PR, rendered by `tools/make_brand.py` |
+| `brands/` | icon PNGs for a home-assistant/brands PR, rendered by `tools/make_brand.py`; the same files ship in `custom_components/cardperks/brand/`, which HA 2026.3+ serves directly |
 | `docs/CATALOG.md` | catalog field reference and contribution rules |
 | `custom_components/cardperks/panel.py` | serves the catalog page at `/cardperks/catalog` (rendered live by `catalog_page.py`, overrides included, no auth: catalog data only) and the fonts at `/cardperks/static/`; the dashboard's Catalog view is an iframe over it |
 | `TODO.md` | one list of what is next and why |
