@@ -91,6 +91,8 @@ To correct or extend the catalog without editing the integration, drop JSON file
 
 No user data leaves your machine. Card holdings, owners, last-four digits, usage history, and valuations live only in Home Assistant's `.storage/cardperks.state` and are covered by your normal backups. There is no telemetry, no cloud account, and no network access in this version. Diagnostics downloads redact last-four digits, nicknames, owner names, and notes.
 
+Two boundaries to know about. The catalog page at `/cardperks/catalog` is served without a login so it can sit inside a dashboard view; it shows the shipped catalog plus which products your household holds (never owners, last-fours or amounts), so anyone on your network can see which cards you have. The values you type on that page ("My value", cents per point) stay in that browser's local storage and never reach Home Assistant. Statements you drop in `config/cardperks/statements/` are read locally and never uploaded anywhere.
+
 ## Development
 
 Home Assistant only runs on Linux. On Windows use WSL2.
@@ -106,4 +108,4 @@ ruff check .
 
 ## Dashboards
 
-The Lovelace dashboard is generated: `tools/build_sections.py` and `tools/build_card_views.py` write JSON from the live entity map, and the push tools in `tools/` apply it over the Supervisor websocket while keeping layout set in the UI. `HANDOFF.md` explains the structure, the visual tricks, and the working agreements.
+`dashboards/views_main.json` is the generated set of top-level views, free of household data, ready to import; see `dashboards/README.md`. The Lovelace dashboard is generated: `tools/build_sections.py` and `tools/build_card_views.py` write JSON from the live entity map, and the push tools in `tools/` apply it over the Supervisor websocket while keeping layout set in the UI. `HANDOFF.md` explains the structure, the visual tricks, and the working agreements.

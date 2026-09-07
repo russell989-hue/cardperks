@@ -1,0 +1,876 @@
+[
+  {
+    "type": "sections",
+    "title": "My Cards Dashboard",
+    "path": "cardperks",
+    "icon": "mdi:credit-card-multiple",
+    "theme": "CardPerks",
+    "max_columns": 4,
+    "show_icon_and_title": true,
+    "badges": [
+      {
+        "type": "shortcut",
+        "tap_action": {
+          "action": "navigate",
+          "navigation_path": "/config/integrations/integration/cardperks"
+        },
+        "text": "Settings",
+        "icon": "mdi:cog-outline",
+        "color": "grey"
+      }
+    ],
+    "sections": [
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "At a glance",
+            "heading_style": "title",
+            "icon": "mdi:view-dashboard-outline",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "custom:mushroom-template-card",
+            "primary": "{% set ns = namespace(v=0.0) %}{% for s in states.sensor if s.attributes.get('kind') == 'unused_credits' and s.attributes.get('owner') is not none and s.state not in ['unknown', 'unavailable'] %}{% set ns.v = ns.v + (s.state | float(0)) %}{% endfor %}${{ ns.v | round(0) | int }} left to use",
+            "secondary": "{% set ns = namespace(w=0, m=0) %}{% for s in states.sensor if s.attributes.get('kind') == 'benefit_expires' and s.attributes.get('card_status') == 'active' and s.attributes.get('status') in ['unused', 'partial'] and (s.attributes.get('remaining') or 0) > 0 and s.attributes.get('days_left') is not none %}{% if s.attributes.get('days_left') <= 7 %}{% set ns.w = ns.w + 1 %}{% endif %}{% if s.attributes.get('days_left') <= 30 %}{% set ns.m = ns.m + 1 %}{% endif %}{% endfor %}{{ ns.w }} closing this week · {{ ns.m }} within 30 days",
+            "icon": "mdi:cash-clock",
+            "icon_color": "amber",
+            "multiline_secondary": true,
+            "grid_options": {
+              "columns": 12
+            }
+          },
+          {
+            "type": "custom:mushroom-template-card",
+            "primary": "{% set ns = namespace(v=0.0) %}{% for s in states.sensor if s.attributes.get('kind') == 'captured_12m' and s.attributes.get('owner') is not none and s.state not in ['unknown', 'unavailable'] %}{% set ns.v = ns.v + (s.state | float(0)) %}{% endfor %}${{ ns.v | round(0) | int }} captured this year",
+            "secondary": "{% set ns = namespace(v=0.0) %}{% for s in states.sensor if s.attributes.get('kind') == 'captured_12m' and s.attributes.get('owner') is not none and s.state not in ['unknown', 'unavailable'] %}{% set ns.v = ns.v + (s.state | float(0)) %}{% endfor %}{% set cap = ns.v %}{% set na = namespace(v=0.0) %}{% for s in states.sensor if s.attributes.get('kind') == 'annual_value' and s.attributes.get('owner') is not none and s.state not in ['unknown', 'unavailable'] %}{% set na.v = na.v + (s.state | float(0)) %}{% endfor %}{{ ((cap / na.v * 100) if na.v else 0) | round(0) | int }}% of ${{ na.v | round(0) | int }} on offer",
+            "icon": "mdi:cash-check",
+            "icon_color": "green",
+            "multiline_secondary": true,
+            "grid_options": {
+              "columns": 12
+            }
+          },
+          {
+            "type": "custom:mushroom-template-card",
+            "primary": "{% set ns = namespace(v=0.0) %}{% for s in states.sensor if s.attributes.get('kind') == 'forfeited_12m' and s.attributes.get('owner') is not none and s.state not in ['unknown', 'unavailable'] %}{% set ns.v = ns.v + (s.state | float(0)) %}{% endfor %}${{ ns.v | round(0) | int }} missed this year",
+            "secondary": "{% set ns = namespace(unk=0.0) %}{% for s in states.sensor if s.attributes.get('kind') == 'capture_rate' and s.attributes.get('card_status') == 'active' %}{% set ns.unk = ns.unk + (s.attributes.get('unknown_12m') or 0) %}{% endfor %}${{ ns.unk | round(0) | int }} more unknown: months with no statement",
+            "icon": "mdi:cash-remove",
+            "icon_color": "red",
+            "multiline_secondary": true,
+            "grid_options": {
+              "columns": 12
+            }
+          },
+          {
+            "type": "custom:mushroom-template-card",
+            "primary": "{% set ns = namespace(best=none) %}{% for s in states.sensor if s.attributes.get('kind') == 'benefit_expires' and s.attributes.get('card_status') == 'active' and s.attributes.get('status') in ['unused', 'partial'] and (s.attributes.get('remaining') or 0) >= 50 and s.state not in ['unknown', 'unavailable'] %}{% if ns.best is none or (s.attributes.get('days_left') or 9999) < (ns.best.attributes.get('days_left') or 9999) %}{% set ns.best = s %}{% endif %}{% endfor %}{% if ns.best %}${{ (ns.best.attributes.get('remaining') or 0) | round(0) | int }} · {{ ns.best.attributes.get('benefit') }}{% else %}Nothing big closing soon{% endif %}",
+            "secondary": "{% set ns = namespace(best=none) %}{% for s in states.sensor if s.attributes.get('kind') == 'benefit_expires' and s.attributes.get('card_status') == 'active' and s.attributes.get('status') in ['unused', 'partial'] and (s.attributes.get('remaining') or 0) >= 50 and s.state not in ['unknown', 'unavailable'] %}{% if ns.best is none or (s.attributes.get('days_left') or 9999) < (ns.best.attributes.get('days_left') or 9999) %}{% set ns.best = s %}{% endif %}{% endfor %}{% if ns.best %}{{ ns.best.attributes.get('card') }} · closes in {{ ns.best.attributes.get('days_left') }} days{% else %}No credit of $50 or more closes within 90 days{% endif %}",
+            "icon": "mdi:star-circle-outline",
+            "icon_color": "blue",
+            "multiline_secondary": true,
+            "grid_options": {
+              "columns": 12
+            },
+            "tap_action": {
+              "action": "navigate",
+              "navigation_path": "/dashboard-cardperks/money"
+            }
+          }
+        ],
+        "column_span": 2
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Cards",
+            "heading_style": "title",
+            "icon": "mdi:credit-card-multiple",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Tap a card for its own page. Frozen and cancelled cards are not shown."
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 2,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.attributes.get('kind') == 'unused_value' and s.attributes.get('card_status') == 'active' and s.state not in ['unknown', 'unavailable'] %}{% set rate = states.sensor | selectattr('attributes.kind', 'defined') | selectattr('attributes.kind', 'eq', 'capture_rate') | selectattr('attributes.card_id', 'eq', s.attributes.get('card_id')) | map(attribute='state') | list | first %}{% set path = '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-')) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': s.attributes.get('card'), 'secondary': '$' ~ (s.state | float(0) | round(0) | int) ~ ' left · ' ~ ((rate | float(0)) | round(0) | int) ~ '% captured', 'icon': 'mdi:credit-card', 'icon_color': s.attributes.get('color') or 'grey', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': path}, 'sort': s.attributes.get('card')}] %}{% endfor %}{{ ns.cards | sort(attribute='sort') }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ],
+        "column_span": 2
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Big ticket items",
+            "heading_style": "title",
+            "icon": "mdi:star-circle-outline",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Credits with $50 or more still to use and fewer than 90 days to use it, soonest first."
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'benefit_expires' and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'unused' and (s.attributes.get('remaining') | float(0)) >= 50 and (s.attributes.get('days_left') | float(0)) < 90) or (s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'benefit_expires' and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'partial' and (s.attributes.get('remaining') | float(0)) >= 50 and (s.attributes.get('days_left') | float(0)) < 90)) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '${{ (state_attr(entity, \"remaining\") or 0) | round(0) | int }} · {{ state_attr(entity, \"benefit\") }}', 'secondary': '{{ state_attr(entity, \"card\") }} · closes {{ states(entity) }} · {{ state_attr(entity, \"days_left\") }} days', 'icon': 'mdi:star-circle-outline', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.attributes.get('days_left') | float(0))}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=false) }}"
+            }
+          }
+        ],
+        "column_span": 1
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Expiring within 30 days",
+            "heading_style": "title",
+            "icon": "mdi:timer-sand",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'benefit_expires' and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'unused' and (s.attributes.get('days_left') | float(0)) < 31) or (s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'benefit_expires' and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'partial' and (s.attributes.get('days_left') | float(0)) < 31)) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '{{ state_attr(entity, \"benefit\") }}', 'secondary': '${{ (state_attr(entity, \"remaining\") or 0) | round(0) | int }} left · {{ state_attr(entity, \"card\") }} · {{ state_attr(entity, \"days_left\") }} days', 'icon': 'mdi:timer-sand', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.state | string)}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=false) }}"
+            }
+          }
+        ],
+        "column_span": 1
+      },
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Left to use, by card",
+            "heading_style": "title",
+            "icon": "mdi:chart-donut",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Each card is a slice, largest first; the shades within it are its individual credits.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "content": "{% set ns = namespace(total=0.0, cards=[], rems=[], acc=0.0, out=[]) %}{% for s in states.sensor if s.attributes.get('kind') == 'unused_value' and s.attributes.get('card_status') == 'active' and s.state not in ['unknown', 'unavailable'] and (s.state | float(0)) > 0 %}{% set ns.cards = ns.cards + [[s.state | float(0), s.attributes.get('card_id'), s.attributes.get('color') or 'grey']] %}{% endfor %}{% for s in states.sensor if s.attributes.get('kind') == 'benefit_remaining' and s.attributes.get('card_status') == 'active' and s.state not in ['unknown', 'unavailable'] and (s.state | float(0)) > 0 %}{% set ns.rems = ns.rems + [[s.state | float(0), s.attributes.get('card_id')]] %}{% set ns.total = ns.total + (s.state | float(0)) %}{% endfor %}**${{ ns.total | round(0) | int }}**<br>left to use<br>{{ ns.rems | count }} credits on {{ ns.cards | count }} card{{ '' if ns.cards | count == 1 else 's' }}",
+            "card_mod": {
+              "style": "ha-card {\n  display: flex !important; align-items: center; justify-content: center;\n}\nha-markdown {\n  width: 240px !important; height: 240px !important; border-radius: 50%;\n  margin: auto !important; padding: 0 !important; box-sizing: border-box;\n  display: flex !important; align-items: center; justify-content: center;\n  text-align: center; font-size: 1.15em; line-height: 1.5;\n  background:\n    radial-gradient(circle closest-side, var(--ha-card-background, var(--card-background-color)) 70%, transparent 71%),\n    conic-gradient({% set ns = namespace(total=0.0, cards=[], rems=[], acc=0.0, out=[]) %}{% for s in states.sensor if s.attributes.get('kind') == 'unused_value' and s.attributes.get('card_status') == 'active' and s.state not in ['unknown', 'unavailable'] and (s.state | float(0)) > 0 %}{% set ns.cards = ns.cards + [[s.state | float(0), s.attributes.get('card_id'), s.attributes.get('color') or 'grey']] %}{% endfor %}{% for s in states.sensor if s.attributes.get('kind') == 'benefit_remaining' and s.attributes.get('card_status') == 'active' and s.state not in ['unknown', 'unavailable'] and (s.state | float(0)) > 0 %}{% set ns.rems = ns.rems + [[s.state | float(0), s.attributes.get('card_id')]] %}{% set ns.total = ns.total + (s.state | float(0)) %}{% endfor %}{% for c in ns.cards | sort(attribute='0', reverse=true) %}{% set parts = ns.rems | selectattr('1', 'eq', c[1]) | sort(attribute='0', reverse=true) | list %}{% set n = parts | count %}{% for p in parts %}{% set pct = p[0] / ns.total * 100 %}{% set mix = (100 - loop.index0 * 55 / ([n - 1, 1] | max)) | round(0) | int %}{% set ns.out = ns.out + ['color-mix(in srgb, var(--' ~ c[2] ~ '-color) ' ~ mix ~ '%, var(--card-background-color)) ' ~ (ns.acc | round(2)) ~ '% ' ~ ((ns.acc + pct) | round(2)) ~ '%'] %}{% set ns.acc = ns.acc + pct %}{% endfor %}{% endfor %}{{ ns.out | join(', ') if ns.out else 'var(--divider-color) 0% 100%' }});\n}\n"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'unused_value' and s.attributes.get('card_status') == 'active' and (s.state | float(0)) > 0)) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '{{ state_attr(entity, \"card\") }}', 'secondary': '{% set vals = states.sensor | selectattr(\"attributes.kind\", \"defined\") | selectattr(\"attributes.kind\", \"eq\", \"unused_value\") | selectattr(\"attributes.card_status\", \"eq\", \"active\") | rejectattr(\"state\", \"in\", [\"unknown\", \"unavailable\"]) | map(attribute=\"state\") | map(\"float\", 0) | list %}{% set total = (vals | sum) or 1 %}${{ states(entity) | float(0) | round(0) | int }} · {{ ((states(entity) | float(0)) / total * 100) | round(0) | int }}% of the total', 'icon': 'mdi:circle-slice-8', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.state | float(0))}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=true) }}"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Coming up",
+            "heading_style": "title",
+            "icon": "mdi:calendar-star",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Every card's fee date, a reminder to review it 30 days before, elite statuses lapsing, and your own notes. Add a note with the plus in the corner of the calendar; it is kept by CardPerks, not by another calendar."
+          },
+          {
+            "type": "calendar",
+            "entities": [
+              "calendar.household_calendar"
+            ],
+            "initial_view": "listWeek",
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ],
+        "column_span": 2
+      }
+    ]
+  },
+  {
+    "type": "sections",
+    "title": "Analysis",
+    "path": "money",
+    "icon": "mdi:chart-box-outline",
+    "theme": "CardPerks",
+    "max_columns": 4,
+    "show_icon_and_title": true,
+    "sections": [
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Was it worth it?",
+            "heading_style": "title",
+            "icon": "mdi:scale-balance",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Each card's newest complete cardmember year: credits captured, plus perks you marked used at your own value, against the fee that year. \"est.\" means no statement showed the fee, so the card's fee today stands in. A year with fewer than ten months of statements gets no verdict.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 2,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.attributes.get('kind') == 'net_value_12m' and s.attributes.get('card_status') == 'active' and (s.attributes.get('years') or []) | count > 0 %}{% set done = s.attributes.get('years') | rejectattr('current') | list %}{% set y = done[0] if done else s.attributes.get('years')[0] %}{% set v = y.verdict %}{% set color = 'green' if v == 'earned its keep' else ('red' if v == 'did not earn its keep' else 'grey') %}{% set icon = 'mdi:check-circle-outline' if v == 'earned its keep' else ('mdi:close-circle-outline' if v == 'did not earn its keep' else 'mdi:help-circle-outline') %}{% set fee = ('$' ~ (y.fee | round(0) | int) ~ (' est.' if y.fee_source == 'estimate' else '')) if y.fee is not none else 'fee unknown' %}{% set back = y.captured + y.perks_value %}{% set net = y.net_with_perks %}{% set nettext = (('-' if net < 0 else '+') ~ '$' ~ (net | abs | round(0) | int)) if net is not none else '' %}{% set label = y.start[:7] ~ ' to ' ~ y.end[:7] ~ (' so far' if y.current else '') %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': s.attributes.get('card') ~ ' · ' ~ v, 'secondary': label ~ ': $' ~ (y.captured | round(0) | int) ~ ' credits' ~ (' + $' ~ (y.perks_value | round(0) | int) ~ ' perks' if y.perks_value else '') ~ ' against ' ~ fee ~ ' · net ' ~ nettext ~ ' · ' ~ y.months_covered ~ '/' ~ y.months ~ ' months', 'icon': icon, 'icon_color': color, 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (0 if v == 'did not earn its keep' else (1 if v == 'earned its keep' else 2)) ~ s.attributes.get('card')}] %}{% endfor %}{{ ns.cards | sort(attribute='sort') }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "By card",
+            "heading_style": "title",
+            "icon": "mdi:credit-card-multiple",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Where each card's credit dollars went over the trailing twelve months. Green is captured, red forfeited, grey unknown (months with no statement); the dim remainder is still open to capture.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and s.attributes.get('kind') == 'capture_rate' and s.attributes.get('card_status') == 'active' %}{% set cap = s.attributes.get('captured_12m') or 0 %}{% set forf = s.attributes.get('forfeited_12m') or 0 %}{% set unk = s.attributes.get('unknown_12m') or 0 %}{% set open = s.attributes.get('open_remaining') or 0 %}{% set tot = cap + forf + unk + open %}{% if tot > 0 %}{% set a = (cap / tot * 100) | round(2) %}{% set b = ((cap + forf) / tot * 100) | round(2) %}{% set c = ((cap + forf + unk) / tot * 100) | round(2) %}{% set style = 'ha-markdown::before { content: \"\"; display: block; height: 12px; border-radius: 6px; margin: 2px 0 10px; background: linear-gradient(to right, var(--cardperks-captured, var(--green-color)) 0% ' ~ a ~ '%, var(--cardperks-forfeited, var(--red-color)) ' ~ a ~ '% ' ~ b ~ '%, var(--cardperks-unknown, var(--grey-color)) ' ~ b ~ '% ' ~ c ~ '%, var(--divider-color) ' ~ c ~ '% 100%); }' %}{% else %}{% set style = 'ha-markdown::before { content: \"\"; display: block; height: 12px; border-radius: 6px; margin: 2px 0 10px; background: var(--divider-color); }' %}{% endif %}{% set text = '**' ~ s.attributes.get('card') ~ '** · ' ~ (s.state | float(0) | round(0) | int) ~ '% captured<br>' ~ '$' ~ (cap | round(0) | int) ~ ' captured · $' ~ (forf | round(0) | int) ~ ' forfeited · $' ~ (unk | round(0) | int) ~ ' unknown · $' ~ (open | round(0) | int) ~ ' still open' %}{% set ns.cards = ns.cards + [{'type': 'markdown', 'content': text, 'card_mod': {'style': style}, 'sort': s.attributes.get('card')}] %}{% endfor %}{{ ns.cards | sort(attribute='sort') }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Net value, by card",
+            "heading_style": "title",
+            "icon": "mdi:scale-balance",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Credits captured over the trailing twelve months, less the annual fee. Empty is paying the fee for nothing; full is capturing everything."
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 2,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(items=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and s.attributes.get('kind') == 'net_value_12m' and s.attributes.get('card_status') == 'active' %}{% set c = s.attributes.get('color') or 'grey' %}{% set ns.items = ns.items + [[s.state | float(0), {'type': 'gauge', 'entity': s.entity_id, 'name': s.attributes.get('card'), 'min': -(s.attributes.annual_fee or 0), 'max': (([((states.sensor | selectattr('attributes.kind', 'defined') | selectattr('attributes.kind', 'eq', 'capture_rate') | selectattr('attributes.card_id', 'eq', s.attributes.card_id) | map(attribute='attributes.annual_value') | list | first) or 0) - (s.attributes.annual_fee or 0), 1 - (s.attributes.annual_fee or 0)] | max) | round(2)), 'card_mod': {'style': 'ha-card { --info-color: var(--' ~ c ~ '-color); } ha-gauge { --gauge-color: var(--' ~ c ~ '-color) !important; }'}}]] %}{% endfor %}{{ ns.items | sort(attribute='0', reverse=true) | map(attribute='1') | list }}"
+            }
+          }
+        ],
+        "column_span": 1
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Annual fees",
+            "heading_style": "title",
+            "icon": "mdi:calendar-cash",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'fee_due' and s.attributes.get('card_status') == 'active')) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '{{ state_attr(entity, \"card\") }}', 'secondary': '${{ (state_attr(entity, \"annual_fee\") or 0) | round(0) | int }} · due {{ states(entity) }} · {{ ((states(entity) | as_timestamp - now() | as_timestamp) / 86400) | round(0) | int }} days', 'icon': 'mdi:calendar-cash', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.state | string)}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=false) }}"
+            }
+          }
+        ],
+        "column_span": 1
+      },
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Where the big dollars went",
+            "heading_style": "title",
+            "icon": "mdi:chart-donut",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Trailing twelve months, credits worth $50 or more a period: what was captured, what slipped away, what is unknown, what is still open.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "{% set ns = namespace(cap=0.0, forf=0.0, unk=0.0, open=0.0, n=0) %}{% for s in states.number if s.attributes.get('kind') == 'benefit_used' and s.attributes.get('card_status') == 'active' and (s.attributes.get('this_period') or 0) >= 50 %}{% set ns.cap = ns.cap + (s.attributes.get('captured_12m') or 0) %}{% set ns.forf = ns.forf + (s.attributes.get('forfeited_12m') or 0) %}{% set ns.unk = ns.unk + (s.attributes.get('unknown_12m') or 0) %}{% set ns.open = ns.open + (s.attributes.get('open_remaining') or 0) %}{% set ns.n = ns.n + 1 %}{% endfor %}{% set tot = ns.cap + ns.forf + ns.unk + ns.open %}**${{ ns.cap | round(0) | int }}** captured · **${{ ns.forf | round(0) | int }}** forfeited · **${{ ns.unk | round(0) | int }}** unknown · **${{ ns.open | round(0) | int }}** still open",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "content": "{% set ns = namespace(cap=0.0, forf=0.0, unk=0.0, open=0.0, n=0) %}{% for s in states.number if s.attributes.get('kind') == 'benefit_used' and s.attributes.get('card_status') == 'active' and (s.attributes.get('this_period') or 0) >= 50 %}{% set ns.cap = ns.cap + (s.attributes.get('captured_12m') or 0) %}{% set ns.forf = ns.forf + (s.attributes.get('forfeited_12m') or 0) %}{% set ns.unk = ns.unk + (s.attributes.get('unknown_12m') or 0) %}{% set ns.open = ns.open + (s.attributes.get('open_remaining') or 0) %}{% set ns.n = ns.n + 1 %}{% endfor %}{% set tot = ns.cap + ns.forf + ns.unk + ns.open %}**${{ ns.forf | round(0) | int }}** missed<br><span style='color: var(--secondary-text-color)'>of ${{ tot | round(0) | int }}<br>{{ ns.n }} big-ticket credits</span>",
+            "card_mod": {
+              "style": "ha-card {\n  display: flex !important; align-items: center; justify-content: center;\n}\nha-markdown {\n  width: 240px !important; height: 240px !important; border-radius: 50%;\n  margin: auto !important; padding: 0 !important; box-sizing: border-box;\n  display: flex !important; align-items: center; justify-content: center;\n  text-align: center; font-size: 1.05em; line-height: 1.5;\n  background:\n    radial-gradient(circle closest-side, var(--ha-card-background, var(--card-background-color)) 70%, transparent 71%),\n    conic-gradient({% set ns = namespace(cap=0.0, forf=0.0, unk=0.0, open=0.0, n=0) %}{% for s in states.number if s.attributes.get('kind') == 'benefit_used' and s.attributes.get('card_status') == 'active' and (s.attributes.get('this_period') or 0) >= 50 %}{% set ns.cap = ns.cap + (s.attributes.get('captured_12m') or 0) %}{% set ns.forf = ns.forf + (s.attributes.get('forfeited_12m') or 0) %}{% set ns.unk = ns.unk + (s.attributes.get('unknown_12m') or 0) %}{% set ns.open = ns.open + (s.attributes.get('open_remaining') or 0) %}{% set ns.n = ns.n + 1 %}{% endfor %}{% set tot = ns.cap + ns.forf + ns.unk + ns.open %}{% if tot > 0 %}{% set a = (ns.cap / tot * 100) | round(2) %}{% set b = ((ns.cap + ns.forf) / tot * 100) | round(2) %}{% set c = ((ns.cap + ns.forf + ns.unk) / tot * 100) | round(2) %}var(--cardperks-captured, var(--green-color)) 0% {{ a }}%, var(--cardperks-forfeited, var(--red-color)) {{ a }}% {{ b }}%, var(--cardperks-unknown, var(--grey-color)) {{ b }}% {{ c }}%, var(--divider-color) {{ c }}% 100%{% else %}var(--divider-color) 0% 100%{% endif %});\n}"
+            },
+            "grid_options": {
+              "columns": 12
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.number if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'benefit_used' and s.attributes.get('card_status') == 'active' and (s.attributes.get('this_period') | float(0)) >= 50 and (s.attributes.get('forfeited_12m') | float(0)) > 0)) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '${{ (state_attr(entity, \"forfeited_12m\") or 0) | round(0) | int }} missed · {{ state_attr(entity, \"benefit\") }}', 'secondary': '{{ state_attr(entity, \"card\") }} · ${{ (state_attr(entity, \"captured_12m\") or 0) | round(0) | int }} captured this year', 'icon': 'mdi:close-circle-outline', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.attributes.get('forfeited_12m') | float(0))}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=true) }}"
+            },
+            "grid_options": {
+              "columns": 12
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "By year",
+            "heading_style": "title",
+            "icon": "mdi:calendar-multiple",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Each cardmember year: the fee a statement showed, the credits recorded, and the net. \"Statements\" says how much of the year a statement covers; a thin year is not a bad year. Nothing is claimed about what was on offer back then.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 2,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.attributes.get('kind') == 'net_value_12m' and s.attributes.get('card_status') == 'active' and (s.attributes.get('years') or []) | count > 0 %}{% set ns.rows = [] %}{% set ns.text = '**' ~ s.attributes.get('card') ~ '**\\n\\n| Year | Fee | Captured | Net | Statements |\\n|---|---:|---:|---:|---|\\n' %}{% for y in s.attributes.get('years') %}{% set label = (y.start[:4] ~ '-' ~ y.end[:4]) if y.start[:4] != y.end[:4] else y.start[:4] %}{% set fee = ('$' ~ (y.fee | round(0) | int)) if y.fee is not none else 'not seen' %}{% set net = (('-' if y.net < 0 else '') ~ '$' ~ (y.net | abs | round(0) | int)) if y.net is not none else '' %}{% set ns.text = ns.text ~ '| ' ~ label ~ (' (so far)' if y.current else '') ~ ' | ' ~ fee ~ ' | $' ~ (y.captured | round(0) | int) ~ ' | ' ~ net ~ ' | ' ~ y.months_covered ~ '/' ~ y.months ~ ' months |\\n' %}{% endfor %}{% set ns.cards = ns.cards + [{'type': 'markdown', 'content': ns.text, 'sort': s.attributes.get('card')}] %}{% endfor %}{{ ns.cards | sort(attribute='sort') }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Sign-up bonuses",
+            "heading_style": "title",
+            "icon": "mdi:rocket-launch-outline",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "What each card's welcome offer takes and by when, from the catalog and the card's open date. Mark a bonus used on its card page once the points post; the amounts here are the catalog's offer at verification time, and offers change.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 2,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": true,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.attributes.get('kind') == 'benefit_status' and s.attributes.get('cadence') == 'one_time' and s.attributes.get('card_status') == 'active' %}{% set used = s.state == 'used' %}{% set spend = s.attributes.get('spend_required') %}{% set end = s.attributes.get('period_end') %}{% set days = s.attributes.get('days_left') %}{% set window = s.attributes.get('spend_window_days') %}{% if used %}{% set text = 'Earned' %}{% elif s.state == 'n_a' %}{% set text = 'Not applicable' %}{% elif end %}{% set text = 'Spend $' ~ (spend | round(0) | int if spend else '?') ~ ' by ' ~ end ~ ((' · ' ~ days ~ ' days left') if days is not none and days >= 0 else ' · window closed') %}{% else %}{% set text = 'Spend $' ~ (spend | round(0) | int if spend else '?') ~ (' within ' ~ window ~ ' days of opening' if window else '') ~ ' · set the open date to get a deadline' %}{% endif %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': s.attributes.get('card') ~ ' · ' ~ (s.attributes.get('bonus') or 'sign-up bonus'), 'secondary': text, 'icon': 'mdi:check-circle-outline' if used else ('mdi:minus-circle-outline' if s.state == 'n_a' else 'mdi:rocket-launch-outline'), 'icon_color': 'green' if used else ('grey' if s.state == 'n_a' else (s.attributes.get('color') or 'amber')), 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (2 if used else (3 if s.state == 'n_a' else (0 if end else 1))) ~ (end or '') ~ s.attributes.get('card')}] %}{% endfor %}{{ ns.cards | sort(attribute='sort') }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "5/24",
+            "heading_style": "title",
+            "icon": "mdi:counter",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Chase declines most applications from anyone who opened five or more personal cards in the past 24 months, at any issuer. Only cards with an open date count here, and business cards from most issuers do not report.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": true,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.attributes.get('kind') == 'five_24' and s.state not in ['unknown', 'unavailable'] %}{% set n = s.state | int(0) %}{% set under = s.attributes.get('under_5_24') %}{% set accts = s.attributes.get('accounts') or [] %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': s.attributes.get('owner') ~ ': ' ~ n ~ ' of 5', 'secondary': (accts | join(', ')) if accts else 'No personal cards with an open date in the last 24 months', 'icon': 'mdi:counter', 'icon_color': 'green' if under else 'red', 'multiline_secondary': true, 'sort': s.attributes.get('owner')}] %}{% endfor %}{{ ns.cards | sort(attribute='sort') }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "sections",
+    "title": "Upkeep",
+    "path": "upkeep",
+    "icon": "mdi:clipboard-check-outline",
+    "theme": "CardPerks",
+    "max_columns": 4,
+    "show_icon_and_title": true,
+    "sections": [
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Log a credit",
+            "heading_style": "title",
+            "icon": "mdi:cash-check",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Type the dollars you captured. Status follows from the amount.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "entities",
+              "state_color": true,
+              "title": "Credits with money left"
+            },
+            "show_empty": true,
+            "filter": {
+              "template": "{% set ns = namespace(rows=[]) %}{% for s in states.number if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'unused' and (s.attributes.get('this_period') | float(0)) > 0) or (s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'partial' and (s.attributes.get('this_period') | float(0)) > 0)) %}{% set c = s.attributes.get('color') or 'grey' %}{% set ns.rows = ns.rows + [{'entity': s.entity_id, 'name': s.attributes.get('benefit') ~ ' used: ' ~ s.attributes.get('card'), 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'card_mod': {'style': ':host { --paper-item-icon-color: var(--' ~ c ~ '-color); --state-icon-color: var(--' ~ c ~ '-color); }'}}] %}{% endfor %}{{ (ns.rows | sort(attribute='name'))[0:3] }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:expander-card",
+            "title-card": {
+              "type": "custom:mushroom-template-card",
+              "primary": "{% set ns = namespace(n=0) %}{% for s in states.number if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'unused' and (s.attributes.get('this_period') | float(0)) > 0) or (s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'partial' and (s.attributes.get('this_period') | float(0)) > 0)) %}{% set ns.n = ns.n + 1 %}{% endfor %}{{ [ns.n - 3, 0] | max }} more credits",
+              "icon": "mdi:unfold-more-horizontal",
+              "icon_color": "grey",
+              "tap_action": {
+                "action": "none"
+              }
+            },
+            "title-card-clickable": true,
+            "title-card-button-overlay": true,
+            "expanded": false,
+            "clear": true,
+            "child-padding": "0",
+            "gap": "0.6em",
+            "cards": [
+              {
+                "type": "custom:auto-entities",
+                "card": {
+                  "type": "entities",
+                  "state_color": true
+                },
+                "show_empty": false,
+                "filter": {
+                  "template": "{% set ns = namespace(rows=[]) %}{% for s in states.number if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'unused' and (s.attributes.get('this_period') | float(0)) > 0) or (s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('status') == 'partial' and (s.attributes.get('this_period') | float(0)) > 0)) %}{% set c = s.attributes.get('color') or 'grey' %}{% set ns.rows = ns.rows + [{'entity': s.entity_id, 'name': s.attributes.get('benefit') ~ ' used: ' ~ s.attributes.get('card'), 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'card_mod': {'style': ':host { --paper-item-icon-color: var(--' ~ c ~ '-color); --state-icon-color: var(--' ~ c ~ '-color); }'}}] %}{% endfor %}{{ (ns.rows | sort(attribute='name'))[3:] }}"
+                }
+              }
+            ],
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "column_span": 2,
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "What perks are worth to you",
+            "heading_style": "title",
+            "icon": "mdi:tag-text-outline",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Lounge access and status carry no issuer amount, so the value is your call. A perk several cards share (Priority Pass) is one number for all cards, split equally between them.",
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "entities",
+              "state_color": true,
+              "title": "Perk values"
+            },
+            "show_empty": true,
+            "filter": {
+              "template": "{% set ns = namespace(rows=[]) %}{% for s in states.number if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('kind') == 'perk_value') or (s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('kind') == 'shared_value')) %}{% set c = s.attributes.get('color') or 'grey' %}{% set ns.rows = ns.rows + [{'entity': s.entity_id, 'name': s.attributes.get('benefit') ~ ' value: ' ~ s.attributes.get('card'), 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'card_mod': {'style': ':host { --paper-item-icon-color: var(--' ~ c ~ '-color); --state-icon-color: var(--' ~ c ~ '-color); }'}}] %}{% endfor %}{{ (ns.rows | sort(attribute='name'))[0:3] }}"
+            },
+            "grid_options": {
+              "columns": "full"
+            }
+          },
+          {
+            "type": "custom:expander-card",
+            "title-card": {
+              "type": "custom:mushroom-template-card",
+              "primary": "{% set ns = namespace(n=0) %}{% for s in states.number if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('kind') == 'perk_value') or (s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('kind') == 'shared_value')) %}{% set ns.n = ns.n + 1 %}{% endfor %}{{ [ns.n - 3, 0] | max }} more perks",
+              "icon": "mdi:unfold-more-horizontal",
+              "icon_color": "grey",
+              "tap_action": {
+                "action": "none"
+              }
+            },
+            "title-card-clickable": true,
+            "title-card-button-overlay": true,
+            "expanded": false,
+            "clear": true,
+            "child-padding": "0",
+            "gap": "0.6em",
+            "cards": [
+              {
+                "type": "custom:auto-entities",
+                "card": {
+                  "type": "entities",
+                  "state_color": true
+                },
+                "show_empty": false,
+                "filter": {
+                  "template": "{% set ns = namespace(rows=[]) %}{% for s in states.number if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('kind') == 'perk_value') or (s.attributes.get('card_id') is not none and s.attributes.get('card_status') == 'active' and s.attributes.get('kind') == 'shared_value')) %}{% set c = s.attributes.get('color') or 'grey' %}{% set ns.rows = ns.rows + [{'entity': s.entity_id, 'name': s.attributes.get('benefit') ~ ' value: ' ~ s.attributes.get('card'), 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'card_mod': {'style': ':host { --paper-item-icon-color: var(--' ~ c ~ '-color); --state-icon-color: var(--' ~ c ~ '-color); }'}}] %}{% endfor %}{{ (ns.rows | sort(attribute='name'))[3:] }}"
+                }
+              }
+            ],
+            "grid_options": {
+              "columns": "full"
+            }
+          }
+        ]
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Statements",
+            "heading_style": "title",
+            "icon": "mdi:file-document-check-outline",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Drop an export in config/cardperks/statements/ and it is imported by itself. A month with no statement is unknown, not proof a credit went unused."
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.binary_sensor if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'statement_due' and s.attributes.get('card_status') == 'active' and s.state == 'on')) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '{{ state_attr(entity, \"card\") }}', 'secondary': 'Newest statement covers {{ state_attr(entity, \"last_statement_month\") }} · {{ state_attr(entity, \"months_behind\") }} months behind', 'icon': 'mdi:file-document-alert-outline', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.attributes.get('months_behind') | float(0))}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=true) }}"
+            }
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'coverage_12m' and s.attributes.get('card_status') == 'active')) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '{{ state_attr(entity, \"card\") }}', 'secondary': '{{ states(entity) }}/12 months · {{ (state_attr(entity, \"statements_imported\") or 0) }} files{% set m = state_attr(entity, \"missing\") or [] %}{% if m %} · missing {{ m[:3] | join(\", \") }}{% if m | count > 3 %} +{{ m | count - 3 }}{% endif %}{% endif %}', 'icon': 'mdi:file-document-check-outline', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.state | string)}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=false) }}"
+            }
+          }
+        ],
+        "column_span": 1
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Shared across cards",
+            "heading_style": "title",
+            "icon": "mdi:tag-multiple-outline",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "One membership, several cards. Each of these is one number for the household, split equally between the cards that carry it. A shared perk only one of your cards carries is listed under that card instead."
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": false,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.number if s.attributes.get('kind') == 'shared_value' and (s.attributes.get('card_ids') or []) | count > 1 %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '$' ~ (s.state | float(0) | round(0) | int) ~ ' · ' ~ s.attributes.get('benefit'), 'secondary': '$' ~ ((s.attributes.get('per_card') or 0) | round(0) | int) ~ ' each on ' ~ (s.attributes.get('cards') | count) ~ ' cards: ' ~ (s.attributes.get('cards') | join(', ')), 'icon': 'mdi:tag-multiple-outline', 'icon_color': 'amber', 'multiline_secondary': true, 'sort': -(s.state | float(0))}] %}{% endfor %}{{ ns.cards | sort(attribute='sort') }}"
+            }
+          }
+        ],
+        "column_span": 1
+      },
+      {
+        "type": "grid",
+        "cards": [
+          {
+            "type": "heading",
+            "heading": "Elite status",
+            "heading_style": "title",
+            "icon": "mdi:medal-outline",
+            "card_mod": {
+              "style": ".title { font-family: var(--ha-font-family-heading, Georgia, serif); font-weight: 600; letter-spacing: -0.01em; }"
+            }
+          },
+          {
+            "type": "markdown",
+            "text_only": true,
+            "content": "Status a card gives you appears by itself and renews with the card. Status you earned outright is added under Settings, CardPerks, Add elite status."
+          },
+          {
+            "type": "custom:auto-entities",
+            "card": {
+              "type": "grid",
+              "columns": 1,
+              "square": false
+            },
+            "card_param": "cards",
+            "show_empty": true,
+            "filter": {
+              "template": "{% set ns = namespace(cards=[]) %}{% for s in states.sensor if s.state not in ['unavailable', 'unknown'] and ((s.attributes.get('card_id') is not none and s.attributes.get('kind') == 'status')) %}{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, 'primary': '{{ states(entity) }} · {{ state_attr(entity, \"program\") }}', 'secondary': '{{ state_attr(entity, \"owner\") }} · via {{ state_attr(entity, \"source\") }}{% if state_attr(entity, \"valid_through\") %} · through {{ state_attr(entity, \"valid_through\") }} · {{ state_attr(entity, \"days_left\") }} days{% endif %}', 'icon': 'mdi:medal-outline', 'icon_color': '{{ state_attr(entity, \"color\") or \"grey\" }}', 'multiline_secondary': true, 'tap_action': {'action': 'navigate', 'navigation_path': '/dashboard-cardperks/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))}, 'sort': (s.attributes.get('days_left') | float(0))}] %}{% endfor %}{{ ns.cards | sort(attribute='sort', reverse=false) }}"
+            }
+          }
+        ],
+        "column_span": 1
+      }
+    ]
+  }
+]
