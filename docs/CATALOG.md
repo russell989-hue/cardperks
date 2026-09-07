@@ -45,6 +45,11 @@ This page is the field reference and the contribution rules. The schema itself l
 
 ## Product
 
+`catalog/other.json` ships one placeholder product, `other_card`, for cards whose benefits are
+not worth tracking (a store card, an old no-fee card kept open for its age). It has no
+benefits and a base earning rate of 1; add it with a nickname and an open date so the card
+still counts toward 5/24.
+
 | Field | Required | Default | Meaning |
 | --- | --- | --- | --- |
 | `id` | yes | | Slug, `^[a-z0-9_]+$`, unique across every file. Convention: `<issuer>_<card>`. Never change an id once shipped; held cards reference it. |

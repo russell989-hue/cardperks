@@ -35,7 +35,7 @@ def test_shipped_catalog_is_valid():
     } <= set(catalog.products)
     for p in catalog.products.values():
         assert p.source_url.startswith("https://")
-        assert p.benefits, p.id
+        assert p.benefits or p.issuer == "other", p.id
 
 
 def test_override_replaces_product(tmp_path: Path):

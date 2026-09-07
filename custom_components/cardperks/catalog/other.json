@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "issuer": "other",
+  "issuer_name": "Other",
+  "products": [
+    {
+      "id": "other_card",
+      "name": "Other card (benefits not tracked)",
+      "annual_fee": 0,
+      "currency": "cash",
+      "currency_name": "nothing tracked",
+      "default_point_value": 0.01,
+      "reports_to_personal_credit": true,
+      "last_verified": "2026-09-07",
+      "source_url": "https://github.com/russell989-hue/cardperks/blob/main/docs/CATALOG.md",
+      "needs_verification": false,
+      "benefits": [],
+      "earning_rates": [
+        {
+          "category": "other",
+          "multiplier": 1,
+          "notes": "A placeholder for a card whose benefits are not worth tracking: a store card, an old no-fee card kept open for its age. It exists so the card still counts toward Chase's 5/24 and appears with its open date. Give it a nickname when adding it."
+        }
+      ],
+      "au_terms": {
+        "fee": 0,
+        "own_lounge_access": false
+      }
+    }
+  ]
+}
