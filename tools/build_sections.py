@@ -19,6 +19,7 @@ import sys
 from lovelace import (
     DAYS_UNTIL,
     DOLLARS,
+    NAVIGATE,
     ONLY_ACTIVE,
     _template_cards,
     attr,
@@ -224,6 +225,7 @@ def worth_it() -> dict:
         "~ (' + $' ~ (y.perks_value | round(0) | int) ~ ' perks' if y.perks_value else '') "
         "~ ' against ' ~ fee ~ ' · net ' ~ nettext ~ ' · ' ~ y.months_covered ~ '/' ~ y.months ~ ' months', "
         "'icon': icon, 'icon_color': color, 'multiline_secondary': true, "
+        "'tap_action': " + NAVIGATE + ", "
         "'sort': (0 if v == 'did not earn its keep' else (1 if v == 'earned its keep' else 2)) ~ s.attributes.get('card')}] %}"
         "{% endfor %}"
         "{{ ns.cards | sort(attribute='sort') }}"
@@ -306,6 +308,7 @@ def signup_bonuses() -> dict:
         "'icon': 'mdi:check-circle-outline' if used else ('mdi:minus-circle-outline' if s.state == 'n_a' else 'mdi:rocket-launch-outline'), "
         "'icon_color': 'green' if used else ('grey' if s.state == 'n_a' else (s.attributes.get('color') or 'amber')), "
         "'multiline_secondary': true, "
+        "'tap_action': " + NAVIGATE + ", "
         "'sort': (2 if used else (3 if s.state == 'n_a' else (0 if end else 1))) ~ (end or '') ~ s.attributes.get('card')}] %}"
         "{% endfor %}"
         "{{ ns.cards | sort(attribute='sort') }}"

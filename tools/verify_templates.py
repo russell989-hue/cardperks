@@ -126,7 +126,8 @@ print(
 v = load("/tmp/dash/views.json")[0]
 ring = v["sections"][0]["cards"][1]
 print("ring:", " ".join(str(strict(ring["content"])).split()))
-g = v["sections"][1]["cards"]
+year = next(s for s in v["sections"] if s["cards"][0].get("heading") == "This year")
+g = year["cards"]
 for i in (3, 4, 5):
     r = strict(g[i]["filter"]["template"])
     r = r if isinstance(r, list) else ast.literal_eval(r)

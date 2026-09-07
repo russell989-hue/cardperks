@@ -23,6 +23,12 @@ is based on: captured, forfeited, unknown, still open.
       Judge it from a screenshot, then: heading subtitles, a type chip on the "All benefits"
       list via Mushroom badges, and whether the At-a-glance tiles want to be bigger.
 - [ ] Gauges at two per row if titles keep clipping on narrower screens.
+- [x] Every card-bound list, row and verdict on the dashboard opens that card's subview
+      when tapped (2026-09-06); lists are template-built so the path comes from the title.
+- [x] Credits by period (2026-09-06): one ring per benefit on each card page, a slice per
+      period this year coloured by outcome, from the `periods` attribute every benefit
+      status sensor carries. Next: a household grid of the same rings on the Overview,
+      and a legend.
 - [x] Amex Business Platinum and Business Gold verified from the official pages (2026-09-06).
 - [ ] Statement wording for the credits added on 2026-09-06 is guessed; use
       `cardperks.add_statement_match` as real lines show up, then move the pattern into

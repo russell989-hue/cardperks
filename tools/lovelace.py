@@ -37,6 +37,24 @@ DOLLARS = "${{ states(entity) | float(0) | round(0) | int }}"
 ONLY_CARD = "s.attributes.get('card_id') == '{card_id}'"
 ONLY_ACTIVE = "s.attributes.get('card_status') == 'active'"
 
+# Tapping anything that belongs to a card opens that card's own view. The path is the
+# card title slugified the way build_card_views.py names the subviews.
+DASHBOARD = "dashboard-cardperks"
+CARD_PATH = f"'/{DASHBOARD}/' ~ (s.attributes.get('card') | slugify | replace('_', '-'))"
+NAVIGATE = "{'action': 'navigate', 'navigation_path': " + CARD_PATH + "}"
+
+
+def _inner(tpl: str) -> str:
+    """A Mushroom template, quoted to sit inside an outer Jinja string literal.
+
+    The outer template builds card configs; the Mushroom card renders these later,
+    with `entity` set. Jinja leaves them alone inside a single-quoted literal as long
+    as they use double quotes themselves.
+    """
+    assert '"' not in tpl, tpl
+    return tpl.replace("'", '"')
+
+
 # Net value gauge: from paying the fee for nothing, to capturing everything. The
 # annual value lives on the capture-rate sensor, so it is looked up by card id.
 _FEE = "(s.attributes.get('annual_fee') or 0)"
@@ -185,20 +203,44 @@ def auto_cards(
 ) -> dict:
     """auto-entities feeding a column of Mushroom template cards.
 
-    Each include rule gets the Mushroom card as its `options`, and auto-entities adds
-    `entity` to it, which the templates read.
+    Built by a template rather than include/options so that each card can carry a
+    tap action to its own card's view, which needs the card title at build time. The
+    Mushroom templates for the text still run in the Mushroom card, with `entity` set.
+    `sort` takes the auto-entities shape: method state|attribute, attribute, numeric,
+    reverse.
     """
-    options = template_card(primary, secondary, icon)
+    sort = sort or {"method": "state", "numeric": True, "reverse": True}
+    if sort.get("method") == "attribute":
+        key = f"s.attributes.get('{sort['attribute']}')"
+    else:
+        key = "s.state"
+    key = f"({key} | float(0))" if sort.get("numeric") else f"({key} | string)"
+    reverse = "true" if sort.get("reverse") else "false"
+    domains, where = _rows_query(
+        [{**inc, "domain": inc.get("domain", "sensor")} for inc in includes]
+    )
+    card = (
+        "{'type': 'custom:mushroom-template-card', 'entity': s.entity_id, "
+        f"'primary': '{_inner(primary)}', 'secondary': '{_inner(secondary)}', "
+        f"'icon': '{_inner(icon)}', 'icon_color': '{_inner(ICON_COLOR)}', "
+        f"'multiline_secondary': true, 'tap_action': {NAVIGATE}, 'sort': {key}}}"
+    )
+    loops = "".join(
+        f"{{% for s in states.{d} if s.state not in ['unavailable', 'unknown'] and ({where}) %}}"
+        f"{{% set ns.cards = ns.cards + [{card}] %}}{{% endfor %}}"
+        for d in domains
+    )
+    template = (
+        "{% set ns = namespace(cards=[]) %}"
+        + loops
+        + f"{{{{ ns.cards | sort(attribute='sort', reverse={reverse}) }}}}"
+    )
     return {
         "type": "custom:auto-entities",
         "card": {"type": "grid", "columns": 1, "square": False},
         "card_param": "cards",
         "show_empty": show_empty,
-        "filter": {
-            "include": [{**inc, "options": options} for inc in includes],
-            "exclude": [{"state": "unavailable"}, {"state": "unknown"}],
-        },
-        "sort": sort or {"method": "state", "numeric": True, "reverse": True},
+        "filter": {"template": template},
     }
 
 
@@ -212,7 +254,11 @@ def _jinja_where(inc: dict) -> str:
         else:
             parts.append(f"s.attributes.get('{key}') == {val!r}")
     if "state" in inc:
-        parts.append(f"(s.state | float(0)) {inc['state']}")
+        val = str(inc["state"])
+        if val[:1] in "<>" or val[:2] in ("==", "!="):
+            parts.append(f"(s.state | float(0)) {val}")
+        else:
+            parts.append(f"s.state == {val!r}")
     return " and ".join(parts)
 
 
@@ -270,6 +316,7 @@ def auto_rows(
         f"{{% for s in states.{d} if s.state not in ['unavailable', 'unknown'] and ({where}) %}}"
         "{% set c = s.attributes.get('color') or 'grey' %}"
         "{% set ns.rows = ns.rows + [{'entity': s.entity_id, 'name': " + label + ", "
+        "'tap_action': " + NAVIGATE + ", "
         "'card_mod': {'style': " + style + "}}] %}"
         "{% endfor %}"
         for d in domains
@@ -699,8 +746,8 @@ def period_rings(card_id: str | None = None, *, size: int = 118, columns: int = 
         "{% endfor %}"
         "{% set ns.cards = ns.cards + [{'type': 'markdown', "
         "'title': s.attributes.get('benefit'), "
-        "'content': '**' ~ seg.got ~ '/' ~ n ~ '**<br><span style='font-size: 0.8em; "
-        "color: var(--secondary-text-color)'>' ~ seg.done ~ ' decided</span>', "
+        "'content': '**' ~ seg.got ~ '/' ~ n ~ '**<br><span style=\"font-size: 0.8em; "
+        "color: var(--secondary-text-color)\">' ~ seg.done ~ ' decided</span>', "
         f"'card_mod': {{'style': '{style}'}}, "
         "'sort': (0 if ps[0].outcome else 1) ~ s.attributes.get('benefit')}] %}"
         "{% endfor %}"
