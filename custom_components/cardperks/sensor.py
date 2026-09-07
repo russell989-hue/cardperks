@@ -14,6 +14,7 @@ from .const import (
     SUBENTRY_CARD,
     SUBENTRY_OWNER,
     BenefitStatus,
+    BenefitType,
 )
 from .coordinator import CardPerksConfigEntry, CardPerksCoordinator
 from .entity import BenefitEntity, CardEntity, CardPerksEntity, OwnerEntity, owner_device_info
@@ -158,14 +159,26 @@ class BenefitStatusSensor(BenefitEntity, SensorEntity):
         inst = self.instance
         if inst is None:
             return {}
+        days = None
+        if inst.period_end:
+            days = (date.fromisoformat(inst.period_end) - self.coordinator.data.today).days
+        b = self.benefit
         return {
             **self.card_attributes,
-            "benefit": self.benefit.label,
+            "benefit": b.label,
             "benefit_id": self.benefit_id,
             "amount": inst.amount,
             "amount_used": inst.amount_used,
             "period_start": inst.period_start,
             "period_end": inst.period_end,
+            "days_left": days,
+            "cadence": str(b.cadence),
+            # Sign-up bonuses: what you get and what it takes.
+            "bonus": f"{b.amount:,.0f} {b.unit}"
+            if b.type is BenefitType.EARNING and b.amount
+            else None,
+            "spend_required": b.spend_required,
+            "spend_window_days": b.expires_days_after_open,
         }
 
 

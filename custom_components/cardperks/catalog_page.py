@@ -11,7 +11,7 @@ import html
 import json
 from datetime import date
 
-from .const import BenefitType, Cadence, ResetRule, SpendCategory
+from .const import AppliesTo, BenefitType, Cadence, ResetRule, SpendCategory
 from .models import Benefit, Catalog
 
 CADENCE_WORDS = {
@@ -299,6 +299,42 @@ def render_catalog(
         "</div></section>"
     )
     sections.insert(0, best_card)
+
+    # Adding an authorized user: what it costs and what the second card actually gets.
+    au_rows = []
+    for p in sorted(
+        catalog.products.values(), key=lambda p: (p.id not in owned, p.issuer_name, p.name)
+    ):
+        held = p.id in owned
+        gets = [
+            b.name + (" (own allotment)" if b.applies_to is AppliesTo.AU_OWN_ALLOTMENT else "")
+            for b in p.benefits
+            if b.applies_to is not AppliesTo.PRIMARY
+        ]
+        au_rows.append(
+            f'<tr class="{"held" if held else "not-held"}">'
+            f'<td class="b-name"><div class="b-title"><a href="#{_esc(p.id)}">{_esc(p.name)}</a>'
+            f"{' <span class="chip chip-held">held</span>' if held else ''}</div>"
+            f'<div class="b-notes">{_esc(p.issuer_name)}</div></td>'
+            f'<td class="num">{_money(p.au_terms.fee) if p.au_terms.fee else "Free"}</td>'
+            f"<td>{'Yes' if p.au_terms.own_lounge_access else 'No'}</td>"
+            f"<td>{_esc('; '.join(gets)) if gets else '<span class="muted">Nothing of its own listed</span>'}</td>"
+            f'<td class="b-notes">{_esc(p.au_terms.notes or "")}</td>'
+            "</tr>"
+        )
+    au_section = (
+        '<section class="product lookup" id="authorized-users">'
+        '<header class="p-head"><div><p class="eyebrow">Before you add someone</p>'
+        "<h2>Adding an authorized user</h2>"
+        '<p class="p-meta">What a second card costs and what it gets in its own right, from '
+        "each issuer's page. Statement credits are almost never doubled; lounge access and "
+        "elite status sometimes are. Cards you hold come first.</p></div></header>"
+        '<div class="table-wrap"><table>'
+        '<thead><tr><th>Card</th><th class="num">AU fee</th><th>Own lounge access</th>'
+        "<th>The authorized user gets</th><th>Notes</th></tr></thead>"
+        f"<tbody>{''.join(au_rows)}</tbody></table></div></section>"
+    )
+    sections.insert(1, au_section)
     lookup_json = json.dumps(lookup).replace("</", "<\\/")
 
     summary = f"{total_products} products"

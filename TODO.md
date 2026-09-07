@@ -79,8 +79,11 @@ makes the Club All Access authorized-user passes real, and that link is a note t
 - [x] Best-card lookup for a purchase (2026-09-06): on the catalog page, over the
       shared spend categories, ranked by multiplier times the viewer's cents per point.
       Rotating categories (activations are stored) are not in the ranking yet.
-- [ ] Sign-up bonus tracker and 5/24 view (the entities exist).
-- [ ] Authorized-user comparison view.
+- [x] Sign-up bonus tracker and 5/24 view on the Analysis tab (2026-09-06). Both need
+      open dates on the cards to say anything: a bonus has no deadline and a card does
+      not count toward 5/24 without one.
+- [x] Authorized-user comparison on the catalog page (2026-09-06): AU fee, own lounge
+      access, what the second card gets, held cards first.
 - [ ] Default point valuations (MR, UR, Capital One, United, Southwest) or "use community
       rates". The best-card lookup starts every currency at one cent and lets the viewer
       change it; the sign-up bonus tracker would need the same figures.
@@ -99,7 +102,8 @@ makes the Club All Access authorized-user passes real, and that link is a note t
 
 ## Publish
 
-- [ ] HACS validation job in CI (needs the brands assets merged and a public repo).
+- [~] HACS validation job in CI (2026-09-06), with the brands check ignored since the icon
+      ships in the integration. Some checks may only pass once the repo is public.
 - [x] Integration icon: shipped in `custom_components/cardperks/brand/` (2026-09-06), which
       Home Assistant 2026.3+ serves itself. The home-assistant/brands PR is only needed for
       installs older than that; assets stay ready in `brands/cardperks/`.

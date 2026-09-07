@@ -28,10 +28,12 @@ from build_sections import (
     coverage,
     expiring,
     fees,
+    five_24,
     net_value,
     outstanding,
     perk_values,
     shared_perks,
+    signup_bonuses,
     statuses,
     where_big_dollars_went,
     worth_it,
@@ -305,6 +307,8 @@ def analysis() -> dict:
             span(fees(), 1),
             span(where_big_dollars_went(), 2),
             span(by_year(), 2),
+            span(signup_bonuses(), 2),
+            span(five_24(), 2),
         ],
     }
 

@@ -33,6 +33,9 @@ async def test_catalog_page_is_served(
     assert '"rates": [{"c": "dining", "x": 3.0, "n": "Restaurants worldwide"}' in body
     assert "Earns Test points: <span" in body and "3&times; dining</span>" in body
     assert "1&times; everything else</span>." in body
+    # Adding an authorized user: the premium card's AU terms and AU-facing benefits.
+    assert 'id="authorized-users"' in body and "Lounge access" in body
+    assert '<td class="num">$50</td><td>Yes</td>' in body
 
     css = await client.get("/cardperks/static/fonts.css")
     assert css.status == 200 and "Newsreader" in await css.text()

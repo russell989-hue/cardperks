@@ -661,3 +661,12 @@ async def test_card_status_freezes_and_cancels(hass, setup_integration: MockConf
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert hass.states.get(status).state == "cancelled"
+
+
+async def test_sign_up_bonus_attributes(hass, setup_integration: MockConfigEntry):
+    """A sign-up bonus status carries what it pays, what it takes and the deadline."""
+    st = hass.states.get(_eid(hass, "sensor", f"{CARD_ID}_sub_status"))
+    a = st.attributes
+    assert a["cadence"] == "one_time" and a["spend_required"] == 4000
+    assert a["spend_window_days"] == 90 and a["bonus"]
+    assert a["period_end"] == "2026-09-29" and a["days_left"] == 24

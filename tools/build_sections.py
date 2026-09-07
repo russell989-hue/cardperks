@@ -280,6 +280,82 @@ def by_year() -> dict:
     )
 
 
+def signup_bonuses() -> dict:
+    """Every sign-up bonus in the household: earned, or what is left to spend and by when.
+    Cards without an open date have no deadline, and the row says so."""
+    template = (
+        "{% set ns = namespace(cards=[]) %}"
+        "{% for s in states.sensor if s.attributes.get('kind') == 'benefit_status' "
+        f"and s.attributes.get('cadence') == 'one_time' and {ONLY_ACTIVE} %}}"
+        "{% set used = s.state == 'used' %}"
+        "{% set spend = s.attributes.get('spend_required') %}"
+        "{% set end = s.attributes.get('period_end') %}"
+        "{% set days = s.attributes.get('days_left') %}"
+        "{% set window = s.attributes.get('spend_window_days') %}"
+        "{% if used %}{% set text = 'Earned' %}"
+        "{% elif s.state == 'n_a' %}{% set text = 'Not applicable' %}"
+        "{% elif end %}{% set text = 'Spend $' ~ (spend | round(0) | int if spend else '?') ~ ' by ' ~ end "
+        "~ ((' · ' ~ days ~ ' days left') if days is not none and days >= 0 else ' · window closed') %}"
+        "{% else %}{% set text = 'Spend $' ~ (spend | round(0) | int if spend else '?') "
+        "~ (' within ' ~ window ~ ' days of opening' if window else '') "
+        "~ ' · set the open date to get a deadline' %}{% endif %}"
+        "{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', "
+        "'entity': s.entity_id, "
+        "'primary': s.attributes.get('card') ~ ' · ' ~ (s.attributes.get('bonus') or 'sign-up bonus'), "
+        "'secondary': text, "
+        "'icon': 'mdi:check-circle-outline' if used else ('mdi:minus-circle-outline' if s.state == 'n_a' else 'mdi:rocket-launch-outline'), "
+        "'icon_color': 'green' if used else ('grey' if s.state == 'n_a' else (s.attributes.get('color') or 'amber')), "
+        "'multiline_secondary': true, "
+        "'sort': (2 if used else (3 if s.state == 'n_a' else (0 if end else 1))) ~ (end or '') ~ s.attributes.get('card')}] %}"
+        "{% endfor %}"
+        "{{ ns.cards | sort(attribute='sort') }}"
+    )
+    return wide_section(
+        [
+            heading("Sign-up bonuses", "mdi:rocket-launch-outline"),
+            note(
+                "What each card's welcome offer takes and by when, from the catalog and the "
+                "card's open date. Mark a bonus used on its card page once the points post; "
+                "the amounts here are the catalog's offer at verification time, and offers change."
+            ),
+            _template_cards(template, columns=2, show_empty=True),
+        ]
+    )
+
+
+def five_24() -> dict:
+    """Chase's 5/24 rule per owner: personal cards opened in the last 24 months."""
+    template = (
+        "{% set ns = namespace(cards=[]) %}"
+        "{% for s in states.sensor if s.attributes.get('kind') == 'five_24' "
+        "and s.state not in ['unknown', 'unavailable'] %}"
+        "{% set n = s.state | int(0) %}"
+        "{% set under = s.attributes.get('under_5_24') %}"
+        "{% set accts = s.attributes.get('accounts') or [] %}"
+        "{% set ns.cards = ns.cards + [{'type': 'custom:mushroom-template-card', "
+        "'entity': s.entity_id, "
+        "'primary': s.attributes.get('owner') ~ ': ' ~ n ~ ' of 5', "
+        "'secondary': (accts | join(', ')) if accts else 'No personal cards with an open date in the last 24 months', "
+        "'icon': 'mdi:counter', "
+        "'icon_color': 'green' if under else 'red', "
+        "'multiline_secondary': true, "
+        "'sort': s.attributes.get('owner')}] %}"
+        "{% endfor %}"
+        "{{ ns.cards | sort(attribute='sort') }}"
+    )
+    return wide_section(
+        [
+            heading("5/24", "mdi:counter"),
+            note(
+                "Chase declines most applications from anyone who opened five or more personal "
+                "cards in the past 24 months, at any issuer. Only cards with an open date "
+                "count here, and business cards from most issuers do not report."
+            ),
+            _template_cards(template, columns=1, show_empty=True),
+        ]
+    )
+
+
 def statuses() -> dict:
     """Every elite status in the household, soonest to lapse first."""
     return {
