@@ -165,9 +165,10 @@ def build_view(card: dict) -> dict:
             heading("Credits by period", "mdi:chart-donut"),
             note(
                 "One ring per benefit, a slice per period this year (the calendar year, or "
-                "the cardmember year for anniversary credits). Green captured, amber partly "
-                "used, red forfeited, grey unknown (no statement for that month), blue-grey "
-                "in progress; dim slices are still to come. A past period nobody claimed counts as forfeited."
+                "the cardmember year for anniversary credits). Green captured, blue-grey partly "
+                "used, red forfeited, grey unknown (no statement for that month); dim is the "
+                "period in progress with nothing used yet, or still to come. A past period "
+                "nobody claimed counts as forfeited."
             ),
             period_rings(card_id),
             {
@@ -175,11 +176,10 @@ def build_view(card: dict) -> dict:
                 "text_only": True,
                 "content": (
                     '<span style="color: var(--cardperks-captured, var(--green-color))">●</span> captured '
-                    '<span style="color: var(--cardperks-partial, var(--amber-color))">●</span> partly used '
+                    '<span style="color: var(--cardperks-partial, var(--blue-grey-color))">●</span> partly used '
                     '<span style="color: var(--cardperks-forfeited, var(--red-color))">●</span> forfeited '
                     '<span style="color: var(--cardperks-unknown, var(--grey-color))">●</span> unknown '
-                    '<span style="color: var(--cardperks-open, var(--blue-grey-color))">●</span> in progress '
-                    '<span style="color: var(--divider-color)">●</span> to come'
+                    '<span style="color: var(--divider-color)">●</span> in progress or to come'
                 ),
             },
         ]

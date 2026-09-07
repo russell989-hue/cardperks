@@ -692,10 +692,10 @@ def missed_list(*, min_amount: float) -> dict:
 
 OUTCOME_COLORS = {
     "captured": "var(--cardperks-captured, var(--green-color))",
-    "partial": "var(--cardperks-partial, var(--amber-color))",
+    "partial": "var(--cardperks-partial, var(--blue-grey-color))",
     "forfeited": "var(--cardperks-forfeited, var(--red-color))",
     "unknown": "var(--cardperks-unknown, var(--grey-color))",
-    "open": "var(--cardperks-open, var(--blue-grey-color))",
+    "open": "var(--divider-color)",
     "future": "var(--divider-color)",
     "na": "var(--divider-color)",
 }
@@ -706,9 +706,9 @@ def period_rings(card_id: str | None = None, *, size: int = 118, columns: int = 
 
     Every benefit status sensor carries `periods`, a list the coordinator builds, so
     this is one short template for any card and any cadence: twelve slices for a
-    monthly credit, two for a half-yearly one, one for a yearly. Green captured, amber
-    partial, red forfeited, grey unknown, blue-grey in progress, dim for periods still
-    to come. The centre counts captured periods over the periods that have started;
+    monthly credit, two for a half-yearly one, one for a yearly. Green captured, blue-grey
+    partly used, red forfeited, grey unknown, dim for the period in progress with
+    nothing used yet and for periods still to come. The centre counts captured periods over the periods that have started;
     the card title names the benefit. A past period with nothing recorded is forfeited.
     """
     colours = "{" + ", ".join(f"'{k}': '{v}'" for k, v in OUTCOME_COLORS.items()) + "}"

@@ -46,8 +46,7 @@ CardPerks:
   cardperks-captured: "#1d6b4e"
   cardperks-forfeited: "#b3403a"
   cardperks-unknown: "#9aa3b2"
-  cardperks-partial: "#c9962b"
-  cardperks-open: "#5b7a99"
+  cardperks-partial: "#5b7a99"
 
   card-mod-theme: CardPerks
   card-mod-card: |
@@ -84,8 +83,7 @@ CardPerks:
       cardperks-captured: "#6fcf9a"
       cardperks-forfeited: "#e07a72"
       cardperks-unknown: "#6b7482"
-      cardperks-partial: "#d9ad4a"
-      cardperks-open: "#7f9fbf"
+      cardperks-partial: "#7f9fbf"
       primary-background-color: "#14171c"
       secondary-background-color: "#1b1f26"
       card-background-color: "#1b1f26"
