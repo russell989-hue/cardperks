@@ -170,6 +170,18 @@ def build_view(card: dict) -> dict:
                 "in progress; dim slices are still to come or before tracking began."
             ),
             period_rings(card_id),
+            {
+                "type": "markdown",
+                "text_only": True,
+                "content": (
+                    '<span style="color: var(--cardperks-captured, var(--green-color))">●</span> captured '
+                    '<span style="color: var(--cardperks-partial, var(--amber-color))">●</span> partly used '
+                    '<span style="color: var(--cardperks-forfeited, var(--red-color))">●</span> forfeited '
+                    '<span style="color: var(--cardperks-unknown, var(--grey-color))">●</span> unknown '
+                    '<span style="color: var(--cardperks-open, var(--blue-grey-color))">●</span> in progress '
+                    '<span style="color: var(--divider-color)">●</span> to come'
+                ),
+            },
         ]
     )
 
